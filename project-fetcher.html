@@ -232,57 +232,67 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
   padding:10px 24px 20px;
 }
 
-/* Subtle "shortcuts" button in the foot */
-.kbd-hint-btn{
-  display:inline-flex;align-items:center;gap:7px;margin-top:10px;
-  border:1px solid transparent;background:transparent;cursor:pointer;
-  color:var(--ink-faint);font-family:inherit;font-size:12px;
-  padding:5px 10px;border-radius:999px;
-  transition:color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+/* Floating shortcuts bubble — bottom-right glass pill that springs open into an
+   oblong panel and shrinks back into the pill. Bouncy "back" easing throughout. */
+.kbd-bubble{
+  position:fixed;right:22px;bottom:20px;z-index:210;
+  width:132px;
+  display:flex;flex-direction:column;
+  border-radius:17px;
+  background:color-mix(in srgb, var(--surface) 58%, transparent);
+  -webkit-backdrop-filter:blur(16px) saturate(1.6);
+  backdrop-filter:blur(16px) saturate(1.6);
+  border:1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  box-shadow:0 6px 22px -10px rgba(0,0,0,.32);
+  overflow:hidden;
+  transition:width 380ms cubic-bezier(.34,1.56,.64,1),
+             border-radius 380ms cubic-bezier(.34,1.56,.64,1),
+             box-shadow var(--dur-base) var(--ease);
 }
-.kbd-hint-btn:hover{color:var(--ink-soft);background:var(--surface);}
-
-/* Keyboard shortcuts overlay */
-.kbd-help{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;padding:24px;}
-.kbd-help[hidden]{display:none;}
-.kbd-scrim{
-  position:absolute;inset:0;
-  background:color-mix(in srgb, var(--ink) 45%, transparent);
-  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+.kbd-bubble.open{
+  width:290px;border-radius:20px;
+  box-shadow:0 18px 48px -14px rgba(0,0,0,.5);
 }
-.kbd-card{
-  position:relative;z-index:1;width:100%;max-width:440px;
-  background:var(--bg);border:1px solid var(--border);border-radius:var(--r-lg);
-  box-shadow:var(--shadow-md);overflow:hidden;
-  animation:kbd-in 180ms var(--ease);
+/* height reveal via the 0fr->1fr grid trick */
+.kbd-bubble-list{
+  display:grid;grid-template-rows:0fr;
+  transition:grid-template-rows 380ms cubic-bezier(.34,1.56,.64,1);
 }
-@keyframes kbd-in{from{opacity:0;transform:translateY(6px) scale(.99);}to{opacity:1;transform:none;}}
-.kbd-head{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:13px 16px;border-bottom:1px solid var(--border);
-  font-size:13.5px;font-weight:600;color:var(--ink);
+.kbd-bubble.open .kbd-bubble-list{grid-template-rows:1fr;}
+.kbd-bubble-list-inner{overflow:hidden;min-height:0;}
+.kbd-bubble-body{
+  padding:15px 16px 8px;display:flex;flex-direction:column;gap:15px;
+  opacity:0;transform:translateY(10px) scale(.98);
+  transition:opacity 200ms var(--ease), transform 360ms cubic-bezier(.34,1.56,.64,1);
 }
-.kbd-close{
-  border:none;background:transparent;cursor:pointer;color:var(--ink-soft);
-  font-size:20px;line-height:1;padding:0 4px;border-radius:8px;
-  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+.kbd-bubble.open .kbd-bubble-body{opacity:1;transform:none;}
+.kbd-bubble-toggle{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  border:none;background:transparent;cursor:pointer;width:100%;
+  color:var(--ink-soft);font-family:inherit;font-size:12.5px;font-weight:500;
+  padding:11px 14px;
+  transition:color var(--dur-fast) var(--ease), border-color var(--dur-base) var(--ease);
+  border-top:1px solid transparent;
 }
-.kbd-close:hover{background:var(--surface);color:var(--ink);}
-.kbd-body{padding:14px 16px 18px;display:flex;flex-direction:column;gap:18px;}
+.kbd-bubble-toggle:hover{color:var(--ink);}
+.kbd-bubble-toggle svg{color:var(--ink-faint);flex:0 0 auto;transition:color var(--dur-fast) var(--ease);}
+.kbd-bubble-toggle:hover svg{color:var(--accent);}
+.kbd-bubble-toggle:active{transform:scale(.95);}
+.kbd-bubble.open .kbd-bubble-toggle{border-top-color:color-mix(in srgb, var(--ink) 9%, transparent);}
 .kbd-group-title{
   font-size:11px;text-transform:uppercase;letter-spacing:.05em;
   color:var(--ink-faint);margin-bottom:9px;
 }
 .kbd-row{
-  display:flex;align-items:center;justify-content:space-between;gap:14px;
-  font-size:13px;color:var(--ink-soft);padding:3px 0;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  font-size:12px;color:var(--ink-soft);padding:2.5px 0;
 }
 .kbd-dim{color:var(--ink-faint);}
-.kbd-keys{display:inline-flex;gap:5px;flex:0 0 auto;}
+.kbd-keys{display:inline-flex;gap:4px;flex:0 0 auto;}
 .kbd-keys kbd{
-  font-family:inherit;font-size:11px;color:var(--ink);
+  font-family:inherit;font-size:10.5px;color:var(--ink);
   background:var(--surface);border:1px solid var(--border-strong);
-  border-bottom-width:2px;border-radius:6px;padding:2px 7px;min-width:20px;text-align:center;
+  border-bottom-width:2px;border-radius:5px;padding:2px 6px;min-width:18px;text-align:center;line-height:1.3;
 }
 
 @media (max-width:560px){
@@ -413,40 +423,38 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
           <p class="chips-legend"><span class="chips-legend-dot"></span>available now · the rest are coming soon</p>
         </div>
       </div>
-      <button class="kbd-hint-btn" id="kbd-hint-btn" title="Keyboard shortcuts (?)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>
-        <span>shortcuts</span>
-      </button>
     </div>
   </main>
 </div>
 
-<!-- Keyboard shortcuts overlay (toggle with ?). -->
-<div class="kbd-help" id="kbd-help" hidden>
-  <div class="kbd-scrim" data-close></div>
-  <div class="kbd-card" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
-    <div class="kbd-head">
-      <span>keyboard shortcuts</span>
-      <button class="kbd-close" id="kbd-close" aria-label="Close">×</button>
-    </div>
-    <div class="kbd-body">
-      <div class="kbd-group">
-        <div class="kbd-group-title">fetch page</div>
-        <div class="kbd-row"><span>focus the link field</span><span class="kbd-keys"><kbd>/</kbd></span></div>
-        <div class="kbd-row"><span>fetch the link</span><span class="kbd-keys"><kbd>Enter</kbd></span></div>
-        <div class="kbd-row"><span>cancel a fetch · clear the field</span><span class="kbd-keys"><kbd>Esc</kbd></span></div>
-        <div class="kbd-row"><span>switch video / audio</span><span class="kbd-keys"><kbd>Tab</kbd><kbd>Space</kbd></span></div>
-        <div class="kbd-row"><span>show / hide this help</span><span class="kbd-keys"><kbd>?</kbd></span></div>
-      </div>
-      <div class="kbd-group">
-        <div class="kbd-group-title">trim viewer (vods)</div>
-        <div class="kbd-row"><span>play / pause</span><span class="kbd-keys"><kbd>Space</kbd></span></div>
-        <div class="kbd-row"><span>seek ∓1s <span class="kbd-dim">(⇧ = 5s)</span></span><span class="kbd-keys"><kbd>←</kbd><kbd>→</kbd></span></div>
-        <div class="kbd-row"><span>set start / end here</span><span class="kbd-keys"><kbd>I</kbd><kbd>O</kbd></span></div>
-        <div class="kbd-row"><span>jump to start / end</span><span class="kbd-keys"><kbd>Home</kbd><kbd>End</kbd></span></div>
+<!-- Floating shortcuts bubble — bottom-right glass pill that springs open into a
+     panel of shortcuts and shrinks back when you click away (toggle: ? key). -->
+<div class="kbd-bubble" id="kbd-bubble">
+  <div class="kbd-bubble-list">
+    <div class="kbd-bubble-list-inner">
+      <div class="kbd-bubble-body">
+        <div class="kbd-group">
+          <div class="kbd-group-title">fetch page</div>
+          <div class="kbd-row"><span>focus the link field</span><span class="kbd-keys"><kbd>/</kbd></span></div>
+          <div class="kbd-row"><span>fetch the link</span><span class="kbd-keys"><kbd>Enter</kbd></span></div>
+          <div class="kbd-row"><span>cancel · clear the field</span><span class="kbd-keys"><kbd>Esc</kbd></span></div>
+          <div class="kbd-row"><span>switch video / audio</span><span class="kbd-keys"><kbd>Tab</kbd><kbd>Space</kbd></span></div>
+          <div class="kbd-row"><span>show / hide shortcuts</span><span class="kbd-keys"><kbd>?</kbd></span></div>
+        </div>
+        <div class="kbd-group">
+          <div class="kbd-group-title">trim viewer (vods)</div>
+          <div class="kbd-row"><span>play / pause</span><span class="kbd-keys"><kbd>Space</kbd></span></div>
+          <div class="kbd-row"><span>seek ∓1s <span class="kbd-dim">(⇧ 5s)</span></span><span class="kbd-keys"><kbd>←</kbd><kbd>→</kbd></span></div>
+          <div class="kbd-row"><span>set start / end here</span><span class="kbd-keys"><kbd>I</kbd><kbd>O</kbd></span></div>
+          <div class="kbd-row"><span>jump to start / end</span><span class="kbd-keys"><kbd>Home</kbd><kbd>End</kbd></span></div>
+        </div>
       </div>
     </div>
   </div>
+  <button class="kbd-bubble-toggle" id="kbd-bubble-toggle" aria-expanded="false" aria-label="Keyboard shortcuts">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>
+    <span>shortcuts</span>
+  </button>
 </div>
 
 <script>
@@ -857,11 +865,14 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
   //   /    focus the link field       Esc  close help / cancel / clear
   //   ?    toggle this help
   // ---------------------------------------------------------------------
-  var kbdHelp = document.getElementById('kbd-help');
-  function toggleHelp(show){ kbdHelp.hidden = (show === undefined) ? !kbdHelp.hidden : !show; }
-  document.getElementById('kbd-hint-btn').addEventListener('click', function(){ toggleHelp(true); });
-  document.getElementById('kbd-close').addEventListener('click', function(){ toggleHelp(false); });
-  kbdHelp.addEventListener('click', function(e){ if (e.target.hasAttribute('data-close')) toggleHelp(false); });
+  var kbdBubble = document.getElementById('kbd-bubble');
+  var kbdToggle = document.getElementById('kbd-bubble-toggle');
+  function setHelp(open){ kbdBubble.classList.toggle('open', open); kbdToggle.setAttribute('aria-expanded', String(open)); }
+  function toggleHelp(show){ setHelp(show === undefined ? !kbdBubble.classList.contains('open') : show); }
+  var helpOpen = function(){ return kbdBubble.classList.contains('open'); };
+  kbdToggle.addEventListener('click', function(e){ e.stopPropagation(); toggleHelp(); });
+  // Click anywhere outside the bubble shrinks it back down.
+  document.addEventListener('click', function(e){ if (helpOpen() && !kbdBubble.contains(e.target)) setHelp(false); });
 
   document.addEventListener('keydown', function(e){
     var t = e.target, tag = t.tagName;
@@ -870,7 +881,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     if (e.key === '?' && !typing) { e.preventDefault(); toggleHelp(); return; }
 
     if (e.key === 'Escape') {
-      if (!kbdHelp.hidden) { toggleHelp(false); return; }
+      if (helpOpen()) { setHelp(false); return; }
       if (busy) { cancelFetch(); return; }               // cancel an in-flight fetch
       if (input.value) {                                  // otherwise clear the field
         input.value = '';
