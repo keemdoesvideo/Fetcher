@@ -14,6 +14,7 @@ INVALID_URL = "invalid_url"
 UNSUPPORTED_PROVIDER = "unsupported_provider"
 VIDEO_UNAVAILABLE = "video_unavailable"
 RESTRICTED = "restricted"
+LOGIN_REQUIRED = "login_required"
 BOT_CHECK = "bot_check"
 EXTRACTION_FAILED = "extraction_failed"
 MEDIA_UNAVAILABLE = "media_unavailable"
@@ -32,6 +33,7 @@ FRIENDLY = {
     UNSUPPORTED_PROVIDER: "fetcher can't fetch links from there yet",
     VIDEO_UNAVAILABLE: "that video isn't available — it may be private or removed",
     RESTRICTED: "that one's age- or login-restricted, so fetcher can't reach it",
+    LOGIN_REQUIRED: "instagram needs you to be logged in — enable cookies in the readme, then retry",
     BOT_CHECK: "youtube wants to verify fetcher isn't a bot — this video needs extra setup",
     EXTRACTION_FAILED: "fetcher couldn't read that video — give it another try",
     MEDIA_UNAVAILABLE: "that quality isn't available for this video",
@@ -50,6 +52,7 @@ HTTP_STATUS = {
     UNSUPPORTED_PROVIDER: 400,
     VIDEO_UNAVAILABLE: 404,
     RESTRICTED: 403,
+    LOGIN_REQUIRED: 403,
     BOT_CHECK: 403,
     EXTRACTION_FAILED: 502,
     MEDIA_UNAVAILABLE: 422,

@@ -40,6 +40,15 @@ JS_RUNTIMES: list[str] = [
     if r.strip()
 ]
 
+# --- Login cookies (opt-in; only used by providers that need it, e.g. Instagram)
+# yt-dlp's supported mechanisms — nothing is stored in the repo. Set ONE of:
+#   FETCHER_COOKIES_FROM_BROWSER = chrome | firefox | edge | brave  (optionally
+#       "chrome:Profile 1" for a specific profile) — reads the session from a
+#       browser you're already logged into.
+#   FETCHER_COOKIES_FILE = C:\path\to\cookies.txt  — an exported cookies file.
+COOKIES_FROM_BROWSER: str | None = os.environ.get("FETCHER_COOKIES_FROM_BROWSER") or None
+COOKIES_FILE: str | None = os.environ.get("FETCHER_COOKIES_FILE") or None
+
 # --- Job lifecycle ---------------------------------------------------------
 # How long a prepared job may sit before the stale sweeper reclaims it. Covers
 # abandoned downloads (user closed the tab before the browser fetched the file).

@@ -76,6 +76,9 @@ class YtdlpProvider(Provider):
 
     name = "ytdlp"
     ALLOWED_HOSTS: set[str] = set()
+    # Providers whose sites require login (Instagram) set this so configured
+    # cookies are applied only for them — never silently for YouTube etc.
+    USES_COOKIES = False
 
     def __init__(self):
         self.log = logging.getLogger(f"fetcher.{self.name}")
@@ -125,6 +128,14 @@ class YtdlpProvider(Provider):
             "progress_hooks": [self._make_progress_hook(job)],
             "postprocessor_hooks": [self._make_postprocessor_hook(job)],
         }
+        # Login cookies — only for providers that need them (e.g. Instagram),
+        # only if the user opted in. Never applied to sites that don't need it.
+        if self.USES_COOKIES:
+            if config.COOKIES_FROM_BROWSER:
+                opts["cookiesfrombrowser"] = tuple(config.COOKIES_FROM_BROWSER.split(":"))
+            if config.COOKIES_FILE:
+                opts["cookiefile"] = config.COOKIES_FILE
+
         # Section trim (e.g. a slice of a Twitch VOD): download only the segments
         # in range and cut precisely at the boundaries via FFmpeg.
         if job.section:
@@ -277,6 +288,10 @@ class YtdlpProvider(Provider):
 
         if has("sign in to confirm you", "not a bot", "po token", "po_token"):
             code = errors.BOT_CHECK
+        elif has("empty media response", "login required", "rate-limit reached or login",
+                 "cookies-from-browser", "requested content is not available",
+                 "use --cookies", "login to access"):
+            code = errors.LOGIN_REQUIRED
         elif has("confirm your age", "age-restricted", "age restricted",
                  "inappropriate for some", "members-only", "members only",
                  "join this channel", "ip address is blocked", "region",

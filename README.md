@@ -182,6 +182,40 @@ so concurrent downloads never collide, and nothing is stored permanently.
 | `FETCHER_FFMPEG_LOCATION` | (PATH) | Folder or path to `ffmpeg` |
 | `FETCHER_JOB_TTL` | `1800` | Seconds before an abandoned job is swept |
 | `FETCHER_PREPARE_TIMEOUT` | `360` | Max seconds for one prepare |
+| `FETCHER_COOKIES_FROM_BROWSER` | (none) | Browser to read login cookies from (Instagram) |
+| `FETCHER_COOKIES_FILE` | (none) | Path to a `cookies.txt` (Instagram) |
+
+---
+
+## Instagram (needs login)
+
+Instagram blocks logged-out access, so Fetcher can't grab reels/posts unless it
+uses **your** Instagram session. Without it you'll see *"instagram needs you to
+be logged in."* Nothing is stored in the repo — cookies stay on your machine.
+
+Pick **one** of these (set it before starting Fetcher), then log into Instagram
+in that browser:
+
+**A. Read cookies from a browser you're logged into (easiest):**
+```powershell
+$env:FETCHER_COOKIES_FROM_BROWSER = "firefox"
+python run.py
+```
+`firefox` is the most reliable on Windows. `chrome`/`edge`/`brave` also work but
+recent Chrome versions encrypt cookies in a way yt-dlp sometimes can't read — if
+Chrome fails, use Firefox or option B. For a specific profile:
+`"firefox:default-release"`.
+
+**B. Export a `cookies.txt` and point Fetcher at it:**
+Use a "Get cookies.txt" browser extension on instagram.com, save the file, then:
+```powershell
+$env:FETCHER_COOKIES_FILE = "C:\path\to\instagram-cookies.txt"
+python run.py
+```
+
+Fetcher applies these cookies **only** to Instagram, never to YouTube/TikTok/etc.
+Only public posts/reels/IGTV are supported (not stories or profiles). Treat
+whichever cookie source you use as sensitive — it's your logged-in session.
 
 ---
 

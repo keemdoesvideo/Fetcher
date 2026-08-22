@@ -9,15 +9,18 @@ changing. Resolution is "first provider that claims the URL wins".
 from __future__ import annotations
 
 from .base import Provider, ProviderResult
+from .instagram import InstagramProvider
 from .soundcloud import SoundCloudProvider
 from .tiktok import TikTokProvider
 from .twitch import TwitchProvider
 from .youtube import YouTubeProvider
 
 # Ordered registry — first provider that claims a URL wins. All yt-dlp-backed
-# via YtdlpProvider; SoundCloud is audio-only, Twitch is clips-only (see each).
+# via YtdlpProvider. SoundCloud is audio-only, Twitch is clips+VODs, Instagram
+# needs login cookies (opt-in).
 REGISTRY: list[Provider] = [
-    YouTubeProvider(), TikTokProvider(), SoundCloudProvider(), TwitchProvider(),
+    YouTubeProvider(), TikTokProvider(), SoundCloudProvider(),
+    TwitchProvider(), InstagramProvider(),
 ]
 
 
