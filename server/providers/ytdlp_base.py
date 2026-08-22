@@ -137,11 +137,16 @@ class YtdlpProvider(Provider):
                 opts["cookiefile"] = config.COOKIES_FILE
 
         # Section trim (e.g. a slice of a Twitch VOD): download only the segments
-        # in range and cut precisely at the boundaries via FFmpeg.
+        # in range and cut at keyframe boundaries. We deliberately DON'T force
+        # keyframes at the cuts — that path re-encodes and, for Twitch's HLS,
+        # produced a broken file (MPEG-2 video + MP3 mis-tagged as mp4a, which
+        # Windows refuses to play). A keyframe-aligned stream copy keeps the real
+        # H.264/AAC codecs intact; the trade-off is cuts land on the nearest
+        # keyframe (a second or two off exact) rather than frame-precise.
         if job.section:
             from yt_dlp.utils import download_range_func
             opts["download_ranges"] = download_range_func(None, [job.section])
-            opts["force_keyframes_at_cuts"] = True
+            opts["force_keyframes_at_cuts"] = False
         return opts, ydl_logger
 
     # --- progress + cancellation ------------------------------------------
