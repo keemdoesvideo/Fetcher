@@ -40,3 +40,8 @@ class PrepareRequest(BaseModel):
 
 # Prepare now returns a tiny {jobId, mode} dict and the client polls
 # /api/progress for status/percent, so there's no fixed response model here.
+
+
+class PreviewRequest(BaseModel):
+    """Open an HLS preview-proxy session for a long-form URL (VOD scrub-to-trim)."""
+    url: str = Field(..., min_length=1, max_length=2048)

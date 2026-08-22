@@ -21,13 +21,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from starlette.background import BackgroundTask
 
-from . import config, diagnostics, downloader, errors, timecode
+from . import config, diagnostics, downloader, errors, preview, timecode
 from . import jobs as jobstate
 from .jobs import JobCancelled, StaleSweeper, store
-from .models import PrepareRequest
+from .models import PrepareRequest, PreviewRequest
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,7 +44,10 @@ ALLOWED_ASSETS: dict[str, str] = {
     "about.html": "text/html; charset=utf-8",
     "updates.html": "text/html; charset=utf-8",
     "fetcher-theme.css": "text/css; charset=utf-8",
+    "fetcher-trimmer.css": "text/css; charset=utf-8",
     "fetcher-prefs.js": "application/javascript; charset=utf-8",
+    "fetcher-trimmer.js": "application/javascript; charset=utf-8",
+    "hls.min.js": "application/javascript; charset=utf-8",
 }
 
 _sweeper = StaleSweeper(
@@ -144,6 +147,42 @@ async def detect(url: str = ""):
         "modes": sorted(provider.MODES),
         "longForm": provider.long_form(url),   # UI shows the section-trim fields
     }
+
+
+# --- HLS preview proxy (VOD scrub-to-trim) --------------------------------
+@app.post("/api/preview")
+def preview_open(req: PreviewRequest):
+    """Open a preview session for a long-form URL and return its duration/title
+    plus the proxied playlist the browser's player will load."""
+    try:
+        provider = downloader.resolve_provider(req.url)
+        if not provider.long_form(req.url):
+            raise errors.FetcherError(errors.MEDIA_UNAVAILABLE,
+                                      detail="preview is only for long-form sources")
+        info = preview.resolve(req.url)
+    except errors.FetcherError as err:
+        return _error_response(err)
+    info["playlist"] = f"/api/preview/{info['previewId']}/index.m3u8"
+    return info
+
+
+@app.get("/api/preview/{pid}/index.m3u8")
+def preview_playlist(pid: str):
+    text = preview.proxy_playlist(pid)
+    if text is None:
+        return _error_response(errors.FetcherError(errors.JOB_NOT_FOUND))
+    return Response(content=text, media_type="application/vnd.apple.mpegurl",
+                    headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/preview/{pid}/seg/{name}")
+def preview_segment(pid: str, name: str):
+    result = preview.proxy_segment(pid, name)
+    if result is None:
+        return _error_response(errors.FetcherError(errors.JOB_NOT_FOUND))
+    chunks, media_type = result
+    return StreamingResponse(chunks, media_type=media_type,
+                             headers={"Cache-Control": "no-store"})
 
 
 @app.post("/api/prepare")

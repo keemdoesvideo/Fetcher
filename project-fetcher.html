@@ -7,6 +7,8 @@
 <title>Project Fetcher</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317171a'/%3E%3Cpath d='M16 8v13M10 15l6 6 6-6' stroke='%23fafaf8' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="fetcher-theme.css">
+<link rel="stylesheet" href="fetcher-trimmer.css">
+<script src="fetcher-trimmer.js"></script>
 <style>
 /* ---------- Main (page-specific) ---------- */
 .main{flex:1;height:100%;position:relative;display:flex;flex-direction:column;overflow:hidden;}
@@ -125,6 +127,17 @@
 /* Section trim (VODs) — appears between the URL row and the controls. */
 .vod-trim{ margin-top:12px; }
 .vod-trim[hidden]{ display:none; }
+.vod-trim-row{ display:flex;align-items:center;gap:9px;flex-wrap:wrap; }
+.vod-pick{
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid var(--border);border-radius:var(--r-md);
+  background:var(--surface);color:var(--ink);
+  padding:8px 13px;font-family:inherit;font-size:13px;cursor:pointer;
+  transition:border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.vod-pick:hover{border-color:var(--border-strong);}
+.vod-pick:active{transform:scale(.97);}
+.vod-pick svg{color:var(--accent);flex:0 0 auto;}
 .vod-trim-fields{
   display:flex;align-items:center;gap:8px;
   border:1px solid var(--border);border-radius:var(--r-md);
@@ -334,15 +347,21 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
 
         <!-- Section trim — shown only for long-form sources (e.g. Twitch VODs). -->
         <div class="vod-trim" id="vod-trim" hidden>
-          <div class="vod-trim-fields">
-            <span class="vod-trim-icon" aria-hidden="true">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            </span>
-            <input class="vod-input" id="vod-start" type="text" placeholder="start" aria-label="start time" autocomplete="off" spellcheck="false" inputmode="numeric">
-            <span class="vod-dash">–</span>
-            <input class="vod-input" id="vod-end" type="text" placeholder="end" aria-label="end time" autocomplete="off" spellcheck="false" inputmode="numeric">
+          <div class="vod-trim-row">
+            <div class="vod-trim-fields">
+              <span class="vod-trim-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              </span>
+              <input class="vod-input" id="vod-start" type="text" placeholder="start" aria-label="start time" autocomplete="off" spellcheck="false" inputmode="numeric">
+              <span class="vod-dash">–</span>
+              <input class="vod-input" id="vod-end" type="text" placeholder="end" aria-label="end time" autocomplete="off" spellcheck="false" inputmode="numeric">
+            </div>
+            <button class="vod-pick" id="vod-pick" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="14" height="14" rx="2.5"/><path d="m21 8-4.5 3.2v1.6L21 16V8Z"/></svg>
+              <span>pick on video</span>
+            </button>
           </div>
-          <p class="vod-trim-hint">trim a section (m:ss or h:mm:ss), or leave blank for the whole vod — full vods can be very large</p>
+          <p class="vod-trim-hint">type a section (m:ss or h:mm:ss) or <b>pick on video</b>, or leave blank for the whole vod — full vods can be very large</p>
         </div>
 
         <div class="controls-row">
@@ -483,10 +502,26 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
   var vodTrim = document.getElementById('vod-trim');
   var vodStart = document.getElementById('vod-start');
   var vodEnd = document.getElementById('vod-end');
+  var vodPick = document.getElementById('vod-pick');
   function applyLongForm(on){
     vodTrim.hidden = !on;
     if (!on) { vodStart.value = ''; vodEnd.value = ''; }
   }
+  function fmtSecs(s){
+    s = Math.max(0, Math.floor(s || 0));
+    var h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+    var mm = h ? String(m).padStart(2,'0') : String(m);
+    return (h ? h+':' : '') + mm + ':' + String(sec).padStart(2,'0');
+  }
+  // Open the scrub-to-trim viewer; on confirm it fills the start/end fields.
+  vodPick.addEventListener('click', function(){
+    var url = input.value.trim();
+    if (!url || !window.FetcherTrimmer) return;
+    window.FetcherTrimmer.open(url, function(startSec, endSec){
+      vodStart.value = fmtSecs(startSec);
+      vodEnd.value = fmtSecs(endSec);
+    });
+  });
 
   // Debounced provider detection — asks the backend which modes this URL can
   // deliver and adapts the toggle. Stale responses are ignored via a sequence id.
