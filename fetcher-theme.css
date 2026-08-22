@@ -150,6 +150,15 @@ a{color:inherit;text-decoration:none;}
   to{opacity:1;transform:translateY(0);}
 }
 
+/* Cross-document view transitions: same-origin page navigations crossfade the
+   content while named elements (the rail, and the active-page pill) persist and
+   morph — a constant sidebar + a sliding highlight, no SPA needed. Browsers
+   without support just navigate normally. */
+@view-transition{ navigation:auto; }
+::view-transition-group(nav-pill){ animation-duration:360ms; animation-timing-function:cubic-bezier(.34,1.56,.64,1); }
+::view-transition-old(root),
+::view-transition-new(root){ animation-duration:240ms; }
+
 /* ---------- Sidebar (identical on every page) ---------- */
 .rail{
   width:88px;
@@ -163,6 +172,7 @@ a{color:inherit;text-decoration:none;}
   padding:14px 0 18px;
   transition:width var(--dur-base) var(--ease-bounce), flex-basis var(--dur-base) var(--ease-bounce), background var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
   position:relative;
+  view-transition-name:rail;   /* persists across page transitions (doesn't crossfade) */
 }
 .rail.collapsed{width:64px;flex-basis:64px;}
 
@@ -213,13 +223,19 @@ a{color:inherit;text-decoration:none;}
 .rail.collapsed .rail-btn span{opacity:0;max-height:0;overflow:hidden;}
 .rail.collapsed .rail-btn{height:44px;}
 
-.rail-btn.primary,
-.rail-btn.active{
-  background:var(--ink);color:var(--bg);
+/* Current-page highlight is a pill BEHIND the button content, so it can slide
+   between pages: its view-transition-name lets the browser morph it from the
+   old page's active item to the new one during a cross-document view transition. */
+.rail-btn > svg,
+.rail-btn > span{position:relative;z-index:1;}
+.rail-btn.active{color:var(--bg);}
+.rail-btn.active::before{
+  content:"";position:absolute;inset:0;z-index:0;
+  background:var(--ink);border-radius:var(--r-md);
   box-shadow:var(--shadow-sm);
+  view-transition-name:nav-pill;
 }
-.rail-btn.primary:hover,
-.rail-btn.active:hover{background:var(--ink-strong);}
+.rail-btn.active:hover::before{background:var(--ink-strong);}
 
 .rail-spacer{margin-top:auto;}
 
