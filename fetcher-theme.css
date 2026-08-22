@@ -142,20 +142,28 @@ a{color:inherit;text-decoration:none;}
   display:flex;
   overflow:hidden;
   background:var(--bg);
-  opacity:0;
-  animation:app-in 460ms var(--ease-bounce) forwards;
 }
-@keyframes app-in{
-  from{opacity:0;transform:translateY(6px);}
-  to{opacity:1;transform:translateY(0);}
-}
+/* Page transitions are handled by the cross-document view transition (the
+   content crossfades, the rail persists) — no whole-app entrance animation, so
+   nothing but the highlight pill moves between pages. */
 
 /* Cross-document view transitions: same-origin page navigations crossfade the
    content while named elements (the rail, and the active-page pill) persist and
    morph — a constant sidebar + a sliding highlight, no SPA needed. Browsers
    without support just navigate normally. */
 @view-transition{ navigation:auto; }
-::view-transition-group(nav-pill){ animation-duration:360ms; animation-timing-function:cubic-bezier(.34,1.56,.64,1); }
+/* The highlight pill slides between pages on a gentle speed-ramp — slow-in, ramp
+   through the middle, slow-out — overshooting its landing only ~2% before easing
+   back. Meant to be felt, not seen. (linear() lets us shape the whole ramp
+   rather than run one flat speed.) */
+::view-transition-group(nav-pill){
+  animation-duration:500ms;
+  animation-timing-function:linear(
+    0, 0.006, 0.024, 0.055, 0.1, 0.16, 0.235, 0.32, 0.415, 0.515, 0.61, 0.7,
+    0.78, 0.85, 0.905, 0.95, 0.984, 1.008, 1.018, 1.02, 1.015, 1.007, 1.001, 1);
+}
+/* Keep the rail itself steady (it only persists — no bounce) and crossfade the content. */
+::view-transition-group(rail){ animation-timing-function:var(--ease); }
 ::view-transition-old(root),
 ::view-transition-new(root){ animation-duration:240ms; }
 
