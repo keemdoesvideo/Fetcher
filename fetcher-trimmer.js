@@ -72,8 +72,8 @@
         '</div>' +
         '<div class="trim-timeline"><div class="trim-track">' +
           '<div class="trim-range"></div><div class="trim-playhead"></div>' +
-          '<div class="trim-handle trim-handle-start" data-handle="start"></div>' +
-          '<div class="trim-handle trim-handle-end" data-handle="end"></div>' +
+          '<div class="trim-handle trim-handle-start" data-handle="start" role="slider" tabindex="0" aria-label="Start point"></div>' +
+          '<div class="trim-handle trim-handle-end" data-handle="end" role="slider" tabindex="0" aria-label="End point"></div>' +
         '</div></div>' +
         '<div class="trim-foot">' +
           '<div class="trim-readout">' +
@@ -82,7 +82,7 @@
             '<input class="trim-time-input trim-in-end" type="text" aria-label="end time" inputmode="numeric" value="0:00">' +
             '<span class="trim-sel-dur"></span>' +
           '</div>' +
-          '<span class="trim-hint">drag the handles or type times · leave full for the whole vod</span>' +
+          '<span class="trim-hint">space play · ←/→ seek (⇧ = 5s) · I / O set start/end · or drag &amp; type</span>' +
         '</div>' +
       '</div>';
 
@@ -146,6 +146,39 @@
     }
     commit(dom.inStart, 'start');
     commit(dom.inEnd, 'end');
+
+    // Keyboard shortcuts (only while the viewer is open, and never while typing
+    // in a field): play/pause, seek, mark in/out, jump to edges. When a handle
+    // itself is focused, the arrows nudge that handle instead of seeking.
+    document.addEventListener('keydown', function (e) {
+      if (!isOpen()) return;
+      var t = e.target, tag = t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || t.isContentEditable) return;
+      var onHandle = (t === dom.hStart) ? 'start' : (t === dom.hEnd) ? 'end' : null;
+      var step = e.shiftKey ? 5 : 1;
+      switch (e.key) {
+        case ' ': case 'Spacebar':
+          if (tag === 'BUTTON') return;   // let a focused button's own space work
+          e.preventDefault();
+          if (dom.video.paused) { var p = dom.video.play(); if (p && p.catch) p.catch(function () {}); }
+          else dom.video.pause();
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          if (onHandle) { setEdge(onHandle, (onHandle === 'start' ? startT : endT) + step); previewSeek(onHandle === 'start' ? startT : endT); }
+          else seekTo(Math.min(duration, curT + step));
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (onHandle) { setEdge(onHandle, (onHandle === 'start' ? startT : endT) - step); previewSeek(onHandle === 'start' ? startT : endT); }
+          else seekTo(Math.max(0, curT - step));
+          break;
+        case 'i': case 'I': e.preventDefault(); setEdge('start', curT); break;
+        case 'o': case 'O': e.preventDefault(); setEdge('end', curT); break;
+        case 'Home': e.preventDefault(); seekTo(startT); break;
+        case 'End': e.preventDefault(); seekTo(endT); break;
+      }
+    });
 
     global.addEventListener('resize', function () { if (isOpen()) position(); });
   }
