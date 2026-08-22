@@ -33,6 +33,10 @@ class PrepareRequest(BaseModel):
     url: str = Field(..., min_length=1, max_length=2048)
     mode: Mode = "video"
     preferences: Preferences = Field(default_factory=Preferences)
+    # Optional time-range trim (long-form sources like Twitch VODs). Free-form
+    # timecodes (e.g. "1:23:00") parsed + validated server-side; blank = whole.
+    start: Optional[str] = Field(default=None, max_length=16)
+    end: Optional[str] = Field(default=None, max_length=16)
 
 # Prepare now returns a tiny {jobId, mode} dict and the client polls
 # /api/progress for status/percent, so there's no fixed response model here.

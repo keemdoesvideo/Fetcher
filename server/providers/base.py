@@ -37,6 +37,12 @@ class Provider:
     def supports(self, mode: str) -> bool:
         return mode in self.MODES
 
+    def long_form(self, url: str) -> bool:
+        """True if this URL can be very long (hours / many GB) — e.g. a full
+        Twitch VOD. The API grants such a full download a longer timeout, and the
+        UI offers a section trim. Default False (clips, tracks, normal videos)."""
+        return False
+
     def matches(self, url: str) -> bool:
         raise NotImplementedError
 

@@ -24,7 +24,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.background import BackgroundTask
 
-from . import config, diagnostics, downloader, errors
+from . import config, diagnostics, downloader, errors, timecode
 from . import jobs as jobstate
 from .jobs import JobCancelled, StaleSweeper, store
 from .models import PrepareRequest
@@ -101,7 +101,7 @@ def _run_job(job, url: str, mode: str, preferences) -> None:
         job.timed_out = True
         job.cancel_event.set()
 
-    timer = threading.Timer(config.PREPARE_TIMEOUT_SECONDS, _on_timeout)
+    timer = threading.Timer(job.timeout or config.PREPARE_TIMEOUT_SECONDS, _on_timeout)
     timer.daemon = True
     timer.start()
     try:
@@ -137,8 +137,13 @@ async def detect(url: str = ""):
     Always 200 — an unknown URL just reports unsupported."""
     provider = downloader.detect(url)
     if provider is None:
-        return {"supported": False, "provider": None, "modes": []}
-    return {"supported": True, "provider": provider.name, "modes": sorted(provider.MODES)}
+        return {"supported": False, "provider": None, "modes": [], "longForm": False}
+    return {
+        "supported": True,
+        "provider": provider.name,
+        "modes": sorted(provider.MODES),
+        "longForm": provider.long_form(url),   # UI shows the section-trim fields
+    }
 
 
 @app.post("/api/prepare")
@@ -150,11 +155,24 @@ async def prepare(req: PrepareRequest):
         provider = downloader.resolve_provider(req.url)
         if not provider.supports(req.mode):
             raise errors.FetcherError(errors.MODE_UNSUPPORTED)
+        try:
+            section = timecode.parse_section(req.start, req.end)
+        except ValueError as exc:
+            raise errors.FetcherError(errors.INVALID_SECTION, detail=str(exc))
     except errors.FetcherError as err:
         return _error_response(err)
 
     job = store.create()
     job.mode = req.mode
+    job.section = section
+    # A full long-form download (a whole VOD, no trim) gets the longer timeout;
+    # everything else — clips, tracks, normal videos, trimmed sections — the
+    # normal one.
+    job.timeout = (
+        config.LONG_TIMEOUT_SECONDS
+        if (section is None and provider.long_form(req.url))
+        else config.PREPARE_TIMEOUT_SECONDS
+    )
     threading.Thread(
         target=_run_job,
         args=(job, req.url, req.mode, req.preferences),

@@ -125,6 +125,12 @@ class YtdlpProvider(Provider):
             "progress_hooks": [self._make_progress_hook(job)],
             "postprocessor_hooks": [self._make_postprocessor_hook(job)],
         }
+        # Section trim (e.g. a slice of a Twitch VOD): download only the segments
+        # in range and cut precisely at the boundaries via FFmpeg.
+        if job.section:
+            from yt_dlp.utils import download_range_func
+            opts["download_ranges"] = download_range_func(None, [job.section])
+            opts["force_keyframes_at_cuts"] = True
         return opts, ydl_logger
 
     # --- progress + cancellation ------------------------------------------

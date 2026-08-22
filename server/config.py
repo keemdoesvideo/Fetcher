@@ -53,5 +53,9 @@ SWEEP_INTERVAL_SECONDS: int = int(os.environ.get("FETCHER_SWEEP_INTERVAL", str(5
 # large 4K merge on a home connection.
 PREPARE_TIMEOUT_SECONDS: int = int(os.environ.get("FETCHER_PREPARE_TIMEOUT", str(6 * 60)))
 
+# A generous ceiling for long-form full downloads (e.g. a whole Twitch VOD, which
+# can run to hours / many GB). Used only when no section trim is requested.
+LONG_TIMEOUT_SECONDS: int = int(os.environ.get("FETCHER_LONG_TIMEOUT", str(45 * 60)))
+
 # Longest filename (without extension) we'll hand back to the browser.
 MAX_FILENAME_STEM: int = 120

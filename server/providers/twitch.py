@@ -13,6 +13,7 @@ of the standard landscape clip.
 
 from __future__ import annotations
 
+import re
 from urllib.parse import urlsplit
 
 from ..models import Preferences
@@ -24,16 +25,26 @@ class TwitchProvider(YtdlpProvider):
 
     _CLIP_HOSTS = {"clips.twitch.tv"}
     _CHANNEL_HOSTS = {"twitch.tv", "www.twitch.tv", "m.twitch.tv"}
+    _VOD_RE = re.compile(r"^/videos/\d+")
 
     def matches(self, url: str) -> bool:
         parts = urlsplit(normalize_url(url))
         host = (parts.hostname or "").lower()
+        path = parts.path.lower()
         if host in self._CLIP_HOSTS:
             return True
         if host in self._CHANNEL_HOSTS:
-            # Accept clips (/<channel>/clip/<slug>) but not VODs or live channels.
-            return "/clip/" in parts.path.lower()
+            # Clips (/<channel>/clip/<slug>) and VODs (/videos/<id>) — but not
+            # live channels (just /<channel>), which aren't a finished file.
+            return "/clip/" in path or self._VOD_RE.match(path) is not None
         return False
+
+    def _is_vod(self, url: str) -> bool:
+        return self._VOD_RE.match(urlsplit(normalize_url(url)).path.lower()) is not None
+
+    def long_form(self, url: str) -> bool:
+        # A whole VOD can run to hours / many GB; clips are short.
+        return self._is_vod(url)
 
     def _video_format(self, preferences: Preferences) -> str:
         cap = HEIGHT_CAP.get((preferences.videoQuality or "best").lower())

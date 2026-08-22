@@ -18,6 +18,7 @@ BOT_CHECK = "bot_check"
 EXTRACTION_FAILED = "extraction_failed"
 MEDIA_UNAVAILABLE = "media_unavailable"
 MODE_UNSUPPORTED = "mode_unsupported"
+INVALID_SECTION = "invalid_section"
 FFMPEG_MISSING = "ffmpeg_missing"
 YTDLP_MISSING = "ytdlp_missing"
 TIMEOUT = "timeout"
@@ -35,6 +36,7 @@ FRIENDLY = {
     EXTRACTION_FAILED: "fetcher couldn't read that video — give it another try",
     MEDIA_UNAVAILABLE: "that quality isn't available for this video",
     MODE_UNSUPPORTED: "this link is audio-only — switch to audio and try again",
+    INVALID_SECTION: "check the start/end times — use m:ss or h:mm:ss, with start before end",
     FFMPEG_MISSING: "fetcher's media tools aren't set up yet (ffmpeg is missing)",
     YTDLP_MISSING: "fetcher's downloader isn't set up yet (yt-dlp is missing)",
     TIMEOUT: "that took too long — try again, or pick a lower quality",
@@ -52,6 +54,7 @@ HTTP_STATUS = {
     EXTRACTION_FAILED: 502,
     MEDIA_UNAVAILABLE: 422,
     MODE_UNSUPPORTED: 422,
+    INVALID_SECTION: 400,
     FFMPEG_MISSING: 503,
     YTDLP_MISSING: 503,
     TIMEOUT: 504,

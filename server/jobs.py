@@ -54,6 +54,11 @@ class Job:
     error_code: Optional[str] = None
     error_message: Optional[str] = None
 
+    # Optional (start, end) seconds for a section trim; None = whole media.
+    section: Optional[tuple[float, float]] = None
+    # Per-job prepare timeout (long-form full downloads get a longer one).
+    timeout: Optional[float] = None
+
     # Cancellation / timeout signalling.
     cancel_event: threading.Event = field(default_factory=threading.Event)
     timed_out: bool = False
