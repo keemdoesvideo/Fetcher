@@ -13,6 +13,7 @@ from .instagram import InstagramProvider
 from .soundcloud import SoundCloudProvider
 from .tiktok import TikTokProvider
 from .twitch import TwitchProvider
+from .x import XProvider
 from .youtube import YouTubeProvider
 
 # Ordered registry — first provider that claims a URL wins. All yt-dlp-backed
@@ -20,7 +21,7 @@ from .youtube import YouTubeProvider
 # needs login cookies (opt-in).
 REGISTRY: list[Provider] = [
     YouTubeProvider(), TikTokProvider(), SoundCloudProvider(),
-    TwitchProvider(), InstagramProvider(),
+    TwitchProvider(), InstagramProvider(), XProvider(),
 ]
 
 

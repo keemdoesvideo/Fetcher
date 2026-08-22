@@ -301,7 +301,7 @@ class YtdlpProvider(Provider):
                  "inappropriate for some", "members-only", "members only",
                  "join this channel", "ip address is blocked", "region",
                  "not available in your country", "login required",
-                 "sign in", "log in to"):
+                 "sign in", "log in to", "nsfw tweet", "requires authentication"):
             code = errors.RESTRICTED
         elif has("private video", "video unavailable", "removed by the user",
                  "no longer available", "account associated", "has been terminated",
