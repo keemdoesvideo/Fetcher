@@ -52,6 +52,9 @@
   --shadow-sm:0 1px 2px rgba(23,23,26,.05);
   --shadow-md:0 10px 30px -10px rgba(23,23,26,.18);
   --ease:cubic-bezier(.16,.84,.44,1);
+  /* springy overshoot for the bouncy motion language (transforms + size changes).
+     Kept off colour/opacity fades, which read better with the smooth --ease. */
+  --ease-bounce:cubic-bezier(.34,1.56,.64,1);
   --dur-fast:150ms;
   --dur-base:220ms;
 }
@@ -140,7 +143,7 @@ a{color:inherit;text-decoration:none;}
   overflow:hidden;
   background:var(--bg);
   opacity:0;
-  animation:app-in 420ms var(--ease) forwards;
+  animation:app-in 460ms var(--ease-bounce) forwards;
 }
 @keyframes app-in{
   from{opacity:0;transform:translateY(6px);}
@@ -158,7 +161,7 @@ a{color:inherit;text-decoration:none;}
   flex-direction:column;
   align-items:center;
   padding:14px 0 18px;
-  transition:width var(--dur-base) var(--ease), flex-basis var(--dur-base) var(--ease), background var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
+  transition:width var(--dur-base) var(--ease-bounce), flex-basis var(--dur-base) var(--ease-bounce), background var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
   position:relative;
 }
 .rail.collapsed{width:64px;flex-basis:64px;}
@@ -179,11 +182,11 @@ a{color:inherit;text-decoration:none;}
   border:none;background:transparent;border-radius:10px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;color:var(--ink-soft);
-  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-bounce);
 }
 .rail-toggle:hover{background:var(--surface);color:var(--ink);}
 .rail-toggle:active{transform:scale(.92);}
-.rail-toggle svg{transition:transform var(--dur-base) var(--ease);}
+.rail-toggle svg{transition:transform var(--dur-base) var(--ease-bounce);}
 .rail.collapsed .rail-toggle svg{transform:rotate(180deg);}
 
 .rail-primary{display:flex;flex-direction:column;gap:6px;margin-top:14px;align-items:center;width:100%;padding:0 12px;}
@@ -197,10 +200,10 @@ a{color:inherit;text-decoration:none;}
   color:var(--ink);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
   cursor:pointer;font-size:11px;letter-spacing:.01em;
-  transition:background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  transition:background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-bounce), color var(--dur-fast) var(--ease);
   position:relative;
 }
-.rail-btn svg{transition:transform var(--dur-fast) var(--ease);}
+.rail-btn svg{transition:transform var(--dur-fast) var(--ease-bounce);}
 .rail-btn:hover svg{transform:translateY(-1px);}
 .rail-btn:active{transform:scale(.95);}
 .rail-btn span{

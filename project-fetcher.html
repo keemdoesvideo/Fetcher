@@ -20,12 +20,12 @@
   transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
 .services-toggle:hover{background:var(--surface);color:var(--ink);border-color:var(--border);}
-.services-toggle svg.chev{transition:transform var(--dur-base) var(--ease);}
+.services-toggle svg.chev{transition:transform var(--dur-base) var(--ease-bounce);}
 .services-toggle[aria-expanded="true"] svg.chev{transform:rotate(180deg);}
 
 .services-panel{
   display:grid;grid-template-rows:0fr;
-  transition:grid-template-rows var(--dur-base) var(--ease);
+  transition:grid-template-rows var(--dur-base) var(--ease-bounce);
   width:100%;max-width:620px;
 }
 .services-panel[data-open="true"]{grid-template-rows:1fr;}
@@ -38,24 +38,14 @@
   font-size:12px;color:var(--ink-soft);
   background:var(--surface);border:1px solid var(--border);
   padding:6px 11px;border-radius:999px;
-  transition:transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  transition:transform var(--dur-fast) var(--ease-bounce), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 .chip:hover{border-color:var(--border-strong);color:var(--ink);transform:translateY(-1px);}
-/* live = actually supported today; a small accent dot marks it */
+/* each chip is a supported service; a small accent dot marks it */
 .chip.is-live{color:var(--ink);}
 .chip.is-live::before{
   content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
   background:var(--accent);margin-right:6px;vertical-align:middle;
-}
-/* soon = listed but not wired up yet — dimmed + dashed so it reads as pending */
-.chip.is-soon{opacity:.5;border-style:dashed;}
-.chip.is-soon:hover{transform:none;color:var(--ink-soft);border-color:var(--border);}
-.chips-legend{
-  display:flex;align-items:center;justify-content:center;gap:6px;
-  font-size:11px;color:var(--ink-faint);margin-top:9px;
-}
-.chips-legend-dot{
-  width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;
 }
 
 .stage{
@@ -94,7 +84,7 @@
 .fetch-wrap{
   flex:0 0 auto;
   display:grid;grid-template-columns:0fr;
-  transition:grid-template-columns var(--dur-base) var(--ease);
+  transition:grid-template-columns var(--dur-base) var(--ease-bounce);
   overflow:hidden;
 }
 .fetch-wrap.show{grid-template-columns:1fr;}
@@ -104,7 +94,7 @@
   height:30px;padding:0 14px;
   border:none;border-radius:999px;background:var(--ink);color:var(--bg);
   font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;
-  transition:background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+  transition:background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-bounce), opacity var(--dur-fast) var(--ease);
 }
 .fetch-btn:hover{background:var(--ink-strong);}
 .fetch-btn:active{transform:scale(.94);}
@@ -132,7 +122,7 @@
 .segmented .thumb{
   position:absolute;top:4px;left:4px;height:calc(100% - 8px);
   border-radius:9px;background:var(--ink);
-  transition:transform var(--dur-base) var(--ease), width var(--dur-base) var(--ease), background var(--dur-fast) var(--ease);
+  transition:transform var(--dur-base) var(--ease-bounce), width var(--dur-base) var(--ease-bounce), background var(--dur-fast) var(--ease);
   z-index:0;
 }
 .seg-btn{
@@ -142,7 +132,7 @@
   padding:9px 14px;cursor:pointer;font-size:13.5px;color:var(--ink-soft);
   transition:color var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
 }
-.seg-btn svg{opacity:.6;transition:opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);}
+.seg-btn svg{opacity:.6;transition:opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-bounce), color var(--dur-fast) var(--ease);}
 .seg-btn:hover svg{opacity:.9;transform:translateY(-1px);}
 .seg-btn[aria-pressed="true"]{color:var(--on-accent);}
 .seg-btn[data-mode="video"] svg{color:var(--accent);}
@@ -159,11 +149,11 @@
   background:var(--surface);color:var(--ink);
   border:1px solid var(--border);border-radius:11px;
   padding:10px 15px;cursor:pointer;font-size:13.5px;
-  transition:border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+  transition:border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-bounce), background var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
 }
 .paste-btn:hover{border-color:var(--border-strong);}
 .paste-btn:active{transform:scale(.96);}
-.paste-btn svg{color:var(--accent);transition:transform var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);}
+.paste-btn svg{color:var(--accent);transition:transform var(--dur-fast) var(--ease-bounce), color var(--dur-fast) var(--ease);}
 .paste-btn.done svg{color:var(--success);}
 .paste-btn:disabled{opacity:.5;cursor:not-allowed;}
 .paste-btn:active:disabled{transform:none;}
@@ -412,15 +402,10 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
             <span class="chip is-live">YouTube</span>
             <span class="chip is-live">TikTok</span>
             <span class="chip is-live">SoundCloud</span>
-            <span class="chip is-live">Twitch clips</span>
+            <span class="chip is-live">Twitch</span>
             <span class="chip is-live">Instagram</span>
             <span class="chip is-live">X / Twitter</span>
-            <span class="chip is-soon">Reddit</span>
-            <span class="chip is-soon">Vimeo</span>
-            <span class="chip is-soon">Bluesky</span>
-            <span class="chip is-soon">Pinterest</span>
           </div>
-          <p class="chips-legend"><span class="chips-legend-dot"></span>available now · the rest are coming soon</p>
         </div>
       </div>
     </div>

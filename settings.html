@@ -56,9 +56,9 @@
 .settings-panel{display:none;}
 .settings-panel.active{
   display:block;
-  animation:panel-in-fwd var(--dur-base) var(--ease);
+  animation:panel-in-fwd var(--dur-base) var(--ease-bounce);
 }
-.settings-panel.active.back{animation:panel-in-back var(--dur-base) var(--ease);}
+.settings-panel.active.back{animation:panel-in-back var(--dur-base) var(--ease-bounce);}
 @keyframes panel-in-fwd{
   from{opacity:0;transform:translateX(10px);}
   to{opacity:1;transform:translateX(0);}
@@ -88,7 +88,7 @@
 .settings-seg .thumb{
   position:absolute;top:4px;left:4px;height:calc(100% - 8px);
   border-radius:9px;background:var(--ink);
-  transition:transform var(--dur-base) var(--ease), width var(--dur-base) var(--ease);
+  transition:transform var(--dur-base) var(--ease-bounce), width var(--dur-base) var(--ease-bounce);
   z-index:0;
 }
 .settings-seg-btn{
