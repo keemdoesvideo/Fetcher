@@ -39,6 +39,22 @@
   transition:transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 .chip:hover{border-color:var(--border-strong);color:var(--ink);transform:translateY(-1px);}
+/* live = actually supported today; a small accent dot marks it */
+.chip.is-live{color:var(--ink);}
+.chip.is-live::before{
+  content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--accent);margin-right:6px;vertical-align:middle;
+}
+/* soon = listed but not wired up yet — dimmed + dashed so it reads as pending */
+.chip.is-soon{opacity:.5;border-style:dashed;}
+.chip.is-soon:hover{transform:none;color:var(--ink-soft);border-color:var(--border);}
+.chips-legend{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:11px;color:var(--ink-faint);margin-top:9px;
+}
+.chips-legend-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;
+}
 
 .stage{
   flex:1;display:flex;align-items:center;justify-content:center;
@@ -324,17 +340,18 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
       <div class="services-panel" id="services-panel" data-open="false">
         <div class="services-panel-inner">
           <div class="chips">
-            <span class="chip">YouTube</span>
-            <span class="chip">TikTok</span>
-            <span class="chip">Instagram</span>
-            <span class="chip">X / Twitter</span>
-            <span class="chip">Reddit</span>
-            <span class="chip">SoundCloud</span>
-            <span class="chip">Vimeo</span>
-            <span class="chip">Twitch clips</span>
-            <span class="chip">Bluesky</span>
-            <span class="chip">Pinterest</span>
+            <span class="chip is-live">YouTube</span>
+            <span class="chip is-live">TikTok</span>
+            <span class="chip is-soon">Instagram</span>
+            <span class="chip is-soon">X / Twitter</span>
+            <span class="chip is-soon">Reddit</span>
+            <span class="chip is-soon">SoundCloud</span>
+            <span class="chip is-soon">Vimeo</span>
+            <span class="chip is-soon">Twitch clips</span>
+            <span class="chip is-soon">Bluesky</span>
+            <span class="chip is-soon">Pinterest</span>
           </div>
+          <p class="chips-legend"><span class="chips-legend-dot"></span>available now · the rest are coming soon</p>
         </div>
       </div>
     </div>

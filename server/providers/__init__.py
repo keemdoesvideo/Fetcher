@@ -9,10 +9,12 @@ changing. Resolution is "first provider that claims the URL wins".
 from __future__ import annotations
 
 from .base import Provider, ProviderResult
+from .tiktok import TikTokProvider
 from .youtube import YouTubeProvider
 
-# Ordered registry. YouTube is the only enabled provider for this pass.
-REGISTRY: list[Provider] = [YouTubeProvider()]
+# Ordered registry — first provider that claims a URL wins. Enabled providers:
+# YouTube and TikTok (both yt-dlp-backed via YtdlpProvider).
+REGISTRY: list[Provider] = [YouTubeProvider(), TikTokProvider()]
 
 
 def resolve(url: str) -> Provider | None:
