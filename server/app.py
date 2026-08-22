@@ -41,6 +41,8 @@ ALLOWED_ASSETS: dict[str, str] = {
     "project-fetcher.html": "text/html; charset=utf-8",
     "settings.html": "text/html; charset=utf-8",
     "donate.html": "text/html; charset=utf-8",
+    "about.html": "text/html; charset=utf-8",
+    "updates.html": "text/html; charset=utf-8",
     "fetcher-theme.css": "text/css; charset=utf-8",
     "fetcher-prefs.js": "application/javascript; charset=utf-8",
 }
