@@ -28,7 +28,7 @@ JOB_NOT_FOUND = "job_not_found"
 # ever shows for an error.
 FRIENDLY = {
     INVALID_URL: "that doesn't look like a link fetcher can fetch",
-    UNSUPPORTED_PROVIDER: "fetcher only fetches youtube links for now",
+    UNSUPPORTED_PROVIDER: "fetcher can't fetch links from there yet",
     VIDEO_UNAVAILABLE: "that video isn't available — it may be private or removed",
     RESTRICTED: "that one's age- or login-restricted, so fetcher can't reach it",
     BOT_CHECK: "youtube wants to verify fetcher isn't a bot — this video needs extra setup",

@@ -11,11 +11,14 @@ from __future__ import annotations
 from .base import Provider, ProviderResult
 from .soundcloud import SoundCloudProvider
 from .tiktok import TikTokProvider
+from .twitch import TwitchProvider
 from .youtube import YouTubeProvider
 
 # Ordered registry — first provider that claims a URL wins. All yt-dlp-backed
-# via YtdlpProvider; SoundCloud is audio-only (see its MODES).
-REGISTRY: list[Provider] = [YouTubeProvider(), TikTokProvider(), SoundCloudProvider()]
+# via YtdlpProvider; SoundCloud is audio-only, Twitch is clips-only (see each).
+REGISTRY: list[Provider] = [
+    YouTubeProvider(), TikTokProvider(), SoundCloudProvider(), TwitchProvider(),
+]
 
 
 def resolve(url: str) -> Provider | None:
