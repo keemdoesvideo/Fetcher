@@ -1,0 +1,31 @@
+# --- Fetcher temp job storage (prepared media, never committed) ---
+.fetcher-tmp/
+
+# --- Python ---
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# --- yt-dlp partial/intermediate artifacts ---
+*.part
+*.ytdl
+*.temp.*
+*.f*.mp4
+*.f*.m4a
+*.webm
+
+# --- Secrets / never commit ---
+# YouTube account cookies must never be stored in the repo.
+cookies.txt
+*.cookies
+.env
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

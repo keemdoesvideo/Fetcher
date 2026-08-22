@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script src="fetcher-prefs.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Fetcher</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317171a'/%3E%3Cpath d='M16 8v13M10 15l6 6 6-6' stroke='%23fafaf8' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="fetcher-theme.css">
+<style>
+/* ---------- Main (page-specific) ---------- */
+.main{flex:1;height:100%;position:relative;display:flex;flex-direction:column;overflow:hidden;}
+
+.services-toggle{
+  border:1px solid transparent;background:transparent;cursor:pointer;
+  display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-soft);
+  padding:8px 14px;border-radius:999px;
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.services-toggle:hover{background:var(--surface);color:var(--ink);border-color:var(--border);}
+.services-toggle svg.chev{transition:transform var(--dur-base) var(--ease);}
+.services-toggle[aria-expanded="true"] svg.chev{transform:rotate(180deg);}
+
+.services-panel{
+  display:grid;grid-template-rows:0fr;
+  transition:grid-template-rows var(--dur-base) var(--ease);
+  width:100%;max-width:620px;
+}
+.services-panel[data-open="true"]{grid-template-rows:1fr;}
+.services-panel-inner{overflow:hidden;}
+.chips{
+  display:flex;flex-wrap:wrap;gap:7px;justify-content:center;
+  padding:10px 4px 4px;
+}
+.chip{
+  font-size:12px;color:var(--ink-soft);
+  background:var(--surface);border:1px solid var(--border);
+  padding:6px 11px;border-radius:999px;
+  transition:transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.chip:hover{border-color:var(--border-strong);color:var(--ink);transform:translateY(-1px);}
+
+.stage{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:24px;
+}
+.stage-inner{width:100%;max-width:640px;}
+
+.input-row{
+  display:flex;align-items:center;gap:11px;
+  border:1.5px solid var(--ink);border-radius:var(--r-lg);
+  padding:10px 15px;background:var(--surface);
+  box-shadow:var(--shadow-sm);
+  transition:box-shadow var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+}
+.input-row:focus-within{
+  box-shadow:0 0 0 4px var(--accent-tint);
+  border-color:var(--ink);
+}
+.input-row svg.link-icon{flex:0 0 auto;width:16px;height:16px;color:var(--ink-faint);transition:color var(--dur-base) var(--ease);}
+.input-row:focus-within svg.link-icon{color:var(--accent-ink);}
+
+#url-input{
+  flex:1;border:none;outline:none;background:transparent;
+  font-family:inherit;font-size:14.5px;color:var(--ink);min-width:0;
+}
+#url-input::placeholder{color:var(--ink-faint);}
+
+#url-input:disabled{
+  color:var(--ink-faint);-webkit-text-fill-color:var(--ink-faint);opacity:1;cursor:not-allowed;
+}
+
+/* Fetch action — collapses to zero width when the input is empty (grid 0fr/1fr
+   trick, so it doesn't need a hardcoded pixel width to animate against), and
+   swaps its icon+label for a spinner while a fetch is in flight. */
+.fetch-wrap{
+  flex:0 0 auto;
+  display:grid;grid-template-columns:0fr;
+  transition:grid-template-columns var(--dur-base) var(--ease);
+  overflow:hidden;
+}
+.fetch-wrap.show{grid-template-columns:1fr;}
+.fetch-wrap-inner{overflow:hidden;min-width:0;}
+.fetch-btn{
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+  height:30px;padding:0 14px;
+  border:none;border-radius:999px;background:var(--ink);color:var(--bg);
+  font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;
+  transition:background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+}
+.fetch-btn:hover{background:var(--ink-strong);}
+.fetch-btn:active{transform:scale(.94);}
+.fetch-btn:disabled{opacity:.55;cursor:not-allowed;}
+.fetch-btn:active:disabled{transform:none;}
+.fetch-btn .spin-ring{display:none;}
+.fetch-btn.busy .fetch-icon,
+.fetch-btn.busy .fetch-label{display:none;}
+.fetch-btn.busy .spin-ring{display:inline-block;}
+.fetch-btn .spin-ring{
+  border-color:color-mix(in srgb, var(--bg) 35%, transparent);
+  border-top-color:var(--bg);
+}
+
+.controls-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:14px;gap:12px;flex-wrap:wrap;
+}
+
+.segmented{
+  position:relative;
+  display:inline-flex;gap:2px;
+  background:var(--rail);border-radius:var(--r-md);padding:4px;
+}
+.segmented .thumb{
+  position:absolute;top:4px;left:4px;height:calc(100% - 8px);
+  border-radius:9px;background:var(--ink);
+  transition:transform var(--dur-base) var(--ease), width var(--dur-base) var(--ease), background var(--dur-fast) var(--ease);
+  z-index:0;
+}
+.seg-btn{
+  position:relative;z-index:1;
+  display:flex;align-items:center;gap:7px;
+  border:none;background:transparent;border-radius:9px;
+  padding:9px 14px;cursor:pointer;font-size:13.5px;color:var(--ink-soft);
+  transition:color var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+}
+.seg-btn svg{opacity:.6;transition:opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);}
+.seg-btn:hover svg{opacity:.9;transform:translateY(-1px);}
+.seg-btn[aria-pressed="true"]{color:var(--on-accent);}
+.seg-btn[data-mode="video"] svg{color:var(--accent);}
+.seg-btn[data-mode="audio"] svg{color:var(--audio);}
+/* Selected: the pill itself takes the mode color, so the icon has to switch to
+   a fixed light tone to stay visible against it — same hue on hue was
+   invisible before, and var(--bg) alone would flip dark in dark theme. */
+.seg-btn[aria-pressed="true"] svg{opacity:1;color:var(--on-accent);}
+.seg-btn:disabled{opacity:.5;cursor:not-allowed;}
+.seg-btn:disabled:hover svg{transform:none;}
+
+.paste-btn{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface);color:var(--ink);
+  border:1px solid var(--border);border-radius:11px;
+  padding:10px 15px;cursor:pointer;font-size:13.5px;
+  transition:border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+}
+.paste-btn:hover{border-color:var(--border-strong);}
+.paste-btn:active{transform:scale(.96);}
+.paste-btn svg{color:var(--accent);transition:transform var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);}
+.paste-btn.done svg{color:var(--success);}
+.paste-btn:disabled{opacity:.5;cursor:not-allowed;}
+.paste-btn:active:disabled{transform:none;}
+
+/* fetch status — a single caption line above the input; it carries the
+   Fetcher-voice message for each stage of the fetch (and errors). */
+.fetch-status{
+  max-height:0;opacity:0;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  transition:max-height var(--dur-base) var(--ease), opacity var(--dur-base) var(--ease), margin-bottom var(--dur-base) var(--ease);
+  font-size:13px;color:var(--ink-soft);
+  margin-bottom:0;
+}
+.fetch-status.open{max-height:30px;opacity:1;margin-bottom:14px;}
+.fetch-status.success{color:var(--success);font-weight:500;}
+.fetch-status.error{color:var(--danger);font-weight:500;}
+
+/* fetch progress — a slim determinate/indeterminate bar that replaces the
+   mascot as the visual signal during a fetch. Collapsed (height 0) until a
+   fetch is in flight, then expands. */
+.fetch-progress{
+  max-height:0;opacity:0;overflow:hidden;
+  transition:max-height var(--dur-base) var(--ease), opacity var(--dur-base) var(--ease), margin-bottom var(--dur-base) var(--ease);
+  width:100%;max-width:520px;margin:0 auto;
+}
+.fetch-progress.open{max-height:60px;opacity:1;margin-bottom:16px;}
+.fetch-progress-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:7px;min-height:16px;
+}
+.fetch-progress-pct{
+  font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums;
+}
+.fetch-cancel{
+  border:none;background:transparent;cursor:pointer;
+  font-family:inherit;font-size:12px;color:var(--ink-faint);
+  padding:2px 4px;border-radius:6px;
+  transition:color var(--dur-fast) var(--ease);
+}
+.fetch-cancel:hover{color:var(--danger);}
+.fetch-progress-track{
+  position:relative;overflow:hidden;
+  height:6px;border-radius:999px;background:var(--rail);
+}
+.fetch-progress-bar{
+  position:absolute;left:0;top:0;bottom:0;width:0;
+  border-radius:999px;background:var(--accent);
+  transition:width 220ms var(--ease);
+}
+/* indeterminate: no known %, so slide a stripe across the track instead */
+.fetch-progress.indeterminate .fetch-progress-bar{
+  width:38%;
+  animation:fetch-indeterminate 1.15s ease-in-out infinite;
+}
+@keyframes fetch-indeterminate{
+  0%{left:-40%;} 100%{left:100%;}
+}
+html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
+  /* reduced motion: hold a static partial fill rather than animate */
+  animation:none;left:0;width:45%;
+}
+
+.foot{
+  flex:0 0 auto;
+  display:flex;flex-direction:column;align-items:center;
+  padding:10px 24px 20px;
+}
+
+@media (max-width:560px){
+  .controls-row{flex-direction:column;align-items:stretch;}
+  .paste-btn{justify-content:center;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar -->
+  <nav class="rail" id="rail" aria-label="Primary">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+    </div>
+    <button class="rail-toggle" id="rail-toggle" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+    </button>
+
+    <div class="rail-primary">
+      <a class="rail-btn primary" href="project-fetcher.html" title="Fetcher home">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+        <span>save</span>
+      </a>
+    </div>
+
+    <div class="rail-spacer rail-icons">
+      <a class="rail-btn" href="settings.html" title="Settings">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>settings</span>
+      </a>
+      <button class="rail-btn" title="Donate">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        <span>donate</span>
+      </button>
+      <button class="rail-btn" title="Updates">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 5 19l-2-2 4.94-4.94"/><path d="m14 6 4 4"/><path d="M12 3 9.5 5.5 12 8l2.5-2.5L12 3Z"/><path d="m18.5 9.5 2.5 2.5-2.5 2.5L16 12l2.5-2.5Z"/></svg>
+        <span>updates</span>
+      </button>
+      <button class="rail-btn" title="About Project Fetcher">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <span>about</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+
+    <div class="stage">
+      <div class="stage-inner">
+
+        <div class="fetch-status" id="fetch-status" role="status" aria-live="polite">
+          <span id="status-text"></span>
+        </div>
+
+        <div class="fetch-progress" id="fetch-progress" aria-hidden="true">
+          <div class="fetch-progress-head">
+            <span class="fetch-progress-pct" id="fetch-progress-pct">0%</span>
+            <button class="fetch-cancel" id="fetch-cancel" type="button">cancel</button>
+          </div>
+          <div class="fetch-progress-track">
+            <div class="fetch-progress-bar" id="fetch-progress-bar"></div>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <svg class="link-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <input id="url-input" type="text" placeholder="paste the link here" autocomplete="off" spellcheck="false">
+          <div class="fetch-wrap" id="fetch-wrap">
+            <div class="fetch-wrap-inner">
+              <button class="fetch-btn" id="fetch-btn" type="button">
+                <span class="spin-ring" aria-hidden="true"></span>
+                <svg class="fetch-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                <span class="fetch-label">fetch</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls-row">
+          <div class="segmented" role="group" aria-label="Download mode">
+            <div class="thumb" id="seg-thumb"></div>
+            <button class="seg-btn" data-mode="video" aria-pressed="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="14" height="14" rx="2.5"/><path d="m21 8-4.5 3.2v1.6L21 16V8Z"/></svg>
+              <span>video</span>
+            </button>
+            <button class="seg-btn" data-mode="audio" aria-pressed="false">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              <span>audio</span>
+            </button>
+          </div>
+
+          <button class="paste-btn" id="paste-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+            <span id="paste-label">paste</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="foot">
+      <button class="services-toggle" id="services-toggle" aria-expanded="false" aria-controls="services-panel">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        <span>supported services</span>
+        <svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="services-panel" id="services-panel" data-open="false">
+        <div class="services-panel-inner">
+          <div class="chips">
+            <span class="chip">YouTube</span>
+            <span class="chip">TikTok</span>
+            <span class="chip">Instagram</span>
+            <span class="chip">X / Twitter</span>
+            <span class="chip">Reddit</span>
+            <span class="chip">SoundCloud</span>
+            <span class="chip">Vimeo</span>
+            <span class="chip">Twitch clips</span>
+            <span class="chip">Bluesky</span>
+            <span class="chip">Pinterest</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  // Sidebar collapse
+  var rail = document.getElementById('rail');
+  var railToggle = document.getElementById('rail-toggle');
+  railToggle.addEventListener('click', function(){
+    var collapsed = rail.classList.toggle('collapsed');
+    railToggle.setAttribute('aria-expanded', String(!collapsed));
+    railToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+  });
+
+  // Supported services disclosure
+  var svcToggle = document.getElementById('services-toggle');
+  var svcPanel = document.getElementById('services-panel');
+  svcToggle.addEventListener('click', function(){
+    var open = svcPanel.getAttribute('data-open') === 'true';
+    svcPanel.setAttribute('data-open', String(!open));
+    svcToggle.setAttribute('aria-expanded', String(!open));
+  });
+
+  // Segmented mode control
+  var segBtns = Array.prototype.slice.call(document.querySelectorAll('.seg-btn'));
+  var thumb = document.getElementById('seg-thumb');
+  var modeColors = {video:'var(--accent)', audio:'var(--audio)'};
+  function moveThumb(btn, animate){
+    var w = btn.offsetWidth, l = btn.offsetLeft;
+    thumb.style.transition = animate === false ? 'none' : '';
+    thumb.style.width = w + 'px';
+    thumb.style.transform = 'translateX(' + (l - 4) + 'px)';
+    thumb.style.background = modeColors[btn.dataset.mode] || 'var(--ink)';
+  }
+  segBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      segBtns.forEach(function(b){ b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
+      moveThumb(btn);
+    });
+  });
+  window.addEventListener('resize', function(){
+    var active = document.querySelector('.seg-btn[aria-pressed="true"]');
+    if (active) moveThumb(active, false);
+  });
+  requestAnimationFrame(function(){ moveThumb(segBtns[0], false); });
+
+  // Paste from clipboard
+  var pasteBtn = document.getElementById('paste-btn');
+  var pasteLabel = document.getElementById('paste-label');
+  var input = document.getElementById('url-input');
+  var fetchWrap = document.getElementById('fetch-wrap');
+  var fetchBtn = document.getElementById('fetch-btn');
+
+  function updateFetchVisibility(){
+    fetchWrap.classList.toggle('show', input.value.trim().length > 0);
+  }
+
+  // Progress + status elements — these carry the fetch feedback now that the
+  // mascot has been removed.
+  var fetchProgress = document.getElementById('fetch-progress');
+  var progressBar = document.getElementById('fetch-progress-bar');
+  var progressPct = document.getElementById('fetch-progress-pct');
+  var cancelBtn = document.getElementById('fetch-cancel');
+
+  input.addEventListener('input', function(){
+    updateFetchVisibility();
+  });
+
+  pasteBtn.addEventListener('click', function(){
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      navigator.clipboard.readText().then(function(text){
+        if (text) {
+          input.value = text.trim();
+          updateFetchVisibility();
+          pasteBtn.classList.add('done');
+          pasteLabel.textContent = 'pasted';
+          setTimeout(function(){ pasteBtn.classList.remove('done'); pasteLabel.textContent = 'paste'; }, 1400);
+        } else {
+          input.focus();
+        }
+      }).catch(function(){ input.focus(); });
+    } else {
+      input.focus();
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // Fetch flow: paste -> choose video/audio -> fetch -> fetching -> auto
+  // download -> "fetched!" -> back to normal. The two backend calls below
+  // (prepareFetch + startDownload) are the real, same-origin API; the rest
+  // of this flow logic is unchanged from the placeholder version.
+  // ---------------------------------------------------------------------
+
+  function buildPreferences(mode){
+    // Collected from Settings (see settings.html / fetcher-prefs.js) — kept
+    // out of the Fetch UI itself, but ready to hand to the real resolver.
+    var prefs = {
+      filenameStyle: FetcherPrefs.get('fetcher.filenameStyle')
+    };
+    if (mode === 'video') {
+      prefs.videoQuality = FetcherPrefs.get('fetcher.videoQuality');
+      prefs.videoFormat = FetcherPrefs.get('fetcher.videoFormat');
+    } else {
+      prefs.audioQuality = FetcherPrefs.get('fetcher.audioQuality');
+      prefs.audioFormat = FetcherPrefs.get('fetcher.audioFormat');
+    }
+    return prefs;
+  }
+
+  var statusEl = document.getElementById('fetch-status');
+  var statusText = document.getElementById('status-text');
+  var segBtnsForFetch = segBtns; // defined above, in the segmented-control setup
+  var busy = false;
+
+  // Poll cadence + live-flow state. currentJobId identifies the in-flight job;
+  // `cancelled` short-circuits any late poll callback after a cancel.
+  var POLL_INTERVAL = 350;
+  var pollTimer = null;
+  var currentJobId = null;
+  var cancelled = false;
+
+  function getMode(){
+    var active = document.querySelector('.seg-btn[aria-pressed="true"]');
+    return active ? active.dataset.mode : 'video';
+  }
+
+  function setStatus(kind, text){
+    statusEl.classList.add('open');
+    statusEl.classList.toggle('success', kind === 'success');
+    statusEl.classList.toggle('error', kind === 'error');
+    statusText.textContent = text;
+  }
+
+  function clearStatus(){
+    statusEl.classList.remove('open', 'success', 'error');
+    statusText.textContent = '';
+  }
+
+  function setBusy(isBusy){
+    busy = isBusy;
+    input.disabled = isBusy;
+    pasteBtn.disabled = isBusy;
+    segBtnsForFetch.forEach(function(b){ b.disabled = isBusy; });
+    fetchBtn.disabled = isBusy;
+    fetchBtn.classList.toggle('busy', isBusy);
+  }
+
+  // --- progress bar helpers ---------------------------------------------
+  function showProgress(){
+    fetchProgress.classList.add('open');
+    fetchProgress.setAttribute('aria-hidden', 'false');
+  }
+  function hideProgress(){
+    fetchProgress.classList.remove('open', 'indeterminate');
+    fetchProgress.setAttribute('aria-hidden', 'true');
+    progressBar.style.width = '';
+    progressPct.textContent = '';
+  }
+  // indeterminate = we don't have a % yet (preparing / merging); the bar shows
+  // a moving stripe instead of a fixed width, and no number is shown.
+  function setProgress(pct, indeterminate){
+    fetchProgress.classList.toggle('indeterminate', !!indeterminate);
+    if (indeterminate){
+      progressBar.style.width = '';
+      progressPct.textContent = '';
+    } else {
+      pct = Math.max(0, Math.min(100, pct || 0));
+      progressBar.style.width = pct + '%';
+      progressPct.textContent = Math.round(pct) + '%';
+    }
+  }
+
+  function wait(ms){
+    return new Promise(function(resolve){ setTimeout(resolve, ms); });
+  }
+
+  function stopPolling(){
+    if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
+  }
+
+  // Hand the prepared file to the browser's own downloader via an anchor at the
+  // streaming endpoint. The server sends it as an attachment (Content-Disposition)
+  // so the browser downloads rather than navigates — no large Blob in JS.
+  function startDownload(jobId, filename){
+    var a = document.createElement('a');
+    a.href = '/api/download/' + encodeURIComponent(jobId);
+    if (filename) a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function finishSuccess(filename){
+    stopPolling();
+    setProgress(100, false);
+    setStatus('success', 'fetched!');
+    startDownload(currentJobId, filename);
+    wait(1400).then(function(){
+      clearStatus();
+      hideProgress();
+      setBusy(false);
+      input.value = '';
+      updateFetchVisibility();
+      input.focus();
+    });
+  }
+
+  function failFlow(message){
+    stopPolling();
+    setProgress(0, false);
+    fetchProgress.classList.remove('open'); // drop the bar, keep the message
+    setStatus('error', message || 'hmm, couldn’t fetch that — try again');
+    // Leave the URL in the field so the user can retry without re-pasting.
+    wait(2600).then(function(){
+      clearStatus();
+      hideProgress();
+      setBusy(false);
+    });
+  }
+
+  // Poll the job until it reaches a terminal state, translating backend status
+  // into the on-screen progress bar + Fetcher-voice captions.
+  function pollProgress(){
+    if (cancelled) return;
+    fetch('/api/progress/' + encodeURIComponent(currentJobId))
+      .then(function(res){
+        return res.json().catch(function(){ return {}; }).then(function(d){
+          return { ok: res.ok, data: d };
+        });
+      })
+      .then(function(r){
+        if (cancelled) return;
+        var d = r.data || {};
+        if (!r.ok || !d.status){
+          return failFlow(d.error && d.error.message);
+        }
+        switch (d.status){
+          case 'preparing':
+            setStatus('fetching', 'sniffing it out…');
+            setProgress(0, true);
+            break;
+          case 'downloading':
+            setStatus('fetching', 'bringing it back…');
+            setProgress(d.progress || 0, false);
+            break;
+          case 'processing':
+            setStatus('fetching', 'almost there…');
+            setProgress(100, true);
+            break;
+          case 'ready':
+            return finishSuccess(d.filename);
+          case 'error':
+            return failFlow(d.error && d.error.message);
+          case 'cancelled':
+            return; // the cancel handler owns the UI reset
+        }
+        pollTimer = setTimeout(pollProgress, POLL_INTERVAL);
+      })
+      .catch(function(){
+        // Transient network blip — keep polling; the timeout watchdog on the
+        // server side bounds the worst case.
+        if (!cancelled) pollTimer = setTimeout(pollProgress, POLL_INTERVAL);
+      });
+  }
+
+  function runFetchFlow(){
+    if (busy) return;
+    var url = input.value.trim();
+    if (!url) return;
+    var mode = getMode();
+    var preferences = buildPreferences(mode);
+
+    cancelled = false;
+    currentJobId = null;
+    setBusy(true);
+    showProgress();
+    setProgress(0, true);
+    setStatus('fetching', 'sniffing it out…');
+
+    fetch('/api/prepare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url, mode: mode, preferences: preferences })
+    })
+      .then(function(res){
+        return res.json().catch(function(){ return {}; }).then(function(d){
+          return { ok: res.ok, data: d };
+        });
+      })
+      .then(function(r){
+        if (cancelled) return;
+        if (!r.ok){
+          return failFlow(r.data && r.data.error && r.data.error.message);
+        }
+        currentJobId = r.data.jobId;
+        pollProgress();
+      })
+      .catch(function(){ failFlow(null); });
+  }
+
+  function cancelFetch(){
+    if (!busy || !currentJobId) return;
+    cancelled = true;
+    stopPolling();
+    fetch('/api/cancel/' + encodeURIComponent(currentJobId), { method: 'POST' })
+      .catch(function(){ /* best-effort */ });
+    setStatus('', 'cancelled');
+    setProgress(0, false);
+    fetchProgress.classList.remove('open');
+    wait(700).then(function(){
+      clearStatus();
+      hideProgress();
+      setBusy(false);
+      input.focus();
+    });
+  }
+
+  fetchBtn.addEventListener('click', runFetchFlow);
+  cancelBtn.addEventListener('click', cancelFetch);
+  input.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') runFetchFlow();
+  });
+})();
+</script>
+</body>
+</html>
