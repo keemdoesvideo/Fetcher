@@ -124,40 +124,6 @@
   margin-top:14px;gap:12px;flex-wrap:wrap;
 }
 
-/* Section trim (VODs) — appears between the URL row and the controls. */
-.vod-trim{ margin-top:12px; }
-.vod-trim[hidden]{ display:none; }
-.vod-trim-row{ display:flex;align-items:center;gap:9px;flex-wrap:wrap; }
-.vod-pick{
-  display:inline-flex;align-items:center;gap:7px;
-  border:1px solid var(--border);border-radius:var(--r-md);
-  background:var(--surface);color:var(--ink);
-  padding:8px 13px;font-family:inherit;font-size:13px;cursor:pointer;
-  transition:border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
-}
-.vod-pick:hover{border-color:var(--border-strong);}
-.vod-pick:active{transform:scale(.97);}
-.vod-pick svg{color:var(--accent);flex:0 0 auto;}
-.vod-trim-fields{
-  display:flex;align-items:center;gap:8px;
-  border:1px solid var(--border);border-radius:var(--r-md);
-  padding:7px 11px;background:var(--surface);max-width:300px;
-  transition:border-color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
-}
-.vod-trim-fields:focus-within{border-color:var(--border-strong);}
-.vod-trim-icon{display:flex;color:var(--ink-faint);flex:0 0 auto;}
-.vod-input{
-  flex:1;min-width:0;width:100%;
-  border:none;outline:none;background:transparent;
-  font-family:inherit;font-size:13.5px;color:var(--ink);
-  text-align:center;
-}
-.vod-input::placeholder{color:var(--ink-faint);}
-.vod-dash{color:var(--ink-faint);flex:0 0 auto;}
-.vod-trim-hint{
-  font-size:11.5px;color:var(--ink-faint);margin-top:7px;line-height:1.5;max-width:46ch;
-}
-
 .segmented{
   position:relative;
   display:inline-flex;gap:2px;
@@ -317,6 +283,10 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     <div class="stage">
       <div class="stage-inner">
 
+        <!-- Inline scrub-to-trim viewer — expands here (above the URL bar) when a
+             VOD is recognised; collapses on fetch. See fetcher-trimmer.js. -->
+        <div class="trim-mount" id="trim-mount"><div class="trim-mount-inner"></div></div>
+
         <div class="fetch-status" id="fetch-status" role="status" aria-live="polite">
           <span id="status-text"></span>
         </div>
@@ -343,25 +313,6 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
               </button>
             </div>
           </div>
-        </div>
-
-        <!-- Section trim — shown only for long-form sources (e.g. Twitch VODs). -->
-        <div class="vod-trim" id="vod-trim" hidden>
-          <div class="vod-trim-row">
-            <div class="vod-trim-fields">
-              <span class="vod-trim-icon" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-              </span>
-              <input class="vod-input" id="vod-start" type="text" placeholder="start" aria-label="start time" autocomplete="off" spellcheck="false" inputmode="numeric">
-              <span class="vod-dash">–</span>
-              <input class="vod-input" id="vod-end" type="text" placeholder="end" aria-label="end time" autocomplete="off" spellcheck="false" inputmode="numeric">
-            </div>
-            <button class="vod-pick" id="vod-pick" type="button">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="14" height="14" rx="2.5"/><path d="m21 8-4.5 3.2v1.6L21 16V8Z"/></svg>
-              <span>pick on video</span>
-            </button>
-          </div>
-          <p class="vod-trim-hint">type a section (m:ss or h:mm:ss) or <b>pick on video</b>, or leave blank for the whole vod — full vods can be very large</p>
         </div>
 
         <div class="controls-row">
@@ -498,30 +449,23 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
   var progressPct = document.getElementById('fetch-progress-pct');
   var cancelBtn = document.getElementById('fetch-cancel');
 
-  // Section-trim fields (shown only for long-form sources like Twitch VODs).
-  var vodTrim = document.getElementById('vod-trim');
-  var vodStart = document.getElementById('vod-start');
-  var vodEnd = document.getElementById('vod-end');
-  var vodPick = document.getElementById('vod-pick');
-  function applyLongForm(on){
-    vodTrim.hidden = !on;
-    if (!on) { vodStart.value = ''; vodEnd.value = ''; }
-  }
+  // Inline scrub-to-trim viewer (long-form sources like Twitch VODs). It expands
+  // above the URL bar when a VOD is recognised and collapses on fetch; the trim
+  // selection lives inside it (read via getSelection()), so there are no separate
+  // timecode fields to keep in sync.
+  var trimMount = document.getElementById('trim-mount');
+  if (window.FetcherTrimmer) window.FetcherTrimmer.mount(trimMount);
   function fmtSecs(s){
     s = Math.max(0, Math.floor(s || 0));
     var h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
     var mm = h ? String(m).padStart(2,'0') : String(m);
     return (h ? h+':' : '') + mm + ':' + String(sec).padStart(2,'0');
   }
-  // Open the scrub-to-trim viewer; on confirm it fills the start/end fields.
-  vodPick.addEventListener('click', function(){
-    var url = input.value.trim();
-    if (!url || !window.FetcherTrimmer) return;
-    window.FetcherTrimmer.open(url, function(startSec, endSec){
-      vodStart.value = fmtSecs(startSec);
-      vodEnd.value = fmtSecs(endSec);
-    });
-  });
+  function applyLongForm(on){
+    if (!window.FetcherTrimmer) return;
+    if (on) window.FetcherTrimmer.open(input.value.trim());
+    else window.FetcherTrimmer.close();
+  }
 
   // Debounced provider detection — asks the backend which modes this URL can
   // deliver and adapts the toggle. Stale responses are ignored via a sequence id.
@@ -772,9 +716,10 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     setStatus('fetching', 'sniffing it out…');
 
     var body = { url: url, mode: mode, preferences: preferences };
-    if (!vodTrim.hidden) {            // long-form source: pass any section trim
-      body.start = vodStart.value.trim();
-      body.end = vodEnd.value.trim();
+    if (window.FetcherTrimmer && window.FetcherTrimmer.isOpen()) {
+      var sel = window.FetcherTrimmer.getSelection();   // null = whole VOD
+      if (sel) { body.start = fmtSecs(sel.start); body.end = fmtSecs(sel.end); }
+      window.FetcherTrimmer.close();   // collapse the viewer back down as the fetch begins
     }
     fetch('/api/prepare', {
       method: 'POST',
