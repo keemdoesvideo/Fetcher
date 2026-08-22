@@ -366,7 +366,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
 
         <div class="input-row">
           <svg class="link-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-          <input id="url-input" type="text" placeholder="paste the link here" autocomplete="off" spellcheck="false">
+          <input id="url-input" type="text" placeholder="paste the link here" autocomplete="off" spellcheck="false" autofocus>
           <div class="fetch-wrap" id="fetch-wrap">
             <div class="fetch-wrap-inner">
               <button class="fetch-btn" id="fetch-btn" type="button">
@@ -609,6 +609,23 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     } else {
       input.focus();
     }
+  });
+
+  // Smack Ctrl/Cmd+V anywhere on the page and the link lands in the URL bar —
+  // no need to click the field first. If a text field is already focused, the
+  // native paste is left alone so it goes where you meant it to.
+  document.addEventListener('paste', function(e){
+    if (busy) return;
+    var ae = document.activeElement, tag = ae && ae.tagName;
+    if (ae === input || tag === 'INPUT' || tag === 'TEXTAREA' || (ae && ae.isContentEditable)) return;
+    var cd = e.clipboardData || window.clipboardData;
+    var text = cd && cd.getData('text');
+    if (!text) return;
+    e.preventDefault();
+    input.value = text.trim();
+    input.focus();
+    updateFetchVisibility();
+    input.dispatchEvent(new Event('input', { bubbles: true }));   // triggers detect + fetch button
   });
 
   // ---------------------------------------------------------------------
