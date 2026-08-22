@@ -29,6 +29,14 @@ class Provider:
 
     name: str = "base"
 
+    # Which fetch modes this provider can produce. Most sites do both; audio-only
+    # sources (e.g. SoundCloud) narrow this to {"audio"}, and the UI adapts —
+    # greying out the modes a link can't deliver. Order-independent (a set).
+    MODES: set[str] = {"video", "audio"}
+
+    def supports(self, mode: str) -> bool:
+        return mode in self.MODES
+
     def matches(self, url: str) -> bool:
         raise NotImplementedError
 

@@ -17,6 +17,7 @@ RESTRICTED = "restricted"
 BOT_CHECK = "bot_check"
 EXTRACTION_FAILED = "extraction_failed"
 MEDIA_UNAVAILABLE = "media_unavailable"
+MODE_UNSUPPORTED = "mode_unsupported"
 FFMPEG_MISSING = "ffmpeg_missing"
 YTDLP_MISSING = "ytdlp_missing"
 TIMEOUT = "timeout"
@@ -33,6 +34,7 @@ FRIENDLY = {
     BOT_CHECK: "youtube wants to verify fetcher isn't a bot — this video needs extra setup",
     EXTRACTION_FAILED: "fetcher couldn't read that video — give it another try",
     MEDIA_UNAVAILABLE: "that quality isn't available for this video",
+    MODE_UNSUPPORTED: "this link is audio-only — switch to audio and try again",
     FFMPEG_MISSING: "fetcher's media tools aren't set up yet (ffmpeg is missing)",
     YTDLP_MISSING: "fetcher's downloader isn't set up yet (yt-dlp is missing)",
     TIMEOUT: "that took too long — try again, or pick a lower quality",
@@ -49,6 +51,7 @@ HTTP_STATUS = {
     BOT_CHECK: 403,
     EXTRACTION_FAILED: 502,
     MEDIA_UNAVAILABLE: 422,
+    MODE_UNSUPPORTED: 422,
     FFMPEG_MISSING: 503,
     YTDLP_MISSING: 503,
     TIMEOUT: 504,

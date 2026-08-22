@@ -36,13 +36,25 @@ def _validate_structure(url: str) -> str:
     return candidate
 
 
-def check_supported(url: str) -> None:
-    """Fast, network-free validation: is this a syntactically valid URL for an
-    enabled provider? Raises INVALID_URL / UNSUPPORTED_PROVIDER otherwise. Used
-    by the API to reject bad input before spawning a worker."""
+def resolve_provider(url: str):
+    """Fast, network-free: validate the URL structure and resolve it to an
+    enabled provider. Raises INVALID_URL / UNSUPPORTED_PROVIDER otherwise.
+    Returns the matching Provider (used to check mode support + for detection)."""
     normalized = _validate_structure(url)
-    if providers.resolve(normalized) is None:
+    provider = providers.resolve(normalized)
+    if provider is None:
         raise errors.FetcherError(errors.UNSUPPORTED_PROVIDER)
+    return provider
+
+
+def detect(url: str):
+    """Best-effort, never-raises detection for the UI. Returns the matching
+    provider or None (for empty/invalid/unsupported URLs alike)."""
+    try:
+        normalized = _validate_structure(url)
+    except errors.FetcherError:
+        return None
+    return providers.resolve(normalized)
 
 
 def prepare_media(url: str, mode: str, preferences: Preferences, job: Job) -> ProviderResult:

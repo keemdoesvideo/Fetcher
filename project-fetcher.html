@@ -342,10 +342,10 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
           <div class="chips">
             <span class="chip is-live">YouTube</span>
             <span class="chip is-live">TikTok</span>
+            <span class="chip is-live">SoundCloud</span>
             <span class="chip is-soon">Instagram</span>
             <span class="chip is-soon">X / Twitter</span>
             <span class="chip is-soon">Reddit</span>
-            <span class="chip is-soon">SoundCloud</span>
             <span class="chip is-soon">Vimeo</span>
             <span class="chip is-soon">Twitch clips</span>
             <span class="chip is-soon">Bluesky</span>
@@ -389,12 +389,36 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     thumb.style.transform = 'translateX(' + (l - 4) + 'px)';
     thumb.style.background = modeColors[btn.dataset.mode] || 'var(--ink)';
   }
+  function segBtnFor(mode){
+    return segBtns.filter(function(b){ return b.dataset.mode === mode; })[0];
+  }
+  function selectMode(mode, animate){
+    var btn = segBtnFor(mode) || segBtns[0];
+    segBtns.forEach(function(b){ b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
+    moveThumb(btn, animate);
+  }
   segBtns.forEach(function(btn){
     btn.addEventListener('click', function(){
-      segBtns.forEach(function(b){ b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
-      moveThumb(btn);
+      if (btn.disabled) return;
+      selectMode(btn.dataset.mode);
     });
   });
+
+  // Provider detection adapts this toggle to what a pasted link can actually
+  // deliver — e.g. SoundCloud is audio-only, so Video is greyed out. Modes come
+  // from the backend's /api/detect, so the frontend never hard-codes site rules.
+  var lastModes = null;
+  function applyModes(modes){
+    var hasList = modes && modes.length;
+    var videoOk = !hasList || modes.indexOf('video') !== -1;
+    var audioOk = !hasList || modes.indexOf('audio') !== -1;
+    var v = segBtnFor('video'), a = segBtnFor('audio');
+    if (v) v.disabled = !videoOk;
+    if (a) a.disabled = !audioOk;
+    // If the current selection just became unavailable, switch to the other.
+    var active = document.querySelector('.seg-btn[aria-pressed="true"]');
+    if (active && active.disabled) selectMode(videoOk ? 'video' : 'audio');
+  }
   window.addEventListener('resize', function(){
     var active = document.querySelector('.seg-btn[aria-pressed="true"]');
     if (active) moveThumb(active, false);
@@ -419,8 +443,33 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
   var progressPct = document.getElementById('fetch-progress-pct');
   var cancelBtn = document.getElementById('fetch-cancel');
 
+  // Debounced provider detection — asks the backend which modes this URL can
+  // deliver and adapts the toggle. Stale responses are ignored via a sequence id.
+  var detectTimer = null, detectSeq = 0;
+  function scheduleDetect(){ clearTimeout(detectTimer); detectTimer = setTimeout(detectProvider, 400); }
+  function detectProvider(){
+    var url = input.value.trim();
+    if (!url) { lastModes = null; applyModes(null); return; }
+    var seq = ++detectSeq;
+    fetch('/api/detect?url=' + encodeURIComponent(url))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (seq !== detectSeq) return;               // a newer input superseded this
+        lastModes = (d && d.supported) ? d.modes : null;
+        if (!busy) applyModes(lastModes);            // never fight an in-flight fetch
+      })
+      .catch(function(){ /* leave the toggle as-is on a network hiccup */ });
+  }
+  // Re-assert mode availability after a fetch (busy disables all buttons); on a
+  // cleared field it resets to both enabled.
+  function restoreModes(){
+    if (!input.value.trim()) lastModes = null;
+    applyModes(lastModes);
+  }
+
   input.addEventListener('input', function(){
     updateFetchVisibility();
+    scheduleDetect();
   });
 
   pasteBtn.addEventListener('click', function(){
@@ -429,6 +478,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
         if (text) {
           input.value = text.trim();
           updateFetchVisibility();
+          detectProvider();
           pasteBtn.classList.add('done');
           pasteLabel.textContent = 'pasted';
           setTimeout(function(){ pasteBtn.classList.remove('done'); pasteLabel.textContent = 'paste'; }, 1400);
@@ -559,6 +609,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
       setBusy(false);
       input.value = '';
       updateFetchVisibility();
+      restoreModes();
       input.focus();
     });
   }
@@ -573,6 +624,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
       clearStatus();
       hideProgress();
       setBusy(false);
+      restoreModes();
     });
   }
 
@@ -669,6 +721,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
       clearStatus();
       hideProgress();
       setBusy(false);
+      restoreModes();
       input.focus();
     });
   }

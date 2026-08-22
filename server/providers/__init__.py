@@ -9,12 +9,13 @@ changing. Resolution is "first provider that claims the URL wins".
 from __future__ import annotations
 
 from .base import Provider, ProviderResult
+from .soundcloud import SoundCloudProvider
 from .tiktok import TikTokProvider
 from .youtube import YouTubeProvider
 
-# Ordered registry — first provider that claims a URL wins. Enabled providers:
-# YouTube and TikTok (both yt-dlp-backed via YtdlpProvider).
-REGISTRY: list[Provider] = [YouTubeProvider(), TikTokProvider()]
+# Ordered registry — first provider that claims a URL wins. All yt-dlp-backed
+# via YtdlpProvider; SoundCloud is audio-only (see its MODES).
+REGISTRY: list[Provider] = [YouTubeProvider(), TikTokProvider(), SoundCloudProvider()]
 
 
 def resolve(url: str) -> Provider | None:

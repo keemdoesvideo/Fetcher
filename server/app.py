@@ -129,12 +129,27 @@ def _run_job(job, url: str, mode: str, preferences) -> None:
         timer.cancel()
 
 
+@app.get("/api/detect")
+async def detect(url: str = ""):
+    """Lightweight, network-free lookup the UI polls as the user types: which
+    provider (if any) handles this URL, and which modes it can deliver. Lets the
+    fetch page grey out Video for audio-only links before a fetch is attempted.
+    Always 200 — an unknown URL just reports unsupported."""
+    provider = downloader.detect(url)
+    if provider is None:
+        return {"supported": False, "provider": None, "modes": []}
+    return {"supported": True, "provider": provider.name, "modes": sorted(provider.MODES)}
+
+
 @app.post("/api/prepare")
 async def prepare(req: PrepareRequest):
     # Reject obviously-bad input synchronously (fast, no worker thread) so the
-    # client hears about a non-YouTube or malformed URL immediately.
+    # client hears about a bad URL — or a mode the source can't deliver
+    # (e.g. video from an audio-only site) — immediately.
     try:
-        downloader.check_supported(req.url)
+        provider = downloader.resolve_provider(req.url)
+        if not provider.supports(req.mode):
+            raise errors.FetcherError(errors.MODE_UNSUPPORTED)
     except errors.FetcherError as err:
         return _error_response(err)
 
