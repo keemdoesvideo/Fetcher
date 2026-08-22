@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script src="fetcher-prefs.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donate — Project Fetcher</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317171a'/%3E%3Cpath d='M16 8v13M10 15l6 6 6-6' stroke='%23fafaf8' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="fetcher-theme.css">
+<style>
+/* ---------- Donate (page-specific) ---------- */
+.main{
+  flex:1;height:100%;overflow-y:auto;
+  display:flex;align-items:center;justify-content:center;
+  padding:48px 24px;
+}
+.donate{
+  width:100%;max-width:460px;text-align:center;
+}
+.donate-badge{
+  width:62px;height:62px;border-radius:50%;
+  background:var(--accent-tint);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 22px;
+  transition:background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
+}
+.donate-badge svg{width:29px;height:29px;}
+
+.donate-eyebrow{
+  display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:8px;
+}
+.donate h1{
+  font-size:26px;font-weight:600;letter-spacing:-.02em;margin-bottom:14px;
+}
+.donate-lead{
+  font-size:14.5px;line-height:1.65;color:var(--ink-soft);
+  max-width:42ch;margin:0 auto 30px;
+}
+
+.kofi-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--accent);color:var(--on-accent);
+  border-radius:999px;padding:13px 24px;
+  font-family:inherit;font-size:14.5px;font-weight:600;
+  box-shadow:var(--shadow-sm);cursor:pointer;
+  transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-base) var(--ease), filter var(--dur-fast) var(--ease);
+}
+.kofi-btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px -10px rgba(0,0,0,.4);filter:brightness(1.03);}
+.kofi-btn:active{transform:translateY(0) scale(.98);}
+.kofi-btn svg{width:19px;height:19px;flex:0 0 auto;}
+
+.donate-note{
+  font-size:12px;line-height:1.55;color:var(--ink-faint);
+  max-width:38ch;margin:18px auto 0;
+}
+.donate-alt{
+  font-size:13px;color:var(--ink-soft);margin-top:26px;
+  padding-top:24px;border-top:1px solid var(--border);
+  transition:border-color var(--dur-base) var(--ease);
+}
+.donate-alt a{
+  color:var(--accent-ink);font-weight:500;
+  text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px;
+  transition:opacity var(--dur-fast) var(--ease);
+}
+.donate-alt a:hover{opacity:.75;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar (identical shell to the other pages; 'donate' marked current) -->
+  <nav class="rail" id="rail" aria-label="Primary">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+    </div>
+    <button class="rail-toggle" id="rail-toggle" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+    </button>
+
+    <div class="rail-primary">
+      <a class="rail-btn primary" href="project-fetcher.html" title="Back to Fetcher">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+        <span>save</span>
+      </a>
+    </div>
+
+    <div class="rail-spacer rail-icons">
+      <a class="rail-btn" href="settings.html" title="Settings">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>settings</span>
+      </a>
+      <a class="rail-btn active" href="donate.html" title="Donate" aria-current="page">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        <span>donate</span>
+      </a>
+      <button class="rail-btn" title="Updates">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 5 19l-2-2 4.94-4.94"/><path d="m14 6 4 4"/><path d="M12 3 9.5 5.5 12 8l2.5-2.5L12 3Z"/><path d="m18.5 9.5 2.5 2.5-2.5 2.5L16 12l2.5-2.5Z"/></svg>
+        <span>updates</span>
+      </button>
+      <button class="rail-btn" title="About Project Fetcher">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <span>about</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="donate">
+      <div class="donate-badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+      </div>
+
+      <span class="donate-eyebrow">project fetcher</span>
+      <h1>support fetcher</h1>
+      <p class="donate-lead">fetcher is free, and always will be. if it's saved you some time, you can leave a tip to help cover the hours that go into building it and keeping it working. no pressure though — just using it is support enough.</p>
+
+      <!-- CHANGE ME: replace "keemdoesvideo" with your actual Ko-fi username -->
+      <a class="kofi-btn" href="https://ko-fi.com/keemdoesvideo" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        <span>buy me a coffee on ko-fi</span>
+      </a>
+
+      <p class="donate-note">you'll finish on ko-fi's own secure page — fetcher never sees your card or payment details.</p>
+
+      <p class="donate-alt">not into tipping? <a href="https://github.com/keemdoesvideo/Fetcher" target="_blank" rel="noopener noreferrer">starring the repo</a> helps just as much.</p>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  // Sidebar collapse (shared behavior with the other pages)
+  var rail = document.getElementById('rail');
+  var railToggle = document.getElementById('rail-toggle');
+  railToggle.addEventListener('click', function(){
+    var collapsed = rail.classList.toggle('collapsed');
+    railToggle.setAttribute('aria-expanded', String(!collapsed));
+    railToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+  });
+})();
+</script>
+</body>
+</html>
