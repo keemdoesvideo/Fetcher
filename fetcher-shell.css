@@ -163,6 +163,8 @@ html[data-nav-pop="true"][data-motion="reduced"] .rail-btn.active::before{
 /* ---------- Reserved motion ----------
    Same interfaces and spatial language as Full, with shorter timings and no
    playful overshoot. Full keeps the original Fetcher animation personality. */
+html[data-motion="reserved"] .rail-toggle,
+html[data-motion="reserved"] .rail-toggle svg,
 html[data-motion="reserved"] .rail-btn svg,
 html[data-motion="reserved"] .fetch-btn,
 html[data-motion="reserved"] .paste-btn,
@@ -172,7 +174,12 @@ html[data-motion="reserved"] .seg-btn svg,
 html[data-motion="reserved"] .services-toggle svg.chev,
 html[data-motion="reserved"] .settings-nav-thumb,
 html[data-motion="reserved"] .settings-seg .thumb,
-html[data-motion="reserved"] .segmented .thumb{
+html[data-motion="reserved"] .segmented .thumb,
+html[data-motion="reserved"] .recent-refetch,
+html[data-motion="reserved"] .recent-redo,
+html[data-motion="reserved"] .recent-redo svg,
+html[data-motion="reserved"] .recent-remove,
+html[data-motion="reserved"] .welcome-btn{
   transition-duration:150ms!important;
   transition-timing-function:var(--ease)!important;
 }
