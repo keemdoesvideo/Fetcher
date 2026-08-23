@@ -65,10 +65,10 @@
   border:1.5px solid var(--ink);border-radius:var(--r-lg);
   padding:10px 15px;background:var(--surface);
   box-shadow:var(--shadow-sm);
-  /* clip children at the rounded edge so the fetch pill can slide in from just
-     off the right edge without poking past the border. The row's own focus glow
-     is an outset box-shadow on this element, so overflow:hidden doesn't touch it. */
-  overflow:hidden;
+  /* NOTE: deliberately NOT overflow:hidden — a rounded, box-shadowed element with
+     overflow:hidden + an animating child gets promoted to a low-res GPU layer,
+     which aliases the corners and bands the shadow. The fetch pill is clipped at
+     .fetch-wrap (rectangular) instead. */
   transition:box-shadow var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
 }
 .input-row:focus-within{
@@ -98,7 +98,7 @@
 .fetch-wrap{
   flex:0 0 auto;
   display:grid;grid-template-columns:0fr;
-  overflow:visible;   /* the input-row does the clipping, so the pill can travel */
+  overflow:hidden;   /* clips the sliding pill here (rectangular = no corner aliasing) */
   /* CLOSE: reclaim the space gracefully as the pill slides out. */
   transition:grid-template-columns var(--dur-base) var(--ease);
 }
@@ -335,10 +335,10 @@ html[data-shortcuts="off"] #kbd-bubble{display:none;}
 .welcome-scrim{
   position:absolute;inset:0;
   background:color-mix(in srgb, var(--bg) 30%, transparent);
-  -webkit-backdrop-filter:blur(15px) saturate(1.08);
-  backdrop-filter:blur(15px) saturate(1.08);
-  opacity:0;
-  transition:opacity 460ms var(--ease);
+  -webkit-backdrop-filter:blur(12px) saturate(1.06);
+  backdrop-filter:blur(12px) saturate(1.06);
+  opacity:0;will-change:opacity;
+  transition:opacity 220ms var(--ease);
 }
 .welcome.in .welcome-scrim{opacity:1;}
 .welcome-card{
@@ -348,17 +348,17 @@ html[data-shortcuts="off"] #kbd-bubble{display:none;}
      with a static backdrop blur + saturation that diffuses that backdrop so the
      text stays readable. A bright inset top edge gives it the specular glass rim. */
   background:color-mix(in srgb, var(--surface) 45%, transparent);
-  -webkit-backdrop-filter:blur(28px) saturate(1.8);
-  backdrop-filter:blur(28px) saturate(1.8);
+  -webkit-backdrop-filter:blur(22px) saturate(1.7);
+  backdrop-filter:blur(22px) saturate(1.7);
   border:1px solid color-mix(in srgb, var(--ink) 8%, transparent);
   border-radius:24px;
   box-shadow:0 30px 80px -30px rgba(0,0,0,.5),
              inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent),
              inset 0 0 0 1px color-mix(in srgb, #fff 5%, transparent);
   padding:38px 32px 30px;
-  /* ENTER/EXIT: fade + a small rise, no blur animation. */
-  opacity:0;transform:translateY(14px);
-  transition:opacity 440ms var(--ease), transform 500ms var(--ease);
+  /* ENTER/EXIT: quick fade + a small rise, no blur animation. */
+  opacity:0;transform:translateY(10px);will-change:opacity, transform;
+  transition:opacity 240ms var(--ease), transform 300ms var(--ease);
 }
 .welcome.in .welcome-card{opacity:1;transform:none;}
 .welcome-eyebrow{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;}
@@ -1425,7 +1425,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
       if (dismissed) return; dismissed = true;
       welcome.classList.remove('in');        // reverse the ease-in transitions
       welcome.style.pointerEvents = 'none';
-      setTimeout(function(){ if (welcome.parentNode) welcome.remove(); }, 540);
+      setTimeout(function(){ if (welcome.parentNode) welcome.remove(); }, 320);
     }
     function showWelcome(num, cap){
       document.getElementById('welcome-num').textContent = '#' + num;
