@@ -130,6 +130,12 @@ html[data-fetcher-embedded="true"] .app{width:100%!important;}
 .fetcher-content-host>.fetcher-page-layer{
   transition:opacity var(--shell-page-fade) var(--ease);
 }
+/* The legacy base sheet globally short-circuits transitions in Reduced. Restore
+   only this short opacity fade: no spatial movement, but page changes do not flash. */
+html[data-motion="reduced"] .fetcher-page-frame,
+html[data-motion="reduced"] .fetcher-content-host>.fetcher-page-layer{
+  transition:opacity var(--shell-page-fade) linear!important;
+}
 
 /* ---------- Destination pill ---------- */
 html[data-nav-pop="true"][data-motion="full"] .rail-btn.active::before{
@@ -150,7 +156,7 @@ html[data-nav-pop="true"][data-motion="reserved"] .rail-btn.active::before{
   to{opacity:1;transform:scale(1);}
 }
 html[data-nav-pop="true"][data-motion="reduced"] .rail-btn.active::before{
-  animation:fetcher-nav-pop-reduced var(--shell-nav-pop) var(--ease) both;
+  animation:fetcher-nav-pop-reduced var(--shell-nav-pop) linear both!important;
 }
 @keyframes fetcher-nav-pop-reduced{from{opacity:.45;}to{opacity:1;}}
 
@@ -230,4 +236,12 @@ html[data-motion="reserved"] .dl-bubble.popping-in{
   .seg-btn:hover svg,
   .recent-refetch:hover,
   .welcome-btn:hover{transform:none!important;}
+}
+
+/* The narrow layout is always the compact rail. Keep the shell rules from
+   accidentally re-exposing labels after the legacy mobile rule has hidden them. */
+@media (max-width:560px){
+  html .rail{width:64px;flex-basis:64px;}
+  html .rail .rail-btn{width:44px;height:44px;gap:0;}
+  html .rail .rail-btn span{display:none!important;}
 }
