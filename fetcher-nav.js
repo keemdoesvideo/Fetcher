@@ -112,6 +112,55 @@
 
     'html .trim-handle::before{' +
       'content:"";position:absolute;inset:-8px;background:transparent;' +
+    '}' +
+
+    'html[data-motion="reserved"] .rail-btn,' +
+    'html[data-motion="reserved"] .rail-btn svg,' +
+    'html[data-motion="reserved"] .fetch-btn,' +
+    'html[data-motion="reserved"] .paste-btn,' +
+    'html[data-motion="reserved"] .paste-btn svg,' +
+    'html[data-motion="reserved"] .chip,' +
+    'html[data-motion="reserved"] .seg-btn svg,' +
+    'html[data-motion="reserved"] .services-toggle svg.chev,' +
+    'html[data-motion="reserved"] .settings-nav-thumb,' +
+    'html[data-motion="reserved"] .settings-seg .thumb,' +
+    'html[data-motion="reserved"] .segmented .thumb{' +
+      'transition-duration:150ms!important;transition-timing-function:var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .services-panel{' +
+      'transition:grid-template-rows 180ms var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .chips{' +
+      'transition:transform 180ms var(--ease),opacity 130ms var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .settings-panel.active,' +
+    'html[data-motion="reserved"] .settings-panel.active.back{' +
+      'animation-duration:180ms!important;animation-timing-function:var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .fetch-wrap-inner{' +
+      'transition:transform 180ms var(--ease),opacity 130ms var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .fetch-wrap.show .fetch-wrap-inner{' +
+      'animation:none!important;' +
+    '}' +
+    'html[data-motion="reserved"] .dl-bubble,' +
+    'html[data-motion="reserved"] .kbd-bubble{' +
+      'transition-duration:220ms!important;transition-timing-function:var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .dl-bubble-list,' +
+    'html[data-motion="reserved"] .kbd-bubble-list{' +
+      'transition:grid-template-rows 220ms var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .dl-bubble-body,' +
+    'html[data-motion="reserved"] .kbd-bubble-body{' +
+      'transition:opacity 130ms var(--ease),transform 180ms var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .dl-count.bump{animation:none!important;}' +
+    'html[data-motion="reserved"] .dl-bubble.popping-in{' +
+      'animation:fetcher-reserved-pop-in 180ms var(--ease) both!important;' +
+    '}' +
+    '@keyframes fetcher-reserved-pop-in{' +
+      'from{transform:scale(.96);opacity:0;}to{transform:scale(1);opacity:1;}' +
     '}';
 
   (document.head || root).appendChild(shellStyle);
