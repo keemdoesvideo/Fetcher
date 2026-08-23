@@ -175,15 +175,6 @@
 
 <script>
 (function(){
-  // Sidebar collapse (shared behavior with the other pages)
-  var rail = document.getElementById('rail');
-  var railToggle = document.getElementById('rail-toggle');
-  railToggle.addEventListener('click', function(){
-    var collapsed = rail.classList.toggle('collapsed');
-    railToggle.setAttribute('aria-expanded', String(!collapsed));
-    railToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
-  });
-
   // Live visit count (from /api/visits), with a small count-up for delight.
   var countEl = document.getElementById('visit-count');
   var labelEl = document.getElementById('visit-label');
