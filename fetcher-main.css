@@ -387,3 +387,11 @@ html[data-motion="reduced"] .celebrate-msg{
   transform:translate(-50%,-50%) scale(1)!important;
   transition:opacity 100ms linear!important;
 }
+
+/* Shortcuts are a frequent utility: open and close immediately. */
+.kbd-bubble,
+.kbd-bubble-list,
+.kbd-bubble-body{
+  transition:none!important;
+  animation:none!important;
+}
