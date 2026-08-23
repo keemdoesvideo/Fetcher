@@ -130,29 +130,6 @@ a{color:inherit;text-decoration:none;}
 
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
 
-/* ---------- Cursor: a cream dog paw across the whole site ----------
-   Cream fill + a thin dark outline so it reads on both light and dark. The paw
-   is inherited everywhere (cursor is an inherited property); interactive controls
-   get it too (with a pointer fallback), text fields keep a caret, and disabled
-   controls keep not-allowed. */
-:root{
-  --cursor-paw:url("data:image/png;base64,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") 20 4;
-}
-html[data-theme="dark"]{
-  --cursor-paw:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAhCAYAAACr8emlAAANyklEQVR4AZSYCXRVRZqA/1ruvW9/edkIWUggMYHEhGhQDG6M4kyr44j2RFHHRroPKtOTaXBX0EER0FHbbtBum9HRxvUA3cfG9kAj0OyEnQAhEQIJ2ffk7e/eW8vUY44cj83Wdf7/3aWq/vrqr6q/6j4Mf39K1jFKS0v1qqoqLXlVJpDS80oyv6ioyEhmFhQUOHKrq53J+8vVZGOXWxYWv/Do6K9XvFy777PlL37w0k8XLXvhoZf++5n7H37kkUfOAnzf0DNzakrWrlw6b8XT//Zfn776i6f2f/mrlxf9x/2PVeca/u+Xu9T93wXozbLyywu9N08oC0y5qji7onzsqFtzfIHJ6Zz7ftiQ7snIr8zwTp1UnTa5tMBxS2Vx1vUVuXlVnKde0Ns/tJF8vizA9598Mv8vby+cXkpT/sFBcym4cmXClYbBk2t5srMdt00p/vHmz1+/ddWzNf4drz+TvXH5ounTCgKVTlc+YagQsZQ8yehocGWkOWdX5N/zp18u/FFtTU1GEuBSelmA3gLfpLLKMT+7puLGmwLl12nusVOQp6BaeAquEXk5+enV5fn/kp+V9phRmp7PykdPnFBeOWtSxbW3pEws1V2FN0lv4Q0AYyeTguIJvml33nxn0dWjZhUX5+ZfCi6ZfzmAaKzfJ12Ma25m6hRLIjGlTOoaUB3LhECAmG6HTX9n70Ag2DKcKhPDTsMechCQOmBMMTg0zAkgChqJhx00EnePwlJLAlxKLwuwc3jAbXsxCD9DHFGkkEACSIQEILdHIJ0Ip5OAWwfusYjQfFKiNApAdUCIgJAYaYaqh6mENCGRxkXEKcWl4JL5OPlzCZUpVLeQRYEmDCAWQ8ARpZQkG8BIYKkLIgQHaekEWW4pIaGDHFC0FkqaVkUQUm+lSHAQQ4RQ6RI6Q6oHyeyL62UB2kgXEgRiBuXco9mEAAdKuTItpIsLBhKchsECHi2enp8ZNNxOJj0aY05i2xKYBVwIxCXxY1t4nLZFhdSNFFvVv6ScA1y4cCFWgddVUVHhvr6kxDt9ekHKs89O89fU1BCTR7CmEUYNJIkFgnMORCkAAgpuNc2IhjRsZaRCNDzcozOwBSZSUK78xmzlL9smIAWYbiQQgIaw6De5BFAGAPTKyoKUaVVV/kemFjgAACs9J+ce9ME9ab9ZOOOZr1bOX/rpylcXL3li4fK7pt79XI5bKz/RbQ/sP9bSsvlwQ/dw21FLnN7JE527ODuzl3c1HOYnOvu/bersq+/sZkONrSP9HX09x+qbGjp7mg9wq6NOmif/injbbtnadMjcd7SppaN98HjCjPaseefFaxs3fbTki7deemP5W79445XFr/x266rlsxQdUnpWvgNEKBx3p3iNsXkJVDzaEMXjDHc2AlRkIyt/457d3W//5suXt9U3rBzoP8MhPsBx92mDDbWRoaFvh5b8fsOym+9/+rUHZ3/e+/Pnlu2ae1fti5ub2z62e3tMV7BL0KEox8FB2d/VEl/50dfvv7/p3dc+W7+1ZyQxNN4ltCvHub3jCrzO4kzNGDcqRbuirKwskNwWk4R41W/n5xz86p15d824t9bvuSJd5IzTSUYB0nOLaF5mkfvxe6b847yHbpt5e80NpQ6mt/cNye7dJ0/17z8z3Ff/bWvwVMtIP3ZE+5UxS+lZ2QLAbPB1tA9HOvf1Dg4e6e/qO9TWOdgbjfXZmuifPu2Jaz+Y/8CCG8onVvsLxxooayyiGQVSL6gAw5da8MErNS++u2juzGW1tT7cZXoLM9zO28aNzqhKyxlPSE4FgsyrGcouRxm5RagkP7+sZNzoqynSr9hwsO30zjVfL93x/uYlO1ZtXrrlzwcXrNtW905JydQhRZacU+ry/9LaFWnZ/petrx3YcmDBtg27F9R9Uffi/s1Nb360vq4tgJ2TRqdnTC3IzRrvGVOkyewyDNmlIZRRCFkZmYGKCeMrc3z6DdbgYABrGDs4sjXMGOfEtBIWA8sWwrbUvOYJyeIcoRgXOnEHt2zZwp79Ym3X/PXrjzz3h68aVjedbvqnW24vuTXPMWfbivmPf7PspTm7P39t9o6P33jsljG+Wv+4vCv+/bX/PTPvvS9af/7JJ82LP/vsjMIXYEeQiCRAxJm044IgTNVKB6YSiITNxAgSsURYbw52ebHfGQgpSK5IpRCGxEizmKYiCEGMEw2QkzFwCiEdKmAo698TlDh50pud4bz9ygnZ0ydVlNx/Y3XRPeWF2fdVTsibceONZT/KTM282pdb7QcATek50RGRukcy6iZCEg4Sc6RjJChBEmtOCSkgHA4Pz8rNEThAaTQUYonO7mEUD/VSLRxEJDwsIRIDKxaVvSMxORIEbpriXNyaOnUqXbF48cTaubW3JaIoWwBBMYFQghGdY01Kh0N6/anE53KPfu7eqrsXP/VwCXwvxWKW1R8B1jsckzIS4ygWljJhCTsS4uFICHV2h+RgMMaODvTZuG9kpH3bseZPdtUfXxtqazJFx3YpO/fr0LJJdjcdZBt212/bVnfkjyamB79ro7i42H3TpMxZd99x1cxRmemB+i5JmoZk9EgXps09bkxzqyQuuIqUlRWVz54x+b5p5RX/quqe82LXoLXx0L6GNfWNLXtCJw8x68QOYX+7S4WiHaitvWFgw6bj65obW1eFw6gLz5o3b+Sx53+5umVf05p4LBJJ9ISwPRAhsX4LzHjIGpTtXx883rXaPN3ufLN2VumsmrtLJ4zylUYjQ6O8yHQJFlLTl3Gb4WhcChJFagvTA9jhSIcUh8cIGFRNEjPjP+c8WPHUnAcqFj7+syubG44mVtY1rwxF+uutUESYwTCNdnW4zOEENof4QO2St383Z+m7f96wYUMUq56dlZEgHTnVa27c0tqy/ZuTZ7bv7OjeWNfSv7MvaA8/eM8Nlff+uOqZmTOql74yd9qCWdMr5wJJTW/olyjMXASorsYVBQglEUMzOBJS2EJtEUVXIVxxJyqccm3R/Idue/75+29eMPcn1S9Nn3HT87dWFo4VCB9r6O7dtLu5e93mMy17Gzt6N54eSWxXQOdC1jnANxXtXbOf/OSfH1+4+L5HX1h050+fevXLwwf+59jxkUQ0HstPIVmpDvAG/Fp6ik5dadJy631RjMMCa4Ixg1nMk8DIirGYTDATI4wAUzdF1Il94NGdunO04falE25kuj2+gA+0UTvrurs/XPfxG3fOfvat3391+PXqB5549eF5C78EFUeVnpVzgGefAFS/QS1hkFVVj2qPTJr0wK+fnrloTFHeXd0xW2/qN63GASaPdibQCGVMAlarkHBMwHYH0q1rJ1bTK6++jrjdHiCEKJNSeYJynDuBOa+4zqT51dgov94eNb7MddPtE2Y/9tDkJXdMuWOK2u/RunXrTFXhb+SHgOcKHDiwgmemuseMdhpjx7m0VMumKGLqOGZStSsiwOrc6tClcCCbMSSRw+vmjlSflpKehhSc5FwIrOIbAEjsSUHMP4bR1HwL+/OQ15dDxvgDWaMCKfkuj56rylxQLgioaghk2xbEhJSmjeOIC0uqqIVYwuQEWZjH7Jilubxpsmh8ZfLobxu6ZiNInq0UlQQQQhApJaYSqAFgYAxUdUwg0wZN+TYWiRKUiIrVq1dzuEC6GCBIjwu7XKm2g/gwR8ohhsPiUsOaRgUgDelUB39qBqhvDZaem6dpmpMm+TBGUo2wqkARAEJCSBUlUTJhEJwQr4uDKuTWA0AMtw4AqhycN10UkJmm5CN9RsIKA7Hj1IpFtEgwQk0Wp8IyNROB5MA0wRMa57ZhmaYhFZoQQnkPdCm5OjYyZFmcmKZtqXMkBgXPTaHLRIzwSJB4MEkoMuVv9XseuRggNoECS6FAXFKNk0M6lCM8LiejRFOtY2QQgohBkUSaJNQwiWGQ5LcAVt4hhCSbU7hEaBogXaeghlt5klAGNuEeAyXcoFaZcUHvJQ1cDFC6kyViurDjGkJqZBg1EFcDyZTfVMhAXr8HaxIYjwwIO9IfhFA34kNtmEf7bAj3YrDNs3MLEdUHSK4dwkGCoEpRHINhEY7sGEo2cyG9KKAtBcN+BMTpYiqoSgfBFsEIUaSJMYVjYWL1ZJ6VrtuidR+BtjrGz+y1cNehkH1qp1O014cATOUxkEwItai5GnZhqdkmJNGSy59h9R0T5DzJcEHIZCZcKOE4sPBwHI1E1PFImhaTlk7thNSpUI1QMJAQ8SDTzWhQRoMxhxmNxIcGhrVENI7CQ31YDvZhHgljiEeoNCM2JEKIRfoQhEaEFYxCNBzDIm7q6g8m7YIMF8pIvj/R3n5g886GbUdPtTSWqC+yawqc/KocDZVnIdsXPU7NzoMsPNDUu+1Y2zeHTrX/6Uzn4B9PtHWubWrvWnOss29rqKc5LHu2M2jfYUHvDsx6d2Por+NtrcfMdXsON/61ft9OW4Pdx48ft5LtnU8v6sHaV9/bsvjT9UscxLUVNIacTspc2CF8YIAek5a0g5TFR6LrdtV9+N7afR9W1Mz93ZSZC96ZMuO5X284dOxg/0APQMgSJMSljCiG/giCPluwSIh19Yz84dEFHyz5ybxfNZ4P7Lt3FwVUhUSyd56c3Pqm7tDew42tR452nzq2p7X58JGurobGkx17TrWEDnozxw+u/kGwjQ/0dRxqONF4tHNg/4H2zvozQ4m9+7o7Dm46erj55KmeI3HTeVrZZ0ovKv8HAAD//2fgJKMAAAAGSURBVAMArHTP2CZNnDgAAAAASUVORK5CYII=") 20 4;
-}
-html{cursor:var(--cursor-paw), auto;}
-a, button, [role="button"], summary,
-.rail-btn, .rail-toggle, .seg-btn, .settings-seg-btn, .settings-nav-item,
-.paste-btn, .fetch-btn, .fetch-cancel, .services-toggle,
-.kbd-bubble-toggle, .dl-bubble-toggle, .dl-clear, .recent-refetch, .recent-remove,
-.welcome-btn, .soon-btn, .kofi-btn, .about-repo{
-  cursor:var(--cursor-paw), pointer !important;
-}
-input:not([type="button"]):not([type="submit"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]),
-textarea, [contenteditable="true"]{cursor:text !important;}
-button:disabled, .seg-btn:disabled, .settings-seg-btn:disabled, [aria-disabled="true"]{cursor:not-allowed !important;}
-
 .spin-ring{
   width:13px;height:13px;border-radius:50%;
   border:2px solid transparent;
@@ -167,30 +144,6 @@ button:disabled, .seg-btn:disabled, .settings-seg-btn:disabled, [aria-disabled="
   overflow:hidden;
   background:var(--bg);
 }
-/* Page transitions are handled by the cross-document view transition (the
-   content crossfades, the rail persists) — no whole-app entrance animation, so
-   nothing but the highlight pill moves between pages. */
-
-/* Cross-document view transitions: same-origin page navigations crossfade the
-   content while named elements (the rail, and the active-page pill) persist and
-   morph — a constant sidebar + a sliding highlight, no SPA needed. Browsers
-   without support just navigate normally. */
-@view-transition{ navigation:auto; }
-/* The highlight pill slides between pages on a gentle speed-ramp — slow-in, ramp
-   through the middle, slow-out — overshooting its landing only ~2% before easing
-   back. Meant to be felt, not seen. (linear() lets us shape the whole ramp
-   rather than run one flat speed.) */
-::view-transition-group(nav-pill){
-  animation-duration:var(--nav-dur, 380ms);   /* fetcher-nav.js scales this to the travel distance */
-  animation-timing-function:linear(
-    0, 0.006, 0.024, 0.055, 0.1, 0.16, 0.235, 0.32, 0.415, 0.515, 0.61, 0.7,
-    0.78, 0.85, 0.905, 0.95, 0.984, 1.008, 1.018, 1.02, 1.015, 1.007, 1.001, 1);
-}
-/* Keep the rail itself steady (it only persists — no bounce) and crossfade the content. */
-::view-transition-group(rail){ animation-timing-function:var(--ease); }
-::view-transition-old(root),
-::view-transition-new(root){ animation-duration:180ms; }
-
 /* ---------- Sidebar (identical on every page) ---------- */
 .rail{
   width:88px;
@@ -204,7 +157,6 @@ button:disabled, .seg-btn:disabled, .settings-seg-btn:disabled, [aria-disabled="
   padding:14px 0 18px;
   transition:width var(--dur-base) var(--ease-bounce), flex-basis var(--dur-base) var(--ease-bounce), background var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
   position:relative;
-  view-transition-name:rail;   /* persists across page transitions (doesn't crossfade) */
 }
 .rail.collapsed{width:64px;flex-basis:64px;}
 
@@ -255,9 +207,7 @@ button:disabled, .seg-btn:disabled, .settings-seg-btn:disabled, [aria-disabled="
 .rail.collapsed .rail-btn span{opacity:0;max-height:0;overflow:hidden;}
 .rail.collapsed .rail-btn{height:44px;}
 
-/* Current-page highlight is a pill BEHIND the button content, so it can slide
-   between pages: its view-transition-name lets the browser morph it from the
-   old page's active item to the new one during a cross-document view transition. */
+/* Current-page highlight pill. Cross-page animation is owned by fetcher-shell.css. */
 .rail-btn > svg,
 .rail-btn > span{position:relative;z-index:1;}
 .rail-btn.active{color:var(--bg);}
@@ -265,7 +215,6 @@ button:disabled, .seg-btn:disabled, .settings-seg-btn:disabled, [aria-disabled="
   content:"";position:absolute;inset:0;z-index:0;
   background:var(--ink);border-radius:var(--r-md);
   box-shadow:var(--shadow-sm);
-  view-transition-name:nav-pill;
 }
 .rail-btn.active:hover::before{background:var(--ink-strong);}
 
