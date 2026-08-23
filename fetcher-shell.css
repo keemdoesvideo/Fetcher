@@ -1,8 +1,8 @@
 /*
  * fetcher-shell.css
- * Canonical styling for Fetcher's persistent shell, page-content transitions and
- * custom paw cursor. The router owns state; page-specific presentation lives with
- * each page rather than being retuned from this shared layer.
+ * Canonical styling for Fetcher's persistent chrome: paw cursor, primary rail,
+ * page-content transitions and destination-pill motion. The router owns state;
+ * page-specific presentation lives with each page.
  */
 
 html{
@@ -48,33 +48,76 @@ html[data-theme] .settings-seg-btn:disabled,
 html[data-theme] [aria-disabled="true"]{cursor:not-allowed!important;}
 html[data-theme] .trim-handle{cursor:ew-resize!important;}
 
-/* ---------- Persistent rail ---------- */
-html .rail,
-html .rail-btn.active::before{view-transition-name:none!important;}
-html .rail{
+/* ---------- Primary rail ---------- */
+.rail{
+  width:88px;
+  flex:0 0 88px;
+  height:100%;
+  background:var(--rail);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:14px 0 18px;
+  position:relative;
   transition:
     width var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
     flex-basis var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
     background var(--dur-base) var(--ease),
-    border-color var(--dur-base) var(--ease)!important;
+    border-color var(--dur-base) var(--ease);
 }
-html .rail .rail-btn{
-  width:64px;max-width:64px;gap:6px;
+
+.mark{
+  width:30px;height:30px;border-radius:8px;background:var(--ink);color:var(--bg);
+  display:flex;align-items:center;justify-content:center;margin-bottom:12px;flex:0 0 auto;
+}
+.mark svg{width:15px;height:15px;}
+
+.rail-toggle{
+  width:36px;height:36px;border:none;background:transparent;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease-bounce);
+}
+.rail-toggle:hover{background:var(--surface);color:var(--ink);}
+.rail-toggle:active{transform:scale(.92);}
+.rail-toggle svg{transition:transform var(--dur-base) var(--ease-bounce);}
+
+.rail-primary{display:flex;flex-direction:column;gap:6px;margin-top:14px;align-items:center;width:100%;padding:0 12px;}
+.rail-btn{
+  width:64px;max-width:64px;height:64px;border:none;border-radius:var(--r-md);background:transparent;color:var(--ink);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  cursor:pointer;font-size:11px;letter-spacing:.01em;position:relative;
   transition:
     background var(--dur-fast) var(--ease),
     transform var(--dur-fast) var(--ease-bounce),
     color var(--dur-fast) var(--ease),
     width var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
     height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
-    gap var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;
+    gap var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease);
 }
-html .rail .rail-btn span{
-  display:block;max-height:14px;line-height:14px;overflow:hidden;opacity:1;transform:translateY(0);
+.rail-btn svg{transition:transform var(--dur-fast) var(--ease-bounce);}
+.rail-btn:hover svg{transform:translateY(-1px);}
+.rail-btn:active{transform:scale(.95);}
+.rail-btn span{
+  display:block;max-height:14px;line-height:14px;overflow:hidden;opacity:1;transform:translateY(0);white-space:nowrap;
   transition:
     opacity 120ms var(--ease) 55ms,
     max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
-    transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;
+    transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease);
 }
+.rail-btn > svg,.rail-btn > span{position:relative;z-index:1;}
+.rail-btn.active{color:var(--bg);}
+.rail-btn.active::before{
+  content:"";position:absolute;inset:0;z-index:0;background:var(--ink);border-radius:var(--r-md);box-shadow:var(--shadow-sm);
+}
+.rail-btn.active:hover::before{background:var(--ink-strong);}
+.rail-spacer{margin-top:auto;}
+.rail-icons{display:flex;flex-direction:column;gap:4px;align-items:center;padding-bottom:2px;width:100%;padding-inline:8px;}
+.rail-icons .rail-btn:not(.active):hover{background:var(--surface);}
+.rail-icons .rail-btn.donate:hover{color:var(--mute);}
+.rail-icons .rail-btn.donate:hover svg{transform:translateY(-1px) scale(1.06);}
+
+/* Collapsed state is driven by the parent shell and persisted in localStorage. */
 html[data-rail-collapsed="true"] .rail{width:64px;flex-basis:64px;}
 html[data-rail-collapsed="true"] .rail .rail-toggle svg{transform:rotate(180deg);}
 html[data-rail-collapsed="true"] .rail .rail-btn{width:44px;height:44px;gap:0;}
@@ -83,18 +126,18 @@ html[data-rail-collapsed="true"] .rail .rail-btn span{
   transition:
     opacity 90ms var(--ease),
     max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
-    transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;
+    transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease);
 }
 
-/* Reserved keeps the same rail behaviour but removes spring easing from the
-   frequent controls. Physical dimensions stay monotonic in every mode. */
+/* Reserved keeps the same rail interaction but removes spring easing from
+   frequent controls. Structural dimensions stay monotonic in every mode. */
 html[data-motion="reserved"] .rail-toggle,
 html[data-motion="reserved"] .rail-toggle svg,
 html[data-motion="reserved"] .rail-btn svg{
   transition-duration:150ms!important;
   transition-timing-function:var(--ease)!important;
 }
-html[data-motion="reserved"] .rail .rail-btn{
+html[data-motion="reserved"] .rail-btn{
   transition:
     background 150ms var(--ease),
     transform 150ms var(--ease),
@@ -103,13 +146,13 @@ html[data-motion="reserved"] .rail .rail-btn{
     height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
     gap var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;
 }
-html[data-motion="reserved"] .rail .rail-btn span{
+html[data-motion="reserved"] .rail-btn span{
   transition:
     opacity 100ms var(--ease) 30ms,
     max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
     transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;
 }
-html[data-motion="reserved"][data-rail-collapsed="true"] .rail .rail-btn span{
+html[data-motion="reserved"][data-rail-collapsed="true"] .rail-btn span{
   transition:
     opacity 80ms var(--ease),
     max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
@@ -127,9 +170,7 @@ html[data-fetcher-embedded="true"] .app{width:100%!important;}
 }
 .fetcher-content-host>.fetcher-page-layer{transition:opacity var(--shell-page-fade) var(--ease);}
 html[data-motion="reduced"] .fetcher-page-frame,
-html[data-motion="reduced"] .fetcher-content-host>.fetcher-page-layer{
-  transition:opacity var(--shell-page-fade) linear!important;
-}
+html[data-motion="reduced"] .fetcher-content-host>.fetcher-page-layer{transition:opacity var(--shell-page-fade) linear!important;}
 
 /* ---------- Destination pill ---------- */
 html[data-nav-pop="true"][data-motion="full"] .rail-btn.active::before{
@@ -147,7 +188,7 @@ html[data-nav-pop="true"][data-motion="reduced"] .rail-btn.active::before{
 
 @media (hover:none),(pointer:coarse){.rail-btn:hover svg,.rail-icons .rail-btn.donate:hover svg{transform:none!important;}}
 @media (max-width:560px){
-  html .rail{width:64px;flex-basis:64px;}
-  html .rail .rail-btn{width:44px;height:44px;gap:0;}
-  html .rail .rail-btn span{display:none!important;}
+  .rail{width:64px;flex-basis:64px;}
+  .rail-btn{width:44px;height:44px;gap:0;}
+  .rail-btn span{display:none!important;}
 }
