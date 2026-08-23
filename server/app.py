@@ -47,10 +47,13 @@ ALLOWED_ASSETS: dict[str, str] = {
     "about.html": "text/html; charset=utf-8",
     "updates.html": "text/html; charset=utf-8",
     "fetcher-theme.css": "text/css; charset=utf-8",
+    "fetcher-shell.css": "text/css; charset=utf-8",
     "fetcher-trimmer.css": "text/css; charset=utf-8",
     "fetcher-prefs.js": "application/javascript; charset=utf-8",
     "fetcher-nav.js": "application/javascript; charset=utf-8",
     "fetcher-trimmer.js": "application/javascript; charset=utf-8",
+    "paw-cursor-light.svg": "image/svg+xml",
+    "paw-cursor-dark.svg": "image/svg+xml",
     "hls.min.js": "application/javascript; charset=utf-8",
 }
 
@@ -296,12 +299,10 @@ async def download(job_id: str):
 
 
 # --- Frontend (allowlist only) --------------------------------------------
-# Dev tool: keep the frontend always-fresh, but *cacheable*. "no-cache" makes the
-# browser revalidate every asset before use (ETag/Last-Modified -> 304 when
-# unchanged), so edits still show up on a plain reload — no stale-cache surprises
-# — yet an unchanged theme.css (with its embedded ~60KB font) isn't re-downloaded
-# on every navigation. Full re-downloads on each hop ("no-store") slowed the new
-# page's first paint enough to disrupt the cross-document view transition.
+# Dev tool: always revalidate frontend assets so local edits show up on a normal
+# reload, while unchanged large assets can still return 304 instead of being
+# downloaded again. The persistent shell keeps page navigation inside one parent
+# document, so this cache policy no longer participates in animation behavior.
 _NO_CACHE = {"Cache-Control": "no-cache"}
 
 
