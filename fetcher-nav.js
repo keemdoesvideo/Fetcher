@@ -1,8 +1,8 @@
 /*
  * fetcher-nav.js
- * Persistent Fetcher shell: rail state, page-content routing/fades and welcome
- * accessibility. Preference resolution lives in fetcher-prefs.js; presentation
- * and motion timings live in fetcher-shell.css.
+ * Persistent Fetcher shell: rail state, page-content routing/fades and history.
+ * Preference resolution lives in fetcher-prefs.js; presentation/motion lives in
+ * fetcher-shell.css; page-specific controllers own their own UI.
  */
 (function () {
   'use strict';
@@ -13,11 +13,6 @@
 
   /* -----------------------------------------------------------------------
      Shared shell stylesheet
-
-     This script is intentionally loaded before fetcher-theme.css on every page.
-     Start the shell stylesheet request immediately, then move the same <link> to
-     the end of <head> once parsing finishes so shell overrides have one clear,
-     deterministic place in the cascade without duplicating CSS in JavaScript.
   ----------------------------------------------------------------------- */
   var shellLink = document.getElementById('fetcher-shell-styles');
   if (!shellLink) {
@@ -29,9 +24,7 @@
   }
 
   function placeShellStylesLast() {
-    if (document.head && shellLink && shellLink.parentNode) {
-      document.head.appendChild(shellLink);
-    }
+    if (document.head && shellLink && shellLink.parentNode) document.head.appendChild(shellLink);
   }
 
   function cssDuration(name, fallback) {
@@ -51,103 +44,6 @@
   try { savedRailCollapsed = localStorage.getItem(RAIL_KEY) === '1'; } catch (e) {}
   if (savedRailCollapsed) root.setAttribute('data-rail-collapsed', 'true');
   if (embedded) root.setAttribute('data-fetcher-embedded', 'true');
-
-  /* -----------------------------------------------------------------------
-     First-visit welcome repair
-
-     Older welcome code marked a browser as greeted even if /api/visits/claim
-     failed. A successful claim always stores a visitor number, so a seen flag
-     without a number is a safe signal to retry on the next page load.
-  ----------------------------------------------------------------------- */
-  try {
-    if (localStorage.getItem('fetcher.welcomed') && !localStorage.getItem('fetcher.visitorNumber')) {
-      localStorage.removeItem('fetcher.welcomed');
-    }
-  } catch (e) {}
-
-  /* -----------------------------------------------------------------------
-     Welcome dialog accessibility
-  ----------------------------------------------------------------------- */
-  function installWelcomeAccessibility() {
-    var welcome = document.getElementById('welcome');
-    var card = welcome && welcome.querySelector('.welcome-card');
-    var button = welcome && welcome.querySelector('#welcome-btn');
-    if (!welcome || !card || !button) return;
-
-    card.setAttribute('aria-describedby', 'welcome-copy');
-
-    function isOpen() {
-      return !welcome.hidden && welcome.classList.contains('in') && welcome.isConnected;
-    }
-
-    function focusableElements() {
-      var nodes = card.querySelectorAll(
-        'a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])'
-      );
-      return Array.prototype.filter.call(nodes, function (node) {
-        return node.getClientRects().length > 0;
-      });
-    }
-
-    function focusFetchFieldSoon() {
-      window.setTimeout(function () {
-        var field = document.getElementById('url-input');
-        if (field && !field.disabled) {
-          try { field.focus(); } catch (e) {}
-        }
-      }, 340);
-    }
-
-    welcome.addEventListener('click', function (event) {
-      if (event.target.closest && event.target.closest('#welcome-btn')) {
-        focusFetchFieldSoon();
-      } else if (!(event.target.closest && event.target.closest('.welcome-card'))) {
-        focusFetchFieldSoon();
-      }
-    }, true);
-
-    document.addEventListener('keydown', function (event) {
-      if (!isOpen()) return;
-
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        button.click();
-        focusFetchFieldSoon();
-        return;
-      }
-
-      if (event.key !== 'Tab') return;
-
-      var focusables = focusableElements();
-      if (!focusables.length) {
-        event.preventDefault();
-        try { button.focus(); } catch (e) {}
-        return;
-      }
-
-      var first = focusables[0];
-      var last = focusables[focusables.length - 1];
-      var active = document.activeElement;
-
-      if (event.shiftKey) {
-        if (active === first || !card.contains(active)) {
-          event.preventDefault();
-          try { last.focus(); } catch (e) {}
-        }
-      } else if (active === last || !card.contains(active)) {
-        event.preventDefault();
-        try { first.focus(); } catch (e) {}
-      }
-    }, true);
-
-    document.addEventListener('focusin', function (event) {
-      if (!isOpen() || card.contains(event.target)) return;
-      try { button.focus(); } catch (e) {}
-    }, true);
-  }
-
-  document.addEventListener('DOMContentLoaded', installWelcomeAccessibility);
 
   /* -----------------------------------------------------------------------
      Route helpers
@@ -176,28 +72,28 @@
     return routePath(a) === routePath(b) && a.search === b.search && a.hash === b.hash;
   }
 
-  function isPlainPrimaryNavigation(ev, link) {
-    if (ev.defaultPrevented) return false;
-    if (ev.button != null && ev.button !== 0) return false;
-    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return false;
+  function isPlainPrimaryNavigation(event, link) {
+    if (event.defaultPrevented) return false;
+    if (event.button != null && event.button !== 0) return false;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
     if (link.target && link.target !== '_self') return false;
     if (link.hasAttribute('download')) return false;
     return true;
   }
 
   /* -----------------------------------------------------------------------
-     Embedded page routing
+     Embedded pages hand same-origin Fetcher navigation back to the parent shell.
   ----------------------------------------------------------------------- */
   if (embedded) {
-    document.addEventListener('click', function (ev) {
-      var link = ev.target.closest ? ev.target.closest('a[href]') : null;
-      if (!link || !isPlainPrimaryNavigation(ev, link)) return;
+    document.addEventListener('click', function (event) {
+      var link = event.target.closest ? event.target.closest('a[href]') : null;
+      if (!link || !isPlainPrimaryNavigation(event, link)) return;
 
       var destination;
       try { destination = new URL(link.href, window.location.href); } catch (e) { return; }
       if (destination.origin !== window.location.origin || !isFetcherPage(destination)) return;
 
-      ev.preventDefault();
+      event.preventDefault();
       try {
         window.parent.postMessage({ type: 'fetcher:navigate', href: destination.href }, window.location.origin);
       } catch (e) {}
@@ -259,7 +155,6 @@
     contentHost.className = 'fetcher-content-host';
     main.parentNode.insertBefore(contentHost, main);
     contentHost.appendChild(main);
-
     main.classList.add('fetcher-page-layer');
     currentLayer = main;
   }
@@ -274,7 +169,6 @@
     Array.prototype.forEach.call(links, function (link) {
       var linkUrl;
       try { linkUrl = new URL(link.href, window.location.href); } catch (e) { return; }
-
       var selected = routePath(linkUrl) === wanted;
       link.classList.toggle('active', selected);
       if (selected) {
@@ -286,11 +180,7 @@
     });
 
     if (!active) return;
-
-    if (navPopTimer) {
-      clearTimeout(navPopTimer);
-      navPopTimer = null;
-    }
+    if (navPopTimer) clearTimeout(navPopTimer);
     root.removeAttribute('data-nav-pop');
 
     requestAnimationFrame(function () {
@@ -335,7 +225,6 @@
       }
 
       clearTimeout(fallback);
-
       try {
         if (frame.contentDocument && frame.contentDocument.title) {
           document.title = frame.contentDocument.title;
@@ -345,7 +234,6 @@
 
       var old = currentLayer;
       frame.classList.add('fetcher-page-layer');
-
       requestAnimationFrame(function () {
         frame.style.opacity = '1';
         if (old) old.style.opacity = '0';
@@ -368,9 +256,9 @@
     }
   }
 
-  function handleRouteClick(ev) {
-    var link = ev.target.closest ? ev.target.closest('a[href]') : null;
-    if (!link || !isPlainPrimaryNavigation(ev, link)) return;
+  function handleRouteClick(event) {
+    var link = event.target.closest ? event.target.closest('a[href]') : null;
+    if (!link || !isPlainPrimaryNavigation(event, link)) return;
 
     var destination;
     try { destination = new URL(link.href, window.location.href); } catch (e) { return; }
@@ -379,7 +267,7 @@
     var currentUrl = new URL(window.location.href);
     if (sameRoute(destination, currentUrl)) return;
 
-    ev.preventDefault();
+    event.preventDefault();
     routeTo(destination, { push: true });
   }
 
@@ -391,11 +279,9 @@
 
     window.addEventListener('message', function (event) {
       if (event.origin !== window.location.origin || !event.data || event.data.type !== 'fetcher:navigate') return;
-
       var destination;
       try { destination = new URL(event.data.href, window.location.href); } catch (e) { return; }
       if (!isFetcherPage(destination)) return;
-
       routeTo(destination, { push: true });
     });
 
