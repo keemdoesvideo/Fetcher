@@ -1,0 +1,86 @@
+name: Share coming soon styles
+
+on:
+  push:
+    branches:
+      - fix/paw-cursor-readability
+    paths:
+      - .github/workflows/share-coming-soon-styles.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/paw-cursor-readability
+          fetch-depth: 0
+
+      - name: Extract Image and Chat inline styles
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          for name in ['image.html', 'chat.html']:
+              path = Path(name)
+              text = path.read_text(encoding='utf-8')
+              text, count = re.subn(r'\n<style>.*?</style>', '', text, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit(f'{name}: expected one inline style block')
+              shell = '<link rel="stylesheet" href="fetcher-shell.css">'
+              soon = '<link rel="stylesheet" href="fetcher-soon.css">'
+              if soon not in text:
+                  if shell not in text:
+                      raise SystemExit(f'{name}: shell stylesheet marker missing')
+                  text = text.replace(shell, shell + '\n' + soon, 1)
+              path.write_text(text, encoding='utf-8')
+
+          app = Path('server/app.py')
+          text = app.read_text(encoding='utf-8')
+          marker = '    "fetcher-settings.css": "text/css; charset=utf-8",\n'
+          entry = '    "fetcher-soon.css": "text/css; charset=utf-8",\n'
+          if entry not in text:
+              if marker not in text:
+                  raise SystemExit('server allowlist marker missing')
+              text = text.replace(marker, marker + entry, 1)
+          app.write_text(text, encoding='utf-8')
+
+      - name: Validate shared component
+        shell: bash
+        run: |
+          python -m compileall -q server run.py
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          for name in ['image.html', 'chat.html']:
+              text = Path(name).read_text(encoding='utf-8')
+              assert '<style>' not in text
+              assert text.count('href="fetcher-soon.css"') == 1
+              assert text.count('href="fetcher-shell.css"') == 1
+
+          css = Path('fetcher-soon.css').read_text(encoding='utf-8')
+          assert 'soon-pulse' not in css
+          assert 'animation:' not in css
+          assert '@media (hover:hover) and (pointer:fine)' in css
+          assert 'scale(.97)' in css
+          assert 'fetcher-soon.css' in Path('server/app.py').read_text(encoding='utf-8')
+
+          stripped = re.sub(r'/\*.*?\*/', '', css, flags=re.S)
+          stripped = re.sub(r'"(?:\\.|[^"\\])*"', '""', stripped)
+          stripped = re.sub(r"'(?:\\.|[^'\\])*'", "''", stripped)
+          assert stripped.count('{') == stripped.count('}')
+          PY
+
+      - name: Commit cleanup and remove workflow
+        run: |
+          rm .github/workflows/share-coming-soon-styles.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "4189826+github-actions[bot]@users.noreply.github.com"
+          git add image.html chat.html server/app.py .github/workflows/share-coming-soon-styles.yml
+          git commit -m "Share quiet coming-soon component"
+          git push origin HEAD:fix/paw-cursor-readability
