@@ -1,0 +1,141 @@
+name: Final animation and design audit gate
+
+on:
+  push:
+    branches:
+      - fix/paw-cursor-readability
+    paths:
+      - .github/workflows/final-audit-gate.yml
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/paw-cursor-readability
+          fetch-depth: 0
+
+      - name: JavaScript and Python syntax
+        shell: bash
+        run: |
+          for file in fetcher-prefs.js fetcher-nav.js fetcher-main.js fetcher-settings.js fetcher-about.js fetcher-trimmer.js; do
+            node --check "$file"
+          done
+          python -m compileall -q server run.py
+
+      - name: Audit ownership, motion and asset wiring
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          pages = {
+              'project-fetcher.html': ['fetcher-main.css', 'fetcher-main.js'],
+              'settings.html': ['fetcher-settings.css', 'fetcher-settings.js'],
+              'image.html': ['fetcher-soon.css'],
+              'chat.html': ['fetcher-soon.css'],
+              'donate.html': ['fetcher-donate.css'],
+              'updates.html': ['fetcher-updates.css'],
+              'about.html': ['fetcher-about.css', 'fetcher-about.js'],
+          }
+
+          for page, owned in pages.items():
+              text = Path(page).read_text(encoding='utf-8')
+              assert '<style>' not in text, f'{page}: inline style remains'
+              assert text.count('href="fetcher-theme.css"') == 1, f'{page}: theme link'
+              assert text.count('href="fetcher-shell.css"') == 1, f'{page}: shell link'
+              for asset in owned:
+                  assert asset in text, f'{page}: missing {asset}'
+
+          allowlist = Path('server/app.py').read_text(encoding='utf-8')
+          assets = [
+              'fetcher-theme.css','fetcher-shell.css','fetcher-main.css','fetcher-settings.css',
+              'fetcher-soon.css','fetcher-about.css','fetcher-donate.css','fetcher-updates.css',
+              'fetcher-trimmer.css','fetcher-prefs.js','fetcher-nav.js','fetcher-main.js',
+              'fetcher-settings.js','fetcher-about.js','fetcher-trimmer.js',
+              'paw-cursor-light.svg','paw-cursor-dark.svg'
+          ]
+          for asset in assets:
+              assert f'"{asset}"' in allowlist, f'allowlist missing {asset}'
+
+          theme = Path('fetcher-theme.css').read_text(encoding='utf-8')
+          shell = Path('fetcher-shell.css').read_text(encoding='utf-8')
+          main = Path('fetcher-main.css').read_text(encoding='utf-8')
+          settings = Path('fetcher-settings.css').read_text(encoding='utf-8')
+          soon = Path('fetcher-soon.css').read_text(encoding='utf-8')
+          donate = Path('fetcher-donate.css').read_text(encoding='utf-8')
+          nav_js = Path('fetcher-nav.js').read_text(encoding='utf-8')
+          main_js = Path('fetcher-main.js').read_text(encoding='utf-8')
+          settings_js = Path('fetcher-settings.js').read_text(encoding='utf-8')
+
+          # Legacy architecture must stay physically gone.
+          for text in [theme, shell]:
+              assert '@view-transition' not in text
+              assert 'view-transition-name' not in text
+          assert '--cursor-paw' not in theme
+          assert '.rail{' not in theme and '.rail-btn' not in theme and '.rail-toggle' not in theme
+          assert 'paw-cursor-light.svg' in shell and 'paw-cursor-dark.svg' in shell
+          assert 'shellLink' not in nav_js
+
+          # Reduced motion is component-owned rather than a universal kill switch.
+          assert 'transition-duration:0.001ms' not in theme
+          assert 'animation-duration:0.001ms' not in theme
+          assert 'Reduced motion is component-owned' in theme
+          assert '--shell-rail-collapse-dur:0ms' in shell
+
+          # High-frequency motion standards.
+          assert 'animation:fetch-indeterminate 1.15s linear infinite;' in main
+          assert 'Shortcuts are a frequent utility: open and close immediately.' in main
+          assert 'soon-pulse' not in soon
+          assert 'animation:' not in soon
+          assert '@media (hover:hover) and (pointer:fine)' in shell
+          assert '@media (hover:hover) and (pointer:fine)' in main
+          assert '@media (hover:hover) and (pointer:fine)' in soon
+          assert '@media (hover:hover) and (pointer:fine)' in donate
+
+          # Frequent press states should not use the old deep squashes.
+          combined = '\n'.join([shell, main, settings, soon, donate])
+          for bad in ['scale(.92)', 'scale(.94)', 'scale(.9);']:
+              assert bad not in combined, f'legacy press scale remains: {bad}'
+
+          # Cleaned controllers should not use forced layout flushes to restart motion.
+          controllers = '\n'.join([nav_js, main_js, settings_js])
+          assert 'offsetWidth;' not in controllers
+
+          # Settings local nav should be visually subordinate to the primary rail.
+          assert 'background:var(--accent-tint)' in settings
+          assert 'box-shadow:inset 3px 0 0' in settings
+          assert '.settings-nav-item[aria-current="true"]{color:var(--ink);font-weight:600;}' in settings
+
+          # Shape roles: metadata can remain pill-like; ordinary secondary CTAs are not pills.
+          assert '.soon-tag' in soon and 'border-radius:999px' in soon
+          assert 'border-radius:12px;padding:11px 20px' in soon
+          assert 'border-radius:12px;padding:13px 24px' in donate
+
+          css_files = [
+              'fetcher-theme.css','fetcher-shell.css','fetcher-main.css','fetcher-settings.css',
+              'fetcher-soon.css','fetcher-about.css','fetcher-donate.css','fetcher-updates.css',
+              'fetcher-trimmer.css'
+          ]
+          for name in css_files:
+              css = Path(name).read_text(encoding='utf-8')
+              stripped = re.sub(r'/\*.*?\*/', '', css, flags=re.S)
+              stripped = re.sub(r'"(?:\\.|[^"\\])*"', '""', stripped)
+              stripped = re.sub(r"'(?:\\.|[^'\\])*'", "''", stripped)
+              assert stripped.count('{') == stripped.count('}'), f'{name}: unbalanced braces'
+
+          print('Final Fetcher animation/design audit gate passed.')
+          PY
+
+      - name: Remove one-shot audit workflow
+        run: |
+          rm .github/workflows/final-audit-gate.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/final-audit-gate.yml
+          git commit -m "Pass final animation and design audit gate"
+          git push origin HEAD:fix/paw-cursor-readability
