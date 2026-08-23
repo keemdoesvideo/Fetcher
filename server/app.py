@@ -7,7 +7,7 @@ reachable over HTTP.
 
 Endpoints:
   GET  /                      -> the Fetch page (project-fetcher.html)
-  GET  /<allowed asset>       -> css/js/settings.html (allowlist only)
+  GET  /<allowed asset>       -> allowlisted frontend assets only
   GET  /api/health           -> environment diagnostics
   POST /api/prepare          -> prepare media, return {jobId, filename, mode}
   GET  /api/download/{jobId} -> stream the prepared file, then clean it up
@@ -37,7 +37,9 @@ logging.basicConfig(
 )
 log = logging.getLogger("fetcher.app")
 
-# The only files reachable over HTTP, with their content types.
+# The only files reachable over HTTP, with their content types. Shell styling and
+# cursor artwork are ordinary static assets now; navigation JS no longer embeds
+# either of them as generated data.
 ALLOWED_ASSETS: dict[str, str] = {
     "project-fetcher.html": "text/html; charset=utf-8",
     "image.html": "text/html; charset=utf-8",
