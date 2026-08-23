@@ -9,54 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317171a'/%3E%3Cpath d='M16 8v13M10 15l6 6 6-6' stroke='%23fafaf8' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="fetcher-theme.css">
 <link rel="stylesheet" href="fetcher-shell.css">
-<style>
-/* ---------- Donate (page-specific) ---------- */
-.main{
-  flex:1;height:100%;overflow-y:auto;
-  display:flex;align-items:center;justify-content:center;
-  padding:48px 24px;
-}
-.donate{
-  width:100%;max-width:460px;text-align:center;
-}
-.donate-badge{
-  width:62px;height:62px;border-radius:50%;
-  background:var(--accent-tint);color:var(--accent-ink);
-  display:flex;align-items:center;justify-content:center;
-  margin:0 auto 22px;
-  transition:background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
-}
-.donate-badge svg{width:29px;height:29px;}
-
-.donate-eyebrow{
-  display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-faint);margin-bottom:8px;
-}
-.donate h1{
-  font-size:26px;font-weight:600;letter-spacing:-.02em;margin-bottom:14px;
-}
-.donate-lead{
-  font-size:14.5px;line-height:1.65;color:var(--ink-soft);
-  max-width:42ch;margin:0 auto 30px;
-}
-
-.kofi-btn{
-  display:inline-flex;align-items:center;gap:10px;
-  background:var(--accent);color:var(--on-accent);
-  border-radius:999px;padding:13px 24px;
-  font-family:inherit;font-size:14.5px;font-weight:600;
-  box-shadow:var(--shadow-sm);cursor:pointer;
-  transition:transform var(--dur-fast) var(--ease-bounce), box-shadow var(--dur-base) var(--ease), filter var(--dur-fast) var(--ease);
-}
-.kofi-btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px -10px rgba(0,0,0,.4);filter:brightness(1.03);}
-.kofi-btn:active{transform:translateY(0) scale(.98);}
-.kofi-btn svg{width:19px;height:19px;flex:0 0 auto;}
-
-.donate-note{
-  font-size:12px;line-height:1.55;color:var(--ink-faint);
-  max-width:38ch;margin:18px auto 0;
-}
-</style>
+<link rel="stylesheet" href="fetcher-donate.css">
 </head>
 <body>
 <div class="app">

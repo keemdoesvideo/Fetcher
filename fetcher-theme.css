@@ -1,7 +1,7 @@
 /*
  * fetcher-theme.css
- * Shared across every Fetcher page: fonts, color tokens (light + dark),
- * base resets, and the persistent sidebar. Keeping this in one file means
+ * Shared across every Fetcher page: fonts, color tokens (light + dark) and
+ * base/reset/application styling. Keeping this in one file means
  * new pages automatically match and a theme tweak only happens once.
  * Reads html[data-theme] / html[data-motion], set by fetcher-prefs.js
  * before this stylesheet is even parsed.
