@@ -1,7 +1,10 @@
 /*
  * fetcher-nav.js
- * Shared Fetcher shell: custom paw cursor, persistent primary rail, rail state,
- * page-content routing/fades, and cross-frame preference synchronisation.
+ * Persistent Fetcher shell: rail state, page-content routing/fades, welcome
+ * accessibility and cross-frame preference synchronisation.
+ *
+ * Presentation lives in fetcher-shell.css. Keeping CSS out of this router avoids
+ * the old pattern where navigation JS manufactured a second competing stylesheet.
  */
 (function () {
   'use strict';
@@ -9,6 +12,29 @@
   var root = document.documentElement;
   var embedded = false;
   try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
+
+  /* -----------------------------------------------------------------------
+     Shared shell stylesheet
+
+     This script is intentionally loaded before fetcher-theme.css on every page.
+     Start the shell stylesheet request immediately, then move the same <link> to
+     the end of <head> once parsing finishes so shell overrides have one clear,
+     deterministic place in the cascade without duplicating any CSS in JS.
+  ----------------------------------------------------------------------- */
+  var shellLink = document.getElementById('fetcher-shell-styles');
+  if (!shellLink) {
+    shellLink = document.createElement('link');
+    shellLink.id = 'fetcher-shell-styles';
+    shellLink.rel = 'stylesheet';
+    shellLink.href = 'fetcher-shell.css';
+    (document.head || document.documentElement).appendChild(shellLink);
+  }
+
+  function placeShellStylesLast() {
+    if (document.head && shellLink && shellLink.parentNode) {
+      document.head.appendChild(shellLink);
+    }
+  }
 
   /* -----------------------------------------------------------------------
      Persistent rail state
@@ -33,214 +59,11 @@
   } catch (e) {}
 
   /* -----------------------------------------------------------------------
-     Paw cursor
-  ----------------------------------------------------------------------- */
-  var PAW_PATHS =
-    "<path d='M 226 12 L 225 13 L 216 14 L 206 19 L 198 26 L 192 34 L 188 42 L 184 57 L 184 78 L 188 93 L 194 105 L 199 112 L 207 120 L 221 128 L 229 130 L 242 130 L 254 126 L 260 122 L 271 110 L 277 98 L 279 91 L 279 87 L 280 86 L 280 65 L 275 47 L 271 39 L 261 26 L 252 19 L 244 15 L 237 13 Z'/>" +
-    "<path d='M 93 46 L 85 49 L 79 53 L 69 64 L 65 72 L 62 83 L 62 103 L 66 118 L 76 136 L 83 144 L 95 153 L 107 158 L 117 159 L 118 160 L 129 159 L 135 157 L 144 152 L 152 144 L 156 138 L 160 128 L 161 120 L 162 119 L 162 104 L 157 85 L 152 75 L 144 64 L 131 53 L 121 48 L 110 45 Z'/>" +
-    "<path d='M 347 82 L 332 82 L 323 85 L 316 89 L 308 96 L 301 105 L 294 121 L 292 129 L 292 148 L 295 159 L 301 170 L 309 178 L 321 184 L 335 185 L 343 183 L 353 178 L 368 163 L 376 146 L 377 138 L 378 137 L 378 119 L 374 105 L 368 95 L 362 89 L 356 85 Z'/>" +
-    "<path d='M 334 230 L 325 218 L 286 179 L 267 165 L 255 159 L 242 155 L 238 155 L 232 153 L 223 153 L 222 152 L 201 153 L 185 157 L 170 164 L 156 174 L 141 191 L 128 214 L 120 238 L 119 248 L 118 249 L 118 256 L 117 257 L 116 275 L 115 276 L 114 299 L 118 316 L 127 330 L 137 338 L 152 344 L 163 345 L 164 346 L 165 345 L 179 345 L 195 339 L 219 321 L 229 310 L 239 305 L 246 305 L 267 313 L 281 314 L 282 315 L 283 314 L 297 313 L 306 310 L 316 305 L 326 298 L 335 288 L 340 278 L 342 270 L 342 253 L 338 238 Z'/>" +
-    "<path d='M 28 166 L 18 176 L 12 192 L 13 211 L 16 220 L 24 234 L 30 241 L 40 249 L 50 254 L 60 257 L 76 257 L 87 253 L 94 248 L 102 237 L 105 227 L 105 210 L 102 199 L 93 183 L 78 169 L 63 162 L 53 161 L 52 160 L 45 160 L 44 161 L 36 162 Z'/>";
-
-  function makePaw(fill) {
-    return 'data:image/svg+xml;utf8,' + encodeURIComponent(
-      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 391 359' width='32' height='32'>" +
-        "<g fill='" + fill + "'>" + PAW_PATHS + "</g>" +
-      "</svg>"
-    );
-  }
-
-  var PAW_LIGHT = makePaw('#000000');
-  var PAW_DARK = makePaw('#ffffff');
-
-  /* -----------------------------------------------------------------------
-     Shared shell styling
-
-     The legacy theme stylesheet still declares the abandoned cross-document
-     View Transition experiment. The shell explicitly disables it until that
-     block is physically removed from fetcher-theme.css during the theme cleanup.
-  ----------------------------------------------------------------------- */
-  var shellStyle = document.createElement('style');
-  shellStyle.id = 'fetcher-shell-runtime';
-  shellStyle.textContent =
-    '@view-transition{navigation:none;}' +
-
-    'html{' +
-      '--shell-page-fade:170ms;' +
-      '--shell-nav-pop:230ms;' +
-      '--shell-rail-collapse-dur:240ms;' +
-      '--shell-rail-collapse-ease:cubic-bezier(.22,.8,.36,1);' +
-    '}' +
-    'html[data-motion="reserved"]{' +
-      '--shell-page-fade:145ms;' +
-      '--shell-nav-pop:170ms;' +
-      '--shell-rail-collapse-dur:190ms;' +
-      '--shell-rail-collapse-ease:var(--ease);' +
-    '}' +
-    'html[data-motion="reduced"]{' +
-      '--shell-page-fade:100ms;' +
-      '--shell-nav-pop:100ms;' +
-      '--shell-rail-collapse-dur:100ms;' +
-      '--shell-rail-collapse-ease:var(--ease);' +
-    '}' +
-
-    'html[data-theme="light"]{--cursor-paw-fixed:url("' + PAW_LIGHT + '") 15 3;}' +
-    'html[data-theme="dark"]{--cursor-paw-fixed:url("' + PAW_DARK + '") 15 3;}' +
-    'html[data-theme]{cursor:var(--cursor-paw-fixed),auto!important;}' +
-    'html[data-theme] body,html[data-theme] .app,html[data-theme] .fetcher-content-host,html[data-theme] .fetcher-page-frame{cursor:inherit!important;}' +
-    'html[data-theme] a,html[data-theme] button:not(:disabled),' +
-    'html[data-theme] [role="button"]:not([aria-disabled="true"]),' +
-    'html[data-theme] summary,html[data-theme] label[for],' +
-    'html[data-theme] .trim-play,html[data-theme] .trim-track{' +
-      'cursor:var(--cursor-paw-fixed),pointer!important;' +
-    '}' +
-    'html[data-theme] input:not([type="button"]):not([type="submit"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]),' +
-    'html[data-theme] textarea,html[data-theme] [contenteditable="true"]{cursor:text!important;}' +
-    'html[data-theme] button:disabled,html[data-theme] .seg-btn:disabled,' +
-    'html[data-theme] .settings-seg-btn:disabled,html[data-theme] [aria-disabled="true"]{cursor:not-allowed!important;}' +
-    'html[data-theme] .trim-handle{cursor:ew-resize!important;}' +
-
-    'html .rail,html .rail-btn.active::before{view-transition-name:none!important;}' +
-    'html .rail{' +
-      'transition:width var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),' +
-                 'flex-basis var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),' +
-                 'background var(--dur-base) var(--ease),' +
-                 'border-color var(--dur-base) var(--ease)!important;' +
-    '}' +
-    'html .rail .rail-btn{' +
-      'width:64px;max-width:64px;gap:6px;' +
-      'transition:background var(--dur-fast) var(--ease),' +
-                 'transform var(--dur-fast) var(--ease-bounce),' +
-                 'color var(--dur-fast) var(--ease),' +
-                 'width var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),' +
-                 'height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),' +
-                 'gap var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;' +
-    '}' +
-    'html .rail .rail-btn span{' +
-      'display:block;max-height:14px;line-height:14px;overflow:hidden;opacity:1;transform:translateY(0);' +
-      'transition:opacity 120ms var(--ease) 55ms,' +
-                 'max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),' +
-                 'transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;' +
-    '}' +
-
-    'html[data-rail-collapsed="true"] .rail{width:64px;flex-basis:64px;}' +
-    'html[data-rail-collapsed="true"] .rail .rail-toggle svg{transform:rotate(180deg);}' +
-    'html[data-rail-collapsed="true"] .rail .rail-btn{' +
-      'width:44px;height:44px;gap:0;' +
-    '}' +
-    'html[data-rail-collapsed="true"] .rail .rail-btn span{' +
-      'opacity:0;max-height:0;transform:translateY(-3px);pointer-events:none;' +
-      'transition:opacity 90ms var(--ease),' +
-                 'max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),' +
-                 'transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;' +
-    '}' +
-
-    'html[data-fetcher-embedded="true"] .rail{display:none!important;}' +
-    'html[data-fetcher-embedded="true"] .app{width:100%!important;}' +
-
-    '.fetcher-content-host{' +
-      'position:relative;flex:1 1 auto;min-width:0;height:100%;overflow:hidden;background:var(--bg);' +
-    '}' +
-    '.fetcher-content-host>.main{' +
-      'position:absolute!important;inset:0!important;width:100%!important;height:100%!important;' +
-    '}' +
-    '.fetcher-page-frame{' +
-      'position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg);opacity:0;' +
-      'transition:opacity var(--shell-page-fade) var(--ease);' +
-    '}' +
-    '.fetcher-content-host>.fetcher-page-layer{' +
-      'transition:opacity var(--shell-page-fade) var(--ease);' +
-    '}' +
-
-    'html[data-nav-pop="true"][data-motion="full"] .rail-btn.active::before{' +
-      'animation:fetcher-nav-pop-full var(--shell-nav-pop) cubic-bezier(.34,1.3,.64,1) both;transform-origin:center;' +
-    '}' +
-    '@keyframes fetcher-nav-pop-full{' +
-      '0%{opacity:.35;transform:scale(.88);}' +
-      '68%{opacity:1;transform:scale(1.045);}' +
-      '100%{opacity:1;transform:scale(1);}' +
-    '}' +
-    'html[data-nav-pop="true"][data-motion="reserved"] .rail-btn.active::before{' +
-      'animation:fetcher-nav-pop-reserved var(--shell-nav-pop) var(--ease) both;transform-origin:center;' +
-    '}' +
-    '@keyframes fetcher-nav-pop-reserved{' +
-      'from{opacity:.45;transform:scale(.96);}' +
-      'to{opacity:1;transform:scale(1);}' +
-    '}' +
-    'html[data-nav-pop="true"][data-motion="reduced"] .rail-btn.active::before{' +
-      'animation:fetcher-nav-pop-reduced var(--shell-nav-pop) var(--ease) both;' +
-    '}' +
-    '@keyframes fetcher-nav-pop-reduced{from{opacity:.45;}to{opacity:1;}}' +
-
-    'html[data-motion="reserved"] .rail-btn svg,' +
-    'html[data-motion="reserved"] .fetch-btn,' +
-    'html[data-motion="reserved"] .paste-btn,' +
-    'html[data-motion="reserved"] .paste-btn svg,' +
-    'html[data-motion="reserved"] .chip,' +
-    'html[data-motion="reserved"] .seg-btn svg,' +
-    'html[data-motion="reserved"] .services-toggle svg.chev,' +
-    'html[data-motion="reserved"] .settings-nav-thumb,' +
-    'html[data-motion="reserved"] .settings-seg .thumb,' +
-    'html[data-motion="reserved"] .segmented .thumb{' +
-      'transition-duration:150ms!important;transition-timing-function:var(--ease)!important;' +
-    '}' +
-    'html[data-motion="reserved"] .rail .rail-btn{' +
-      'transition:background 150ms var(--ease),' +
-                 'transform 150ms var(--ease),' +
-                 'color 150ms var(--ease),' +
-                 'width var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),' +
-                 'height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),' +
-                 'gap var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;' +
-    '}' +
-    'html[data-motion="reserved"] .rail .rail-btn span{' +
-      'transition:opacity 100ms var(--ease) 30ms,' +
-                 'max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),' +
-                 'transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;' +
-    '}' +
-    'html[data-motion="reserved"][data-rail-collapsed="true"] .rail .rail-btn span{' +
-      'transition:opacity 80ms var(--ease),' +
-                 'max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),' +
-                 'transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;' +
-    '}' +
-    'html[data-motion="reserved"] .services-panel{' +
-      'transition:grid-template-rows 180ms var(--ease)!important;' +
-    '}' +
-    'html[data-motion="reserved"] .chips{' +
-      'transition:transform 180ms var(--ease),opacity 130ms var(--ease)!important;' +
-    '}' +
-    'html[data-motion="reserved"] .settings-panel.active,' +
-    'html[data-motion="reserved"] .settings-panel.active.back{' +
-      'animation-duration:180ms!important;animation-timing-function:var(--ease)!important;' +
-    '}' +
-    'html[data-motion="reserved"] .fetch-wrap-inner{' +
-      'transition:transform 180ms var(--ease),opacity 130ms var(--ease)!important;' +
-    '}' +
-    'html[data-motion="reserved"] .fetch-wrap.show .fetch-wrap-inner{animation:none!important;}' +
-    'html[data-motion="reserved"] .dl-bubble,html[data-motion="reserved"] .kbd-bubble{' +
-      'transition-duration:220ms!important;transition-timing-function:var(--ease)!important;' +
-    '}' +
-    'html[data-motion="reserved"] .dl-bubble-list,html[data-motion="reserved"] .kbd-bubble-list{' +
-      'transition:grid-template-rows 220ms var(--ease)!important;' +
-    '}' +
-    'html[data-motion="reserved"] .dl-bubble-body,html[data-motion="reserved"] .kbd-bubble-body{' +
-      'transition:opacity 130ms var(--ease),transform 180ms var(--ease)!important;' +
-    '}' +
-    'html[data-motion="reserved"] .dl-count.bump{animation:none!important;}' +
-    'html[data-motion="reserved"] .dl-bubble.popping-in{' +
-      'animation:fetcher-reserved-pop-in 180ms var(--ease) both!important;' +
-    '}' +
-    '@keyframes fetcher-reserved-pop-in{' +
-      'from{transform:scale(.96);opacity:0;}to{transform:scale(1);opacity:1;}' +
-    '}';
-
-  (document.head || root).appendChild(shellStyle);
-
-  /* -----------------------------------------------------------------------
      Welcome dialog accessibility
 
-     The main Fetch page owns the welcome content and dismissal animation. The
-     shell adds generic modal keyboard behavior so the same rules also apply
-     when that page is running inside the persistent content frame.
+     The Fetch page owns the welcome copy and dismissal animation. The shared
+     shell owns modal keyboard behavior so it works identically when the Fetch
+     page is the top document or an embedded page inside the persistent shell.
   ----------------------------------------------------------------------- */
   function installWelcomeAccessibility() {
     var welcome = document.getElementById('welcome');
@@ -362,9 +185,9 @@
   /* -----------------------------------------------------------------------
      Embedded page routing
 
-     Page documents loaded inside the persistent content pane keep their own
-     page-specific JS isolated. Same-origin Fetcher links are handed back to the
-     parent shell instead of causing an iframe-local navigation.
+     Page documents loaded inside the persistent content pane keep page-specific
+     JS isolated. Same-origin Fetcher links are handed back to the parent shell
+     instead of causing an iframe-local navigation.
   ----------------------------------------------------------------------- */
   if (embedded) {
     document.addEventListener('click', function (ev) {
@@ -381,9 +204,7 @@
       } catch (e) {}
     }, true);
 
-    document.addEventListener('DOMContentLoaded', function () {
-      if (shellStyle.parentNode) document.head.appendChild(shellStyle);
-    });
+    document.addEventListener('DOMContentLoaded', placeShellStylesLast);
     return;
   }
 
@@ -573,8 +394,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    if (shellStyle.parentNode) document.head.appendChild(shellStyle);
-
+    placeShellStylesLast();
     restoreRailState();
     installContentHost();
     document.addEventListener('click', handleRouteClick, true);
