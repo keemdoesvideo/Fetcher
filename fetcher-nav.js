@@ -162,7 +162,69 @@
     }, pageExitDelay());
   }, true);
 
+  function installReservedMotionOption() {
+    var group = document.querySelector('[data-pref="fetcher.motion"]');
+    if (!group) return;
+
+    var reserved = group.querySelector('[data-value="reserved"]');
+    if (!reserved) {
+      reserved = document.createElement('button');
+      reserved.type = 'button';
+      reserved.className = 'settings-seg-btn';
+      reserved.setAttribute('data-value', 'reserved');
+      reserved.setAttribute('aria-pressed', 'false');
+      reserved.textContent = 'reserved';
+      var full = group.querySelector('[data-value="full"]');
+      group.insertBefore(reserved, full || null);
+    }
+
+    function syncMotionGroup(value) {
+      var buttons = Array.prototype.slice.call(group.querySelectorAll('.settings-seg-btn'));
+      var active = null;
+      buttons.forEach(function (button) {
+        var selected = button.getAttribute('data-value') === value;
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        if (selected) active = button;
+      });
+
+      var thumb = group.querySelector('.thumb');
+      if (!thumb || !active || !group.offsetWidth) return;
+      thumb.style.transition = 'none';
+      thumb.style.width = active.offsetWidth + 'px';
+      thumb.style.transform = 'translateX(' + (active.offsetLeft - 4) + 'px)';
+      requestAnimationFrame(function () { thumb.style.transition = ''; });
+    }
+
+    group.addEventListener('click', function (event) {
+      var button = event.target.closest ? event.target.closest('.settings-seg-btn[data-value]') : null;
+      if (!button || !group.contains(button)) return;
+      var value = button.getAttribute('data-value');
+      if (window.FetcherPrefs && window.FetcherPrefs.get('fetcher.motion') !== value) {
+        window.FetcherPrefs.set('fetcher.motion', value);
+      }
+      requestAnimationFrame(function () { syncMotionGroup(value); });
+    });
+
+    document.addEventListener('fetcher:pref-change', function (event) {
+      if (event.detail && event.detail.key === 'fetcher.motion') {
+        requestAnimationFrame(function () { syncMotionGroup(event.detail.value); });
+      }
+    });
+
+    if (window.ResizeObserver) {
+      var observer = new ResizeObserver(function () {
+        if (group.offsetWidth && window.FetcherPrefs) {
+          syncMotionGroup(window.FetcherPrefs.get('fetcher.motion'));
+        }
+      });
+      observer.observe(group);
+    }
+
+    if (window.FetcherPrefs) syncMotionGroup(window.FetcherPrefs.get('fetcher.motion'));
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     if (shellStyle.parentNode) document.head.appendChild(shellStyle);
+    installReservedMotionOption();
   });
 })();
