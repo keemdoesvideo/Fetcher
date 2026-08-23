@@ -55,6 +55,31 @@
   font-size:12px;line-height:1.6;color:var(--ink-faint);max-width:56ch;
   transition:border-color var(--dur-base) var(--ease);
 }
+
+/* Live visit stat */
+.about-stat{text-align:center;}
+.about-stat-num{
+  font-size:46px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--accent-ink);
+  font-variant-numeric:tabular-nums;
+}
+.about-stat-label{font-size:13px;color:var(--ink-soft);margin-top:7px;}
+
+/* First-100 plaque — a curated honor roll (names filled in by hand over time). */
+.plaque{
+  list-style:none;counter-reset:seat;margin-top:16px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px;
+}
+.plaque li{
+  counter-increment:seat;display:flex;align-items:center;gap:10px;
+  font-size:13px;color:var(--ink);
+  border:1px solid var(--border);border-radius:10px;padding:9px 12px;background:var(--surface);
+  transition:border-color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+}
+.plaque li::before{
+  content:counter(seat);
+  font-size:11px;font-weight:700;color:var(--accent-ink);min-width:18px;
+  font-variant-numeric:tabular-nums;
+}
 </style>
 </head>
 <body>
@@ -112,16 +137,16 @@
         <h1>about</h1>
         <span class="about-version">v0.2</span>
       </div>
-      <p class="about-lead">fetcher is a small, free tool for saving video and audio from the web — paste a link, choose video or audio, and it lands in your downloads.</p>
+      <p class="about-lead">fetcher is a small, free tool for saving video and audio from the web. paste a link, choose video or audio, and it lands in your downloads. no ads, no trackers, no paywalls, just a tool that works when you need it.</p>
 
-      <section class="about-block">
-        <h2>what it does</h2>
-        <p>right now fetcher handles youtube — normal watch links and shorts — as an mp4 video or an mp3 audio file, at the quality and filename style you pick in settings. if your exact quality isn't available it quietly steps down to the next best. more sites are on the way.</p>
+      <section class="about-block about-stat">
+        <div class="about-stat-num" id="visit-count" aria-live="polite">0</div>
+        <div class="about-stat-label" id="visit-label">people have opened fetcher</div>
       </section>
 
       <section class="about-block">
-        <h2>how it works</h2>
-        <p>fetcher runs entirely on your own computer. the heavy lifting is done by two well-known open-source tools, yt-dlp and ffmpeg, wrapped in a small local server. nothing about what you fetch is sent anywhere except the request to the site you're downloading from — there are no accounts, and no tracking.</p>
+        <h2>what it does</h2>
+        <p>fetcher saves video and audio from the sites you already use, including youtube, tiktok, soundcloud, twitch, instagram, and x. paste a link and get a clean mp4 or mp3 at the quality and filename style you choose in settings. if your exact quality isn't available, fetcher quietly steps down to the next best one. more sites are on the way.</p>
       </section>
 
       <section class="about-block">
@@ -133,7 +158,17 @@
         </a>
       </section>
 
-      <p class="about-foot">fetcher is made for personal use — please respect creators' rights and each platform's terms of service. it's provided as-is, with no warranty.</p>
+      <section class="about-block">
+        <h2>the first 100</h2>
+        <p>a small thank you to the people who showed up at the very start. this is where fetcher's first hundred are kept.</p>
+        <ol class="plaque" id="plaque">
+          <!-- CHANGE ME: add the names you want to immortalise, one per <li>, in order.
+               each line is numbered automatically. delete this placeholder when you add real ones. -->
+          <li>your name here</li>
+        </ol>
+      </section>
+
+      <p class="about-foot">fetcher is made for personal use, and for the love of it. please respect creators' rights and each platform's terms of service. it is provided as is, with no warranty.</p>
     </div>
   </main>
 </div>
@@ -148,6 +183,27 @@
     railToggle.setAttribute('aria-expanded', String(!collapsed));
     railToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
   });
+
+  // Live visit count (from /api/visits), with a small count-up for delight.
+  var countEl = document.getElementById('visit-count');
+  var labelEl = document.getElementById('visit-label');
+  var statBlock = document.querySelector('.about-stat');
+  var reduce = document.documentElement.getAttribute('data-motion') === 'reduced';
+  fetch('/api/visits').then(function(r){ return r.json(); }).then(function(d){
+    var n = (d && typeof d.count === 'number') ? d.count : 0;
+    labelEl.textContent = (n === 1 ? 'person has' : 'people have') + ' opened fetcher';
+    if (reduce || n <= 0 || document.hidden) { countEl.textContent = n.toLocaleString(); return; }
+    var start = performance.now(), dur = 900;
+    (function tick(now){
+      var t = Math.min(1, (now - start) / dur);
+      var eased = 1 - Math.pow(1 - t, 3);
+      countEl.textContent = Math.round(eased * n).toLocaleString();
+      if (t < 1) requestAnimationFrame(tick);
+    })(performance.now());
+    // Guarantee the final value even if rAF is throttled (e.g. loaded in a
+    // background tab, where requestAnimationFrame is paused).
+    setTimeout(function(){ countEl.textContent = n.toLocaleString(); }, dur + 150);
+  }).catch(function(){ if (statBlock) statBlock.style.display = 'none'; });
 })();
 </script>
 </body>

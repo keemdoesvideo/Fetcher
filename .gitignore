@@ -1,6 +1,9 @@
 # --- Fetcher temp job storage (prepared media, never committed) ---
 .fetcher-tmp/
 
+# --- Fetcher local data (visitor counter) ---
+.fetcher-data/
+
 # --- Python ---
 .venv/
 venv/

@@ -68,3 +68,13 @@ LONG_TIMEOUT_SECONDS: int = int(os.environ.get("FETCHER_LONG_TIMEOUT", str(45 * 
 
 # Longest filename (without extension) we'll hand back to the browser.
 MAX_FILENAME_STEM: int = 120
+
+# --- Visitor counter (welcome card + About stats) --------------------------
+# A tiny persisted counter of unique visitors. A local run counts that one
+# machine's visits; a single hosted instance turns it into a real global count.
+# Gitignored — never committed.
+VISITS_FILE: Path = Path(
+    os.environ.get("FETCHER_VISITS_FILE", str(PROJECT_ROOT / ".fetcher-data" / "visits.json"))
+)
+# The welcome card only greets the first N visitors; visitor N+1 onward see none.
+WELCOME_CAPACITY: int = int(os.environ.get("FETCHER_WELCOME_CAPACITY", "100"))

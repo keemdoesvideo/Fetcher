@@ -254,6 +254,38 @@ html[data-shortcuts="off"] #kbd-bubble{display:none;}
   transition:color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
 }
 .dl-clear:hover{color:var(--danger);background:var(--surface);}
+/* Bubble "pop" — when the last download is cleared/removed the bubble bursts
+   (swells then vanishes) with a spray of particles from its centre, rather than
+   just disappearing. Particles + swell are skipped under reduced motion. */
+.dl-bubble.popping{animation:dl-pop 340ms cubic-bezier(.3,1.2,.5,1) forwards;pointer-events:none;}
+@keyframes dl-pop{
+  0%{transform:scale(1);opacity:1;}
+  24%{transform:scale(1.12);opacity:1;}
+  100%{transform:scale(.42);opacity:0;filter:blur(1.5px);}
+}
+.dl-particle{
+  position:fixed;width:7px;height:7px;border-radius:50%;
+  background:var(--accent);z-index:400;pointer-events:none;
+  box-shadow:0 0 7px color-mix(in srgb, var(--accent) 55%, transparent);
+  will-change:transform,opacity;
+}
+/* Pop-in — the bubble springs into existence on the first download of the week. */
+.dl-bubble.popping-in{animation:dl-pop-in 440ms cubic-bezier(.34,1.45,.5,1) both;}
+@keyframes dl-pop-in{
+  0%{transform:scale(.4);opacity:0;}
+  60%{transform:scale(1.08);opacity:1;}
+  100%{transform:scale(1);opacity:1;}
+}
+/* Count bump — the counter does a little slot-machine vertical bounce each time a
+   new download ticks it up. */
+.dl-count.bump{animation:dl-count-bump 480ms cubic-bezier(.34,1.5,.5,1);}
+@keyframes dl-count-bump{
+  0%{transform:translateY(0) scale(1);}
+  28%{transform:translateY(-7px) scale(1.28);}
+  58%{transform:translateY(0) scale(1);}
+  76%{transform:translateY(-2px) scale(1);}
+  100%{transform:translateY(0) scale(1);}
+}
 .recent-list{list-style:none;display:flex;flex-direction:column;gap:4px;max-height:264px;overflow-y:auto;}
 .recent-item{display:flex;align-items:center;gap:6px;}
 .recent-refetch{
@@ -289,6 +321,86 @@ html[data-shortcuts="off"] #kbd-bubble{display:none;}
 }
 .recent-remove:hover{color:var(--danger);background:var(--surface);}
 .recent-remove:active{transform:scale(.9);}
+
+/* First-visit welcome — a soft glass card over a gentle blur of the whole site,
+   shown once to the first N visitors. Dismissing eases the blur off to reveal
+   the app. */
+.welcome{
+  position:fixed;inset:0;z-index:500;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  background:color-mix(in srgb, var(--bg) 30%, transparent);
+  -webkit-backdrop-filter:blur(15px) saturate(1.08);
+  backdrop-filter:blur(15px) saturate(1.08);
+  opacity:1;
+  /* ENTER: the page blur + tint ease in from nothing (matches the ease-out on
+     dismiss). Opacity stays 1 so it doesn't dim the card, which fades in itself. */
+  animation:welcome-overlay-in 640ms var(--ease) backwards;
+  transition:opacity 520ms var(--ease),
+             backdrop-filter 640ms var(--ease),
+             -webkit-backdrop-filter 640ms var(--ease);
+}
+@keyframes welcome-overlay-in{
+  from{
+    background:transparent;
+    -webkit-backdrop-filter:blur(0px) saturate(1);
+    backdrop-filter:blur(0px) saturate(1);
+  }
+}
+.welcome[hidden]{display:none;}
+.welcome.leaving{
+  opacity:0;pointer-events:none;
+  -webkit-backdrop-filter:blur(0px) saturate(1);
+  backdrop-filter:blur(0px) saturate(1);
+}
+.welcome-card{
+  width:100%;max-width:400px;text-align:center;
+  /* Apple-style glass: translucent enough to see the blurred site through it,
+     with a heavy backdrop blur + saturation that diffuses that backdrop so the
+     text stays readable. A bright inset top edge gives it the specular glass rim. */
+  background:color-mix(in srgb, var(--surface) 45%, transparent);
+  -webkit-backdrop-filter:blur(28px) saturate(1.8);
+  backdrop-filter:blur(28px) saturate(1.8);
+  border:1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+  border-radius:24px;
+  box-shadow:0 30px 80px -30px rgba(0,0,0,.5),
+             inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent),
+             inset 0 0 0 1px color-mix(in srgb, #fff 5%, transparent);
+  padding:38px 32px 30px;
+  /* ENTER: a smooth rise + fade (slight lead after the blur begins), no bounce. */
+  animation:welcome-pop 660ms var(--ease) 90ms backwards;
+}
+.welcome.leaving .welcome-card{animation:welcome-out 420ms var(--ease) forwards;}
+@keyframes welcome-pop{from{transform:scale(.94) translateY(16px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+@keyframes welcome-out{to{transform:scale(.96) translateY(8px);opacity:0;}}
+.welcome-eyebrow{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;}
+.welcome-num{font-size:64px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--accent-ink);margin-bottom:8px;}
+.welcome-title{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-bottom:10px;}
+.welcome-copy{font-size:14px;line-height:1.6;color:var(--ink-soft);max-width:32ch;margin:0 auto 26px;}
+.welcome-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--ink);color:var(--bg);border:none;border-radius:999px;
+  padding:12px 26px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  transition:transform var(--dur-fast) var(--ease-bounce), background var(--dur-fast) var(--ease);
+}
+.welcome-btn:hover{transform:translateY(-2px);background:var(--ink-strong);}
+.welcome-btn:active{transform:translateY(0) scale(.97);}
+
+/* First-download celebration — a one-time confetti burst + a glass toast on your
+   very first successful fetch. */
+.celebrate-msg{
+  position:fixed;left:50%;top:32%;z-index:420;pointer-events:none;
+  transform:translate(-50%,-50%) scale(.82);opacity:0;
+  background:color-mix(in srgb, var(--surface) 88%, transparent);
+  -webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);
+  border:1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  border-radius:16px;padding:15px 24px;text-align:center;
+  box-shadow:0 22px 55px -22px rgba(0,0,0,.5);
+  transition:opacity 240ms var(--ease), transform 440ms cubic-bezier(.34,1.4,.5,1);
+}
+.celebrate-msg.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+.celebrate-title{font-size:16px;font-weight:700;letter-spacing:-.01em;}
+.celebrate-sub{font-size:12.5px;color:var(--ink-soft);margin-top:3px;}
+.confetti{position:fixed;z-index:410;pointer-events:none;will-change:transform,opacity;}
 
 /* fetch status — a single caption line above the input; it carries the
    Fetcher-voice message for each stage of the fetch (and errors). */
@@ -550,6 +662,18 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
       </div>
     </div>
   </main>
+</div>
+
+<!-- First-visit welcome — a soft glass card over a gentle blur of the whole site,
+     shown once to the first N visitors (number assigned by /api/visits). -->
+<div class="welcome" id="welcome" hidden>
+  <div class="welcome-card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <span class="welcome-eyebrow">welcome to fetcher</span>
+    <div class="welcome-num" id="welcome-num">#1</div>
+    <div class="welcome-title" id="welcome-title">you're the very first here</div>
+    <p class="welcome-copy" id="welcome-copy">thanks so much for using my tool.</p>
+    <button class="welcome-btn" id="welcome-btn" type="button">start fetching</button>
+  </div>
 </div>
 
 <!-- Floating downloads bubble — top-right glass pill; appears after a download,
@@ -888,6 +1012,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     setStatus('success', 'fetched!');
     startDownload(currentJobId, filename);
     if (lastFetch) recordHistory(lastFetch.url, filename, lastFetch.mode);
+    maybeCelebrateFirstFetch();
     wait(1400).then(function(){
       clearStatus();
       hideProgress();
@@ -1056,7 +1181,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     items.unshift({ url: url, filename: filename || '', mode: mode, ts: Date.now() });
     if (items.length > HISTORY_MAX) items = items.slice(0, HISTORY_MAX);
     saveHistory(items);
-    renderHistory();
+    renderHistory(true);   // animate: pop-in on first appearance, count-bounce after
   }
   function removeHistory(entry){
     var items = loadHistory().filter(function(it){
@@ -1064,6 +1189,70 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     });
     saveHistory(items);
     renderHistory();
+  }
+
+  // Spray a handful of particles outward from a point (viewport coords).
+  function burstAt(cx, cy){
+    var N = 11;
+    for (var i = 0; i < N; i++){
+      var p = document.createElement('div');
+      p.className = 'dl-particle';
+      p.style.left = cx + 'px';
+      p.style.top = cy + 'px';
+      if (i % 4 === 0) p.style.background = 'var(--ink-soft)';   // a few muted specks for variety
+      var sz = (5 + Math.random() * 5).toFixed(1);
+      p.style.width = p.style.height = sz + 'px';
+      document.body.appendChild(p);
+      var ang = (Math.PI * 2) * (i / N) + (Math.random() - 0.5) * 0.6;
+      var dist = 32 + Math.random() * 42;
+      var dx = (Math.cos(ang) * dist).toFixed(1);
+      var dy = (Math.sin(ang) * dist - 6).toFixed(1);   // slight upward bias
+      p.animate([
+        { transform: 'translate(-50%,-50%) translate(0px,0px) scale(1)', opacity: 1 },
+        { transform: 'translate(-50%,-50%) translate(' + dx + 'px,' + dy + 'px) scale(.2)', opacity: 0 }
+      ], { duration: 430 + Math.random() * 170, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' });
+      (function(el){ setTimeout(function(){ el.remove(); }, 660); })(p);
+    }
+  }
+
+  // Burst the whole bubble off the page (its "exit"). Falls back to an instant
+  // hide when it isn't showing or motion is reduced.
+  function popBubble(){
+    var reduce = document.documentElement.getAttribute('data-motion') === 'reduced';
+    if (dlBubble.hidden || reduce){
+      dlBubble.classList.remove('open', 'popping');
+      dlToggle.setAttribute('aria-expanded', 'false');
+      dlBubble.hidden = true;
+      recentList.innerHTML = '';
+      return;
+    }
+    if (dlBubble.classList.contains('popping')) return;   // already bursting
+    var r = dlBubble.getBoundingClientRect();
+    burstAt(r.left + r.width / 2, r.top + r.height / 2);
+    dlBubble.classList.add('popping');
+    setTimeout(function(){
+      dlBubble.classList.remove('popping', 'open');
+      dlToggle.setAttribute('aria-expanded', 'false');
+      dlBubble.hidden = true;
+      recentList.innerHTML = '';
+    }, 340);
+  }
+
+  // Spring the bubble into existence (first download of the week).
+  function playPopIn(){
+    if (document.documentElement.getAttribute('data-motion') === 'reduced') return;
+    dlBubble.classList.remove('popping-in');
+    void dlBubble.offsetWidth;               // restart the animation
+    dlBubble.classList.add('popping-in');
+    setTimeout(function(){ dlBubble.classList.remove('popping-in'); }, 480);
+  }
+  // Slot-machine bounce of the counter when a new download ticks it up.
+  function bounceCount(){
+    if (document.documentElement.getAttribute('data-motion') === 'reduced') return;
+    dlCount.classList.remove('bump');
+    void dlCount.offsetWidth;                 // restart the animation
+    dlCount.classList.add('bump');
+    setTimeout(function(){ dlCount.classList.remove('bump'); }, 520);
   }
 
   function prettyHost(url){
@@ -1085,21 +1274,25 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
   var ICON_REDO = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>';
   var ICON_X = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 
-  function renderHistory(){
+  function renderHistory(animateIn){
     var items = loadHistory();
     var cutoff = Date.now() - WEEK_MS;
     var active = items.filter(function(it){ return it.ts > cutoff; });
     if (active.length !== items.length) saveHistory(active);   // prune expired entries
     if (!active.length){
-      // Nothing downloaded this week — the bubble doesn't exist at all.
-      setDl(false);
-      dlBubble.hidden = true;
-      recentList.innerHTML = '';
+      // Nothing left this week — burst the bubble away (popBubble just hides it
+      // if it wasn't showing, or under reduced motion).
+      popBubble();
       return;
     }
+    var wasHidden = dlBubble.hidden;
     dlBubble.hidden = false;
     dlCount.textContent = active.length;
     recentList.innerHTML = '';
+    if (animateIn){
+      if (wasHidden) playPopIn();     // first appearance -> spring in with a pop
+      else bounceCount();             // already showing -> the counter ticks up
+    }
     active.forEach(function(it){
       var isAudio = it.mode === 'audio';
       var li = document.createElement('li');
@@ -1142,6 +1335,120 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
   document.addEventListener('click', function(e){ if (dlOpen() && !dlBubble.contains(e.target)) setDl(false); });
 
   renderHistory();
+
+  // ---------------------------------------------------------------------
+  // First-download celebration — a one-time confetti burst + toast on the very
+  // first successful fetch (localStorage-gated).
+  // ---------------------------------------------------------------------
+  function maybeCelebrateFirstFetch(){
+    try {
+      if (localStorage.getItem('fetcher.firstFetchDone')) return;
+      localStorage.setItem('fetcher.firstFetchDone', '1');
+    } catch (e) {}
+    celebrateFirstFetch();
+  }
+  function celebrateFirstFetch(){
+    var reduce = document.documentElement.getAttribute('data-motion') === 'reduced';
+    // Centre on the content area (right of the left rail), not the whole window.
+    var stage = document.querySelector('.stage') || document.querySelector('.main');
+    var srect = stage ? stage.getBoundingClientRect() : { left: 0, width: window.innerWidth };
+    var cx = srect.left + srect.width / 2, cy = window.innerHeight * 0.32;
+    var msg = document.createElement('div');
+    msg.className = 'celebrate-msg';
+    msg.style.left = cx + 'px';
+    msg.innerHTML = '<div class="celebrate-title">your first fetch! 🎉</div>' +
+                    '<div class="celebrate-sub">nicely done. welcome aboard.</div>';
+    document.body.appendChild(msg);
+    requestAnimationFrame(function(){ msg.classList.add('show'); });
+    setTimeout(function(){ msg.classList.remove('show'); setTimeout(function(){ msg.remove(); }, 420); }, 2400);
+    if (reduce) return;
+    var colors = ['var(--accent)', 'var(--audio)', 'var(--success)', 'var(--accent-ink)', 'var(--ink-soft)'];
+    for (var i = 0; i < 30; i++){
+      var c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = cx + 'px'; c.style.top = cy + 'px';
+      c.style.background = colors[i % colors.length];
+      var w = 6 + Math.random() * 6;
+      c.style.width = w.toFixed(1) + 'px';
+      c.style.height = (w * 0.6).toFixed(1) + 'px';
+      c.style.borderRadius = (Math.random() < 0.5) ? '2px' : '50%';
+      document.body.appendChild(c);
+      var ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.1;   // fan upward
+      var spd = 130 + Math.random() * 190;
+      var dx = Math.cos(ang) * spd;
+      var peakY = Math.sin(ang) * spd;                                  // negative = up
+      var fall = window.innerHeight * 0.7 + Math.random() * 220;
+      var rot = (Math.random() * 720 - 360).toFixed(0) + 'deg';
+      (function (el, dx, peakY, fall, rot){
+        el.animate([
+          { transform: 'translate(-50%,-50%) translate(0px,0px) rotate(0deg)', opacity: 1 },
+          { transform: 'translate(-50%,-50%) translate(' + (dx * 0.5).toFixed(1) + 'px,' + peakY.toFixed(1) + 'px) rotate(' + rot + ')', opacity: 1, offset: 0.35 },
+          { transform: 'translate(-50%,-50%) translate(' + dx.toFixed(1) + 'px,' + fall.toFixed(1) + 'px) rotate(' + rot + ')', opacity: 0 }
+        ], { duration: 1500 + Math.random() * 700, easing: 'cubic-bezier(.2,.5,.5,1)', fill: 'forwards' });
+        setTimeout(function(){ el.remove(); }, 2400);
+      })(c, dx, peakY, fall, rot);
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // First-visit welcome — greet the first N visitors once, over a gentle blur of
+  // the whole site. The visitor's number is assigned by /api/visits.
+  // ---------------------------------------------------------------------
+  (function initWelcome(){
+    var welcome = document.getElementById('welcome');
+    if (!welcome) return;
+    var K_SEEN = 'fetcher.welcomed', K_TOKEN = 'fetcher.visitorToken', K_NUM = 'fetcher.visitorNumber';
+
+    // Preview hook: /?welcome (or #welcome) always shows the card using your
+    // stored number, without claiming or setting the "seen" flag — handy for
+    // re-checking the look after you've already been greeted.
+    if (/(?:^|[?&])welcome(?:=|&|$)/.test(location.search) || location.hash === '#welcome'){
+      var pn = 1;
+      try { pn = parseInt(localStorage.getItem(K_NUM), 10) || 1; } catch (e) {}
+      showWelcome(pn, 100);
+      return;
+    }
+
+    var seen; try { seen = localStorage.getItem(K_SEEN); } catch (e) { seen = '1'; }
+    if (seen) return;   // already greeted on this browser
+
+    var token = '';
+    try {
+      token = localStorage.getItem(K_TOKEN);
+      if (!token){
+        token = (self.crypto && crypto.randomUUID) ? crypto.randomUUID()
+              : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+        localStorage.setItem(K_TOKEN, token);
+      }
+    } catch (e) { token = ''; }
+
+    fetch('/api/visits/claim', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: token })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      try { localStorage.setItem(K_SEEN, '1'); if (d && d.number) localStorage.setItem(K_NUM, String(d.number)); } catch (e) {}
+      if (d && d.withinFirst) showWelcome(d.number, d.capacity || 100);
+    }).catch(function(){ try { localStorage.setItem(K_SEEN, '1'); } catch (e) {} });
+
+    function ordinal(n){ var s = ['th','st','nd','rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+    var dismissed = false;
+    function dismiss(){
+      if (dismissed) return; dismissed = true;
+      welcome.classList.add('leaving');
+      setTimeout(function(){ if (welcome.parentNode) welcome.remove(); }, 660);
+    }
+    function showWelcome(num, cap){
+      document.getElementById('welcome-num').textContent = '#' + num;
+      document.getElementById('welcome-title').textContent =
+        (num === 1) ? "you're the very first here" : ("you're the " + ordinal(num) + " person here");
+      document.getElementById('welcome-copy').textContent =
+        "thanks so much for using my tool. you're one of the first " + cap + " people to ever open fetcher.";
+      welcome.hidden = false;
+      var btn = document.getElementById('welcome-btn');
+      btn.addEventListener('click', dismiss);
+      welcome.addEventListener('click', function(e){ if (e.target === welcome) dismiss(); });
+      try { btn.focus(); } catch (e) {}
+    }
+  })();
 
   // ---------------------------------------------------------------------
   // Website keyboard shortcuts (fetch page). The trim viewer has its own

@@ -22,9 +22,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
+from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
-from . import config, diagnostics, downloader, errors, preview, timecode
+from . import config, diagnostics, downloader, errors, preview, timecode, visits
 from . import jobs as jobstate
 from .jobs import JobCancelled, StaleSweeper, store
 from .models import PrepareRequest, PreviewRequest
@@ -56,6 +57,9 @@ ALLOWED_ASSETS: dict[str, str] = {
 _sweeper = StaleSweeper(
     store, config.SWEEP_INTERVAL_SECONDS, config.JOB_TTL_SECONDS, logger=log
 )
+
+# Persistent visitor counter (welcome card + About stats).
+_visits = visits.VisitCounter(config.VISITS_FILE)
 
 
 @asynccontextmanager
@@ -96,6 +100,29 @@ async def _validation_handler(request: Request, exc: RequestValidationError):
 @app.get("/api/health")
 async def health():
     return diagnostics.run_diagnostics()
+
+
+class VisitClaim(BaseModel):
+    token: str = ""
+
+
+@app.get("/api/visits")
+async def visits_total():
+    """Read-only total for the About page stat."""
+    return {"count": _visits.total(), "capacity": config.WELCOME_CAPACITY}
+
+
+@app.post("/api/visits/claim")
+async def visits_claim(req: VisitClaim):
+    """Assign this visitor their number (idempotent per token). The welcome card
+    only greets the first `capacity` visitors; `withinFirst` says if this is one."""
+    number, total = _visits.claim(req.token)
+    return {
+        "number": number,
+        "total": total,
+        "capacity": config.WELCOME_CAPACITY,
+        "withinFirst": number <= config.WELCOME_CAPACITY,
+    }
 
 
 def _run_job(job, url: str, mode: str, preferences) -> None:
