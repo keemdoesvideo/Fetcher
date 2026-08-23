@@ -1,7 +1,7 @@
 /*
- * fetcher-nav.js  (loaded on every page, in <head>)
+ * fetcher-nav.js
  * Shared Fetcher shell: custom paw cursor, persistent primary rail, rail state,
- * page-content routing/fades, and the Reserved motion preference bridge.
+ * page-content routing/fades, and cross-frame preference synchronisation.
  */
 (function () {
   'use strict';
@@ -41,12 +41,29 @@
   var PAW_DARK = makePaw('#ffffff');
 
   /* -----------------------------------------------------------------------
-     Shell styling
+     Shared shell styling
+
+     The @view-transition override remains temporarily because the legacy theme
+     stylesheet still contains Claude's old cross-document View Transition rule.
+     The shell itself does not use View Transitions.
   ----------------------------------------------------------------------- */
   var shellStyle = document.createElement('style');
   shellStyle.id = 'fetcher-shell-runtime';
   shellStyle.textContent =
     '@view-transition{navigation:none;}' +
+
+    'html{' +
+      '--shell-page-fade:170ms;' +
+      '--shell-nav-pop:230ms;' +
+    '}' +
+    'html[data-motion="reserved"]{' +
+      '--shell-page-fade:145ms;' +
+      '--shell-nav-pop:170ms;' +
+    '}' +
+    'html[data-motion="reduced"]{' +
+      '--shell-page-fade:100ms;' +
+      '--shell-nav-pop:100ms;' +
+    '}' +
 
     'html[data-theme="light"]{--cursor-paw-fixed:url("' + PAW_LIGHT + '") 15 3;}' +
     'html[data-theme="dark"]{--cursor-paw-fixed:url("' + PAW_DARK + '") 15 3;}' +
@@ -74,28 +91,43 @@
     'html[data-fetcher-embedded="true"] .rail{display:none!important;}' +
     'html[data-fetcher-embedded="true"] .app{width:100%!important;}' +
 
-    '.fetcher-content-host{position:relative;flex:1 1 auto;min-width:0;height:100%;overflow:hidden;background:var(--bg);}' +
-    '.fetcher-content-host>.main{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;}' +
-    '.fetcher-page-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg);opacity:0;transition:opacity 170ms var(--ease);}' +
-    '.fetcher-content-host>.fetcher-page-layer{transition:opacity 170ms var(--ease);}' +
-    'html[data-motion="reserved"] .fetcher-page-frame,html[data-motion="reserved"] .fetcher-content-host>.fetcher-page-layer{transition-duration:145ms;}' +
-    'html[data-motion="reduced"] .fetcher-page-frame,html[data-motion="reduced"] .fetcher-content-host>.fetcher-page-layer{transition-duration:100ms;}' +
+    '.fetcher-content-host{' +
+      'position:relative;flex:1 1 auto;min-width:0;height:100%;overflow:hidden;background:var(--bg);' +
+    '}' +
+    '.fetcher-content-host>.main{' +
+      'position:absolute!important;inset:0!important;width:100%!important;height:100%!important;' +
+    '}' +
+    '.fetcher-page-frame{' +
+      'position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg);opacity:0;' +
+      'transition:opacity var(--shell-page-fade) var(--ease);' +
+    '}' +
+    '.fetcher-content-host>.fetcher-page-layer{' +
+      'transition:opacity var(--shell-page-fade) var(--ease);' +
+    '}' +
 
     'html[data-nav-pop="true"][data-motion="full"] .rail-btn.active::before{' +
-      'animation:fetcher-nav-pop-full 230ms cubic-bezier(.34,1.3,.64,1) both;transform-origin:center;' +
+      'animation:fetcher-nav-pop-full var(--shell-nav-pop) cubic-bezier(.34,1.3,.64,1) both;transform-origin:center;' +
     '}' +
-    '@keyframes fetcher-nav-pop-full{0%{opacity:.35;transform:scale(.88);}68%{opacity:1;transform:scale(1.045);}100%{opacity:1;transform:scale(1);}}' +
+    '@keyframes fetcher-nav-pop-full{' +
+      '0%{opacity:.35;transform:scale(.88);}' +
+      '68%{opacity:1;transform:scale(1.045);}' +
+      '100%{opacity:1;transform:scale(1);}' +
+    '}' +
     'html[data-nav-pop="true"][data-motion="reserved"] .rail-btn.active::before{' +
-      'animation:fetcher-nav-pop-reserved 170ms var(--ease) both;transform-origin:center;' +
+      'animation:fetcher-nav-pop-reserved var(--shell-nav-pop) var(--ease) both;transform-origin:center;' +
     '}' +
-    '@keyframes fetcher-nav-pop-reserved{from{opacity:.45;transform:scale(.96);}to{opacity:1;transform:scale(1);}}' +
+    '@keyframes fetcher-nav-pop-reserved{' +
+      'from{opacity:.45;transform:scale(.96);}' +
+      'to{opacity:1;transform:scale(1);}' +
+    '}' +
     'html[data-nav-pop="true"][data-motion="reduced"] .rail-btn.active::before{' +
-      'animation:fetcher-nav-pop-reduced 100ms var(--ease) both;' +
+      'animation:fetcher-nav-pop-reduced var(--shell-nav-pop) var(--ease) both;' +
     '}' +
     '@keyframes fetcher-nav-pop-reduced{from{opacity:.45;}to{opacity:1;}}' +
 
     'html .trim-handle::before{content:"";position:absolute;inset:-8px;background:transparent;}' +
 
+    /* Reserved retunes the existing expressive components; Full is unchanged. */
     'html[data-motion="reserved"] .rail-btn,' +
     'html[data-motion="reserved"] .rail-btn svg,' +
     'html[data-motion="reserved"] .fetch-btn,' +
@@ -109,12 +141,19 @@
     'html[data-motion="reserved"] .segmented .thumb{' +
       'transition-duration:150ms!important;transition-timing-function:var(--ease)!important;' +
     '}' +
-    'html[data-motion="reserved"] .services-panel{transition:grid-template-rows 180ms var(--ease)!important;}' +
-    'html[data-motion="reserved"] .chips{transition:transform 180ms var(--ease),opacity 130ms var(--ease)!important;}' +
-    'html[data-motion="reserved"] .settings-panel.active,html[data-motion="reserved"] .settings-panel.active.back{' +
+    'html[data-motion="reserved"] .services-panel{' +
+      'transition:grid-template-rows 180ms var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .chips{' +
+      'transition:transform 180ms var(--ease),opacity 130ms var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .settings-panel.active,' +
+    'html[data-motion="reserved"] .settings-panel.active.back{' +
       'animation-duration:180ms!important;animation-timing-function:var(--ease)!important;' +
     '}' +
-    'html[data-motion="reserved"] .fetch-wrap-inner{transition:transform 180ms var(--ease),opacity 130ms var(--ease)!important;}' +
+    'html[data-motion="reserved"] .fetch-wrap-inner{' +
+      'transition:transform 180ms var(--ease),opacity 130ms var(--ease)!important;' +
+    '}' +
     'html[data-motion="reserved"] .fetch-wrap.show .fetch-wrap-inner{animation:none!important;}' +
     'html[data-motion="reserved"] .dl-bubble,html[data-motion="reserved"] .kbd-bubble{' +
       'transition-duration:220ms!important;transition-timing-function:var(--ease)!important;' +
@@ -126,11 +165,18 @@
       'transition:opacity 130ms var(--ease),transform 180ms var(--ease)!important;' +
     '}' +
     'html[data-motion="reserved"] .dl-count.bump{animation:none!important;}' +
-    'html[data-motion="reserved"] .dl-bubble.popping-in{animation:fetcher-reserved-pop-in 180ms var(--ease) both!important;}' +
-    '@keyframes fetcher-reserved-pop-in{from{transform:scale(.96);opacity:0;}to{transform:scale(1);opacity:1;}}';
+    'html[data-motion="reserved"] .dl-bubble.popping-in{' +
+      'animation:fetcher-reserved-pop-in 180ms var(--ease) both!important;' +
+    '}' +
+    '@keyframes fetcher-reserved-pop-in{' +
+      'from{transform:scale(.96);opacity:0;}to{transform:scale(1);opacity:1;}' +
+    '}';
 
   (document.head || root).appendChild(shellStyle);
 
+  /* -----------------------------------------------------------------------
+     Route helpers
+  ----------------------------------------------------------------------- */
   var PAGE_PATHS = {
     '/': true,
     '/project-fetcher.html': true,
@@ -144,8 +190,7 @@
 
   function routePath(url) {
     var path = url.pathname || '/';
-    if (path === '/project-fetcher.html') return '/';
-    return path;
+    return path === '/project-fetcher.html' ? '/' : path;
   }
 
   function isFetcherPage(url) {
@@ -153,7 +198,7 @@
   }
 
   function sameRoute(a, b) {
-    return routePath(a) === routePath(b) && a.search === b.search;
+    return routePath(a) === routePath(b) && a.search === b.search && a.hash === b.hash;
   }
 
   function isPlainPrimaryNavigation(ev, link) {
@@ -165,73 +210,22 @@
     return true;
   }
 
-  function installReservedMotionOption() {
-    var group = document.querySelector('[data-pref="fetcher.motion"]');
-    if (!group) return;
+  /* -----------------------------------------------------------------------
+     Embedded page routing
 
-    var reserved = group.querySelector('[data-value="reserved"]');
-    if (!reserved) {
-      reserved = document.createElement('button');
-      reserved.type = 'button';
-      reserved.className = 'settings-seg-btn';
-      reserved.setAttribute('data-value', 'reserved');
-      reserved.setAttribute('aria-pressed', 'false');
-      reserved.textContent = 'reserved';
-      var full = group.querySelector('[data-value="full"]');
-      group.insertBefore(reserved, full || null);
-    }
-
-    function syncMotionGroup(value) {
-      var buttons = Array.prototype.slice.call(group.querySelectorAll('.settings-seg-btn'));
-      var active = null;
-      buttons.forEach(function (button) {
-        var selected = button.getAttribute('data-value') === value;
-        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-        if (selected) active = button;
-      });
-      var thumb = group.querySelector('.thumb');
-      if (!thumb || !active || !group.offsetWidth) return;
-      thumb.style.transition = 'none';
-      thumb.style.width = active.offsetWidth + 'px';
-      thumb.style.transform = 'translateX(' + (active.offsetLeft - 4) + 'px)';
-      requestAnimationFrame(function () { thumb.style.transition = ''; });
-    }
-
-    group.addEventListener('click', function (event) {
-      var button = event.target.closest ? event.target.closest('.settings-seg-btn[data-value]') : null;
-      if (!button || !group.contains(button)) return;
-      var value = button.getAttribute('data-value');
-      if (window.FetcherPrefs && window.FetcherPrefs.get('fetcher.motion') !== value) {
-        window.FetcherPrefs.set('fetcher.motion', value);
-      }
-      requestAnimationFrame(function () { syncMotionGroup(value); });
-    });
-
-    document.addEventListener('fetcher:pref-change', function (event) {
-      if (event.detail && event.detail.key === 'fetcher.motion') {
-        requestAnimationFrame(function () { syncMotionGroup(event.detail.value); });
-      }
-    });
-
-    if (window.ResizeObserver) {
-      var observer = new ResizeObserver(function () {
-        if (group.offsetWidth && window.FetcherPrefs) {
-          syncMotionGroup(window.FetcherPrefs.get('fetcher.motion'));
-        }
-      });
-      observer.observe(group);
-    }
-
-    if (window.FetcherPrefs) syncMotionGroup(window.FetcherPrefs.get('fetcher.motion'));
-  }
-
+     Page documents loaded inside the persistent content pane keep their own
+     page-specific JS isolated. Same-origin Fetcher links are handed back to the
+     parent shell instead of causing an iframe-local navigation.
+  ----------------------------------------------------------------------- */
   if (embedded) {
     document.addEventListener('click', function (ev) {
       var link = ev.target.closest ? ev.target.closest('a[href]') : null;
       if (!link || !isPlainPrimaryNavigation(ev, link)) return;
+
       var destination;
       try { destination = new URL(link.href, window.location.href); } catch (e) { return; }
       if (destination.origin !== window.location.origin || !isFetcherPage(destination)) return;
+
       ev.preventDefault();
       try {
         window.parent.postMessage({ type: 'fetcher:navigate', href: destination.href }, window.location.origin);
@@ -239,63 +233,85 @@
     }, true);
 
     document.addEventListener('DOMContentLoaded', function () {
+      /* Re-append so these overrides follow fetcher-theme.css in cascade order. */
       if (shellStyle.parentNode) document.head.appendChild(shellStyle);
-      installReservedMotionOption();
     });
     return;
   }
 
+  /* -----------------------------------------------------------------------
+     Parent shell
+  ----------------------------------------------------------------------- */
   var rail = null;
   var railToggle = null;
   var contentHost = null;
   var currentLayer = null;
   var navToken = 0;
 
-  function syncRailToggle() {
+  function railIsCollapsed() {
+    return !!(rail && rail.classList.contains('collapsed'));
+  }
+
+  function syncRailState() {
     if (!rail || !railToggle) return;
-    var collapsed = rail.classList.contains('collapsed');
+    var collapsed = railIsCollapsed();
+
     railToggle.setAttribute('aria-expanded', String(!collapsed));
     railToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
     railToggle.setAttribute('title', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+
     if (collapsed) root.setAttribute('data-rail-collapsed', 'true');
     else root.removeAttribute('data-rail-collapsed');
+
+    try { localStorage.setItem(RAIL_KEY, collapsed ? '1' : '0'); } catch (e) {}
   }
 
   function restoreRailState() {
     rail = document.getElementById('rail');
     railToggle = document.getElementById('rail-toggle');
     if (!rail || !railToggle) return;
-    if (savedRailCollapsed) rail.classList.add('collapsed');
-    syncRailToggle();
 
-    railToggle.addEventListener('click', function () {
-      window.setTimeout(function () {
-        var collapsed = rail.classList.contains('collapsed');
-        try { localStorage.setItem(RAIL_KEY, collapsed ? '1' : '0'); } catch (e) {}
-        syncRailToggle();
-      }, 0);
-    });
+    rail.classList.toggle('collapsed', savedRailCollapsed);
+    syncRailState();
+
+    /*
+     * The older page files still contain anonymous rail-toggle listeners.
+     * Capture-phase ownership here makes the shared shell the single runtime
+     * owner immediately, so those legacy handlers cannot double-toggle the rail.
+     * Their dead source blocks can then be removed page-by-page safely.
+     */
+    railToggle.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      rail.classList.toggle('collapsed');
+      syncRailState();
+    }, true);
   }
 
   function installContentHost() {
     var main = document.querySelector('.app > .main');
     if (!main || !main.parentNode) return;
+
     contentHost = document.createElement('div');
     contentHost.className = 'fetcher-content-host';
     main.parentNode.insertBefore(contentHost, main);
     contentHost.appendChild(main);
+
     main.classList.add('fetcher-page-layer');
     currentLayer = main;
   }
 
   function setRailActive(destination) {
     if (!rail) return;
+
     var wanted = routePath(destination);
     var links = rail.querySelectorAll('a.rail-btn[href]');
     var active = null;
+
     Array.prototype.forEach.call(links, function (link) {
       var linkUrl;
       try { linkUrl = new URL(link.href, window.location.href); } catch (e) { return; }
+
       var selected = routePath(linkUrl) === wanted;
       link.classList.toggle('active', selected);
       if (selected) {
@@ -306,16 +322,19 @@
       }
     });
 
-    if (active) {
+    if (!active) return;
+
+    root.removeAttribute('data-nav-pop');
+    void active.offsetWidth;
+    root.setAttribute('data-nav-pop', 'true');
+    window.setTimeout(function () {
       root.removeAttribute('data-nav-pop');
-      void active.offsetWidth;
-      root.setAttribute('data-nav-pop', 'true');
-      window.setTimeout(function () { root.removeAttribute('data-nav-pop'); }, 280);
-    }
+    }, 280);
   }
 
   function applyParentPrefsFromStorage(event) {
     if (!window.FetcherPrefs || !event || !event.key) return;
+
     if (event.key === 'fetcher.theme') window.FetcherPrefs.applyTheme();
     else if (event.key === 'fetcher.motion') window.FetcherPrefs.applyMotion();
     else if (event.key === 'fetcher.showShortcuts' || event.key === 'fetcher.showDownloads') {
@@ -332,6 +351,7 @@
 
   function routeTo(destination, options) {
     options = options || {};
+
     if (!contentHost || !isFetcherPage(destination)) {
       window.location.href = destination.href;
       return;
@@ -352,8 +372,7 @@
     contentHost.appendChild(frame);
 
     var fallback = window.setTimeout(function () {
-      if (myToken !== navToken) return;
-      window.location.href = destination.href;
+      if (myToken === navToken) window.location.href = destination.href;
     }, 12000);
 
     frame.addEventListener('load', function () {
@@ -361,6 +380,7 @@
         frame.remove();
         return;
       }
+
       clearTimeout(fallback);
 
       try {
@@ -372,6 +392,7 @@
 
       var old = currentLayer;
       frame.classList.add('fetcher-page-layer');
+
       requestAnimationFrame(function () {
         frame.style.opacity = '1';
         if (old) old.style.opacity = '0';
@@ -386,7 +407,11 @@
     });
 
     if (options.push !== false) {
-      history.pushState({ fetcherRoute: destination.pathname + destination.search + destination.hash }, '', destination.href);
+      history.pushState(
+        { fetcherRoute: destination.pathname + destination.search + destination.hash },
+        '',
+        destination.href
+      );
     }
   }
 
@@ -406,18 +431,20 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    /* Re-append so these overrides follow fetcher-theme.css in cascade order. */
     if (shellStyle.parentNode) document.head.appendChild(shellStyle);
+
     restoreRailState();
     installContentHost();
-    installReservedMotionOption();
-
     document.addEventListener('click', handleRouteClick, true);
 
     window.addEventListener('message', function (event) {
       if (event.origin !== window.location.origin || !event.data || event.data.type !== 'fetcher:navigate') return;
+
       var destination;
       try { destination = new URL(event.data.href, window.location.href); } catch (e) { return; }
       if (!isFetcherPage(destination)) return;
+
       routeTo(destination, { push: true });
     });
 
