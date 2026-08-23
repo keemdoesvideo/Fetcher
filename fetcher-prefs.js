@@ -136,14 +136,14 @@
       if (get('fetcher.theme') === 'auto') applyTheme();
     };
     if (mqDark.addEventListener) mqDark.addEventListener('change', onDarkChange);
-    else if (mqDark.addListener) mqDark.addListener('change', onDarkChange);
+    else if (mqDark.addListener) mqDark.addListener(onDarkChange);
 
     var mqMotion = global.matchMedia('(prefers-reduced-motion: reduce)');
     var onMotionChange = function () {
       if (get('fetcher.motion') === 'system') applyMotion();
     };
     if (mqMotion.addEventListener) mqMotion.addEventListener('change', onMotionChange);
-    else if (mqMotion.addListener) mqMotion.addListener('change', onMotionChange);
+    else if (mqMotion.addListener) mqMotion.addListener(onMotionChange);
   }
 
   document.addEventListener('fetcher:pref-change', function (e) {
