@@ -58,6 +58,13 @@
     return systemPrefersDark() ? 'dark' : 'light';
   }
 
+  /*
+   * Motion has four user-facing choices:
+   *   system   -> follow the OS reduced-motion preference
+   *   reduced  -> accessibility-first minimal movement
+   *   reserved -> Fetcher motion without playful overshoot
+   *   full     -> Fetcher's expressive bounce/overshoot language
+   */
   function resolveMotion() {
     var pref = get('fetcher.motion');
     if (pref === 'reduced') return 'reduced';
@@ -74,6 +81,8 @@
     document.documentElement.setAttribute('data-motion', resolveMotion());
   }
 
+  // Floating-chrome visibility (shortcuts + downloads bubbles). Set as html
+  // attributes pre-paint so CSS can hide them with no flash. 'off' hides.
   function applyChrome() {
     document.documentElement.setAttribute(
       'data-shortcuts', get('fetcher.showShortcuts') === 'off' ? 'off' : 'on');
@@ -81,10 +90,15 @@
       'data-downloads', get('fetcher.showDownloads') === 'off' ? 'off' : 'on');
   }
 
+  // Apply immediately — this script must be loaded synchronously and early
+  // in <head>, before the stylesheet, so these attributes exist before the
+  // browser paints anything.
   applyTheme();
   applyMotion();
   applyChrome();
 
+  // Live-respond to system changes, but only when the user hasn't pinned an
+  // explicit override (auto/system).
   if (global.matchMedia) {
     var mqDark = global.matchMedia('(prefers-color-scheme: dark)');
     var onDarkChange = function () {
@@ -108,10 +122,9 @@
     if (e.detail.key === 'fetcher.showShortcuts' || e.detail.key === 'fetcher.showDownloads') applyChrome();
   });
 
-  /* A Settings page may now live inside the persistent content frame while the
-     primary rail stays in the parent document. localStorage's storage event is
-     the clean cross-context bridge: whichever document did not make the change
-     updates its own theme/motion/chrome immediately. */
+  // The persistent shell and page content live in separate same-origin browsing
+  // contexts. localStorage is shared, so a storage event is enough to keep the
+  // parent rail and currently embedded page visually in sync.
   global.addEventListener('storage', function (e) {
     if (!e || !e.key) return;
     if (e.key === 'fetcher.theme') applyTheme();
