@@ -1,6 +1,6 @@
 /*
  * fetcher-shell.css
- * Canonical styling for Fetcher's persistent chrome: paw cursor, primary rail,
+ * Canonical styling for Fetcher's persistent chrome: themed cursor, primary rail,
  * page-content transitions and destination-pill motion. The router owns state;
  * page-specific presentation lives with each page.
  */
@@ -24,10 +24,18 @@ html[data-motion="reduced"]{
   --shell-rail-collapse-ease:var(--ease);
 }
 
-/* ---------- Paw cursor ---------- */
-html[data-theme="light"]{--cursor-paw-fixed:url("paw-cursor-light.svg") 15 3;}
-html[data-theme="dark"]{--cursor-paw-fixed:url("paw-cursor-dark.svg") 15 3;}
-html[data-theme]{cursor:var(--cursor-paw-fixed),auto!important;}
+/* ---------- Theme-aware arrow cursor ----------
+   These are the user's exact 24px black/white cursor PNGs embedded directly so
+   the cursor artwork is not resampled or recoloured by CSS. The visible pointer
+   tip starts at x=5/y=2 inside the transparent 24px canvas, so that is the
+   hotspot used for both themes. */
+html[data-theme="light"]{
+  --cursor-main:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAwklEQVR4nN3ToU5CYRgG4GdKMDDIBmchcwlSiJjtNrN6D1QKGxt34D14CcrgFiSxUT0Q+BzbCQbCOXi+4ru99X3C/3/81zxjik4WsEfgE9cZQPzqF/qZQGCLu0wgUOAhEwgc8JIJRNkJLjKBwBuuMoHAO7qZQGCFm0wgsK57K3WBqHsrcWa/cZ8JBD4ygKJ87OPXHf4VWGKOV4zQw2WV0SrADK26Y1WAHR6bGD4FbDDQcHbl+AK3TY8f84Qx2hnjjeYHQdOp1CTCH/MAAAAASUVORK5CYII=") 5 2;
+}
+html[data-theme="dark"]{
+  --cursor-main:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABHNCSVQICAgIfAhkiAAAAK5JREFUSInd1VENwjAUheHTBAFIQAJSkFAJONkcDCfMAZsC6mA4+HlZE0gWttv1vnAEnK9tenOlvwxwBTrg6AXkPFwQvvMEzp4AwFQVWQAyEj2BnP3ICgDQeAMAnTcAcKfkGxsAKJkVIwDWWSkAwDIrhUBGLp4AQP/Zddj8busZJSVJt73AKGmYy3pJKYSQTA0/rt8WHGgzEKuULwAvHPfBAJyqls9ABFq8dnLNvAFD43/2SZf3ogAAAABJRU5ErkJgggAAAAAAAAAAAA==") 5 2;
+}
+html[data-theme]{cursor:var(--cursor-main),auto!important;}
 html[data-theme] body,
 html[data-theme] .app,
 html[data-theme] .fetcher-content-host,
@@ -38,7 +46,7 @@ html[data-theme] [role="button"]:not([aria-disabled="true"]),
 html[data-theme] summary,
 html[data-theme] label[for],
 html[data-theme] .trim-play,
-html[data-theme] .trim-track{cursor:var(--cursor-paw-fixed),pointer!important;}
+html[data-theme] .trim-track{cursor:var(--cursor-main),pointer!important;}
 html[data-theme] input:not([type="button"]):not([type="submit"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]),
 html[data-theme] textarea,
 html[data-theme] [contenteditable="true"]{cursor:text!important;}
@@ -67,11 +75,20 @@ html[data-theme] .trim-handle{cursor:ew-resize!important;}
     border-color var(--dur-base) var(--ease);
 }
 
+/* The approved paw cursor artwork is now Fetcher's brand mark. The logo tile
+   keeps its existing inverse-theme treatment, so light mode uses the white paw
+   on the dark tile and dark mode uses the black paw on the light tile. */
+html[data-theme="light"]{--mark-paw:url("paw-cursor-dark.svg");}
+html[data-theme="dark"]{--mark-paw:url("paw-cursor-light.svg");}
 .mark{
   width:30px;height:30px;border-radius:8px;background:var(--ink);color:var(--bg);
   display:flex;align-items:center;justify-content:center;margin-bottom:12px;flex:0 0 auto;
 }
-.mark svg{width:15px;height:15px;}
+.mark svg{display:none;}
+.mark::before{
+  content:"";width:18px;height:18px;display:block;
+  background:var(--mark-paw) center/contain no-repeat;
+}
 
 .rail-toggle{
   width:36px;height:36px;border:none;background:transparent;border-radius:10px;
