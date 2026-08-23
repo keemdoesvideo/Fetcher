@@ -11,22 +11,6 @@
   var embedded = false;
   try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
 
-  /* -----------------------------------------------------------------------
-     Shared shell stylesheet
-  ----------------------------------------------------------------------- */
-  var shellLink = document.getElementById('fetcher-shell-styles');
-  if (!shellLink) {
-    shellLink = document.createElement('link');
-    shellLink.id = 'fetcher-shell-styles';
-    shellLink.rel = 'stylesheet';
-    shellLink.href = 'fetcher-shell.css';
-    (document.head || document.documentElement).appendChild(shellLink);
-  }
-
-  function placeShellStylesLast() {
-    if (document.head && shellLink && shellLink.parentNode) document.head.appendChild(shellLink);
-  }
-
   function cssDuration(name, fallback) {
     var raw = '';
     try { raw = getComputedStyle(root).getPropertyValue(name).trim(); } catch (e) {}
@@ -81,9 +65,7 @@
     return true;
   }
 
-  /* -----------------------------------------------------------------------
-     Embedded pages hand same-origin Fetcher navigation back to the parent shell.
-  ----------------------------------------------------------------------- */
+  /* Embedded pages hand same-origin Fetcher navigation back to the parent. */
   if (embedded) {
     document.addEventListener('click', function (event) {
       var link = event.target.closest ? event.target.closest('a[href]') : null;
@@ -98,8 +80,6 @@
         window.parent.postMessage({ type: 'fetcher:navigate', href: destination.href }, window.location.origin);
       } catch (e) {}
     }, true);
-
-    document.addEventListener('DOMContentLoaded', placeShellStylesLast);
     return;
   }
 
@@ -272,7 +252,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    placeShellStylesLast();
     restoreRailState();
     installContentHost();
     document.addEventListener('click', handleRouteClick, true);
