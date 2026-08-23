@@ -28,8 +28,8 @@
 .settings-nav-head h1{font-size:18px;font-weight:600;letter-spacing:-.01em;}
 
 .settings-nav-list{display:flex;flex-direction:column;gap:2px;position:relative;}
-/* Sliding highlight pill behind the nav items — springs between them with a
-   bounce when you switch sub-page (JS positions it; matches the main rail). */
+/* Settings-only sliding highlight. It keeps the playful spring in Full motion;
+   the shared shell retunes the same transition for Reserved motion. */
 .settings-nav-thumb{
   position:absolute;top:0;left:0;z-index:0;
   background:var(--ink);border-radius:var(--r-sm);box-shadow:var(--shadow-sm);
@@ -351,9 +351,10 @@
               <div class="thumb"></div>
               <button class="settings-seg-btn" data-value="system" aria-pressed="true">system</button>
               <button class="settings-seg-btn" data-value="reduced" aria-pressed="false">reduced</button>
+              <button class="settings-seg-btn" data-value="reserved" aria-pressed="false">reserved</button>
               <button class="settings-seg-btn" data-value="full" aria-pressed="false">full</button>
             </div>
-            <p class="field-copy">system follows your device's reduce-motion setting. reduced turns off fetcher's animated transitions; full always keeps them on.</p>
+            <p class="field-copy">system follows your device's reduce-motion setting. reduced minimises non-essential movement. reserved keeps fetcher snappy with little or no overshoot. full keeps fetcher's playful bounce and overshoot.</p>
           </div>
         </section>
 
@@ -364,15 +365,6 @@
 
 <script>
 (function(){
-  // Sidebar collapse (shared behavior with project-fetcher.html)
-  var rail = document.getElementById('rail');
-  var railToggle = document.getElementById('rail-toggle');
-  railToggle.addEventListener('click', function(){
-    var collapsed = rail.classList.toggle('collapsed');
-    railToggle.setAttribute('aria-expanded', String(!collapsed));
-    railToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
-  });
-
   // ---------------------------------------------------------------------
   // Category navigation: switch panels without a page reload, with a
   // direction-aware slide (moving down the list slides in from the right,
@@ -386,7 +378,7 @@
   });
   var currentPanel = 'appearance';
 
-  // Sliding highlight pill behind the nav — springs between items on switch.
+  // Settings-only highlight pill.
   var navThumb = document.querySelector('.settings-nav-thumb');
   function moveNavThumb(item, animate){
     if (!item || !navThumb) return;
