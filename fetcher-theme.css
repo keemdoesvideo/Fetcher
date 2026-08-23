@@ -157,7 +157,7 @@ a{color:inherit;text-decoration:none;}
    back. Meant to be felt, not seen. (linear() lets us shape the whole ramp
    rather than run one flat speed.) */
 ::view-transition-group(nav-pill){
-  animation-duration:500ms;
+  animation-duration:var(--nav-dur, 500ms);   /* fetcher-nav.js scales this to the travel distance */
   animation-timing-function:linear(
     0, 0.006, 0.024, 0.055, 0.1, 0.16, 0.235, 0.32, 0.415, 0.515, 0.61, 0.7,
     0.78, 0.85, 0.905, 0.95, 0.984, 1.008, 1.018, 1.02, 1.015, 1.007, 1.001, 1);
