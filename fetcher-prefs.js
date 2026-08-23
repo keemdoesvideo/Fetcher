@@ -21,6 +21,9 @@
     'fetcher.showDownloads': 'on'
   };
 
+  var EASTER_KEY = 'fetcher.easterPalette';
+  var EASTER_PALETTES = { ailincia: true, vitaviita: true, stonakah: true };
+
   function get(key) {
     try {
       var v = global.localStorage.getItem(key);
@@ -40,6 +43,33 @@
       document.dispatchEvent(
         new CustomEvent('fetcher:pref-change', { detail: { key: key, value: value } })
       );
+    } catch (e) {}
+  }
+
+  function getEasterPalette() {
+    try {
+      var value = global.sessionStorage.getItem(EASTER_KEY) || '';
+      return EASTER_PALETTES[value] ? value : '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function applyEasterPalette() {
+    var value = getEasterPalette();
+    if (value) document.documentElement.setAttribute('data-easter-palette', value);
+    else document.documentElement.removeAttribute('data-easter-palette');
+  }
+
+  function setEasterPalette(value) {
+    value = EASTER_PALETTES[value] ? value : '';
+    try {
+      if (value) global.sessionStorage.setItem(EASTER_KEY, value);
+      else global.sessionStorage.removeItem(EASTER_KEY);
+    } catch (e) {}
+    applyEasterPalette();
+    try {
+      document.dispatchEvent(new CustomEvent('fetcher:easter-change', { detail: { palette: value } }));
     } catch (e) {}
   }
 
@@ -96,6 +126,7 @@
   applyTheme();
   applyMotion();
   applyChrome();
+  applyEasterPalette();
 
   // Live-respond to system changes, but only when the user hasn't pinned an
   // explicit override (auto/system).
@@ -105,14 +136,14 @@
       if (get('fetcher.theme') === 'auto') applyTheme();
     };
     if (mqDark.addEventListener) mqDark.addEventListener('change', onDarkChange);
-    else if (mqDark.addListener) mqDark.addListener(onDarkChange);
+    else if (mqDark.addListener) mqDark.addListener('change', onDarkChange);
 
     var mqMotion = global.matchMedia('(prefers-reduced-motion: reduce)');
     var onMotionChange = function () {
       if (get('fetcher.motion') === 'system') applyMotion();
     };
     if (mqMotion.addEventListener) mqMotion.addEventListener('change', onMotionChange);
-    else if (mqMotion.addListener) mqMotion.addListener(onMotionChange);
+    else if (mqMotion.addListener) mqMotion.addListener('change', onMotionChange);
   }
 
   document.addEventListener('fetcher:pref-change', function (e) {
@@ -123,13 +154,14 @@
   });
 
   // The persistent shell and page content live in separate same-origin browsing
-  // contexts. localStorage is shared, so a storage event is enough to keep the
+  // contexts. localStorage/sessionStorage are shared, so storage events keep the
   // parent rail and currently embedded page visually in sync.
   global.addEventListener('storage', function (e) {
     if (!e || !e.key) return;
     if (e.key === 'fetcher.theme') applyTheme();
     if (e.key === 'fetcher.motion') applyMotion();
     if (e.key === 'fetcher.showShortcuts' || e.key === 'fetcher.showDownloads') applyChrome();
+    if (e.key === EASTER_KEY) applyEasterPalette();
   });
 
   global.FetcherPrefs = {
@@ -140,6 +172,9 @@
     resolveMotion: resolveMotion,
     applyTheme: applyTheme,
     applyMotion: applyMotion,
-    applyChrome: applyChrome
+    applyChrome: applyChrome,
+    getEasterPalette: getEasterPalette,
+    setEasterPalette: setEasterPalette,
+    applyEasterPalette: applyEasterPalette
   };
 })(window);
