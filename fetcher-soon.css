@@ -1,0 +1,95 @@
+/*
+ * fetcher-soon.css
+ * Shared presentation for Fetcher's unfinished feature pages (Image + Chat).
+ * These pages are intentionally quiet: the "coming soon" state is static rather
+ * than continuously demanding attention, while Full motion keeps a small pointer
+ * hover flourish on the calls to action.
+ */
+
+.main{
+  flex:1;height:100%;overflow-y:auto;
+  display:flex;align-items:center;justify-content:center;
+  padding:48px 24px;
+}
+.soon{width:100%;max-width:480px;text-align:center;}
+
+.soon-badge{
+  width:64px;height:64px;border-radius:20px;
+  background:var(--accent-tint);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 22px;
+  transition:background var(--dur-base) var(--ease),color var(--dur-base) var(--ease);
+}
+.soon-badge svg{width:30px;height:30px;}
+
+.soon-eyebrow{
+  display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:10px;
+}
+.soon h1{font-size:27px;font-weight:600;letter-spacing:-.02em;margin-bottom:16px;}
+
+.soon-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--accent-ink);background:var(--accent-tint);
+  padding:6px 13px;border-radius:999px;margin-bottom:20px;
+  transition:background var(--dur-base) var(--ease),color var(--dur-base) var(--ease);
+}
+.soon-tag .dot{
+  width:6px;height:6px;border-radius:50%;background:var(--accent);
+  opacity:.9;
+}
+
+.soon-lead{
+  font-size:14.5px;line-height:1.65;color:var(--ink-soft);
+  max-width:44ch;margin:0 auto 22px;
+}
+
+.soon-feats{
+  display:flex;flex-wrap:wrap;gap:8px;justify-content:center;
+  max-width:400px;margin:0 auto;
+}
+.soon-feats span{
+  font-size:12px;color:var(--ink-soft);
+  border:1px solid var(--border);border-radius:999px;
+  padding:6px 13px;background:var(--surface);
+  transition:border-color var(--dur-base) var(--ease),background var(--dur-base) var(--ease);
+}
+
+.soon-follow{
+  margin-top:32px;padding-top:26px;border-top:1px solid var(--border);
+  transition:border-color var(--dur-base) var(--ease);
+}
+.soon-follow p{font-size:13px;color:var(--ink-soft);margin-bottom:16px;}
+.soon-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.soon-btn{
+  display:inline-flex;align-items:center;gap:9px;
+  border-radius:999px;padding:11px 20px;
+  font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;
+  transition:transform var(--dur-fast) var(--ease-bounce),box-shadow var(--dur-base) var(--ease),filter var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease);
+}
+.soon-btn svg{width:17px;height:17px;flex:0 0 auto;}
+.soon-btn.primary{background:var(--accent);color:var(--on-accent);box-shadow:var(--shadow-sm);}
+.soon-btn.primary:hover{filter:brightness(1.03);}
+.soon-btn.primary:active{transform:scale(.97);}
+.soon-btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--border-strong);}
+.soon-btn.ghost:hover{border-color:var(--ink);}
+.soon-btn.ghost:active{transform:scale(.97);}
+
+/* Pointer lift is decorative, so only Full motion on a real hover pointer gets it. */
+@media (hover:hover) and (pointer:fine){
+  html[data-motion="full"] .soon-btn.primary:hover{
+    transform:translateY(-2px);
+    box-shadow:0 10px 24px -10px rgba(0,0,0,.4);
+  }
+  html[data-motion="full"] .soon-btn.ghost:hover{transform:translateY(-2px);}
+}
+
+/* Reserved keeps the same response with crisp easing and no lift/overshoot. */
+html[data-motion="reserved"] .soon-btn{
+  transition-duration:150ms;
+  transition-timing-function:var(--ease);
+}
+
+/* Reduced keeps colour/border feedback only. */
+html[data-motion="reduced"] .soon-btn{transform:none!important;}
