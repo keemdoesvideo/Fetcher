@@ -1,7 +1,7 @@
 /*
  * fetcher-donate.css
- * Donate-page presentation. The page stays deliberately simple; decorative
- * pointer lift is reserved for Full motion on a real hover pointer.
+ * Donate-page presentation. The CTA is an ordinary action rather than status
+ * metadata, so it uses a rounded rectangle instead of another full pill.
  */
 .main{
   flex:1;height:100%;overflow-y:auto;
@@ -31,7 +31,7 @@
 .kofi-btn{
   display:inline-flex;align-items:center;gap:10px;
   background:var(--accent);color:var(--on-accent);
-  border-radius:999px;padding:13px 24px;
+  border-radius:12px;padding:13px 24px;
   font-family:inherit;font-size:14.5px;font-weight:600;
   box-shadow:var(--shadow-sm);cursor:pointer;
   transition:transform var(--dur-fast) var(--ease-bounce),box-shadow var(--dur-base) var(--ease),filter var(--dur-fast) var(--ease);
