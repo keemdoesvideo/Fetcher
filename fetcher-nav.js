@@ -1,7 +1,7 @@
 /*
  * fetcher-nav.js  (loaded on every page, in <head>)
- * Shared shell helpers: the paw cursor plus distance-aware timing for the
- * sidebar highlight pill.
+ * Shared shell helpers: custom paw cursor, rail-page transition choreography,
+ * and small cross-page interaction fixes that belong to the persistent shell.
  */
 (function () {
   'use strict';
@@ -9,11 +9,9 @@
   /* -----------------------------------------------------------------------
      Paw cursor
 
-     Uses the supplied paw silhouette at the approved cursor scale. Light mode
-     uses a solid black paw; dark mode uses the same shape in solid white.
-     The View Transition pseudo-tree is removed from pointer hit-testing, and
-     Chromium is explicitly forced to repaint the cursor around cross-document
-     navigation so a stale native arrow cannot remain until the mouse moves.
+     One runtime cursor definition is used across the shell: black in light
+     mode, white in dark mode. Text fields and disabled controls keep their
+     native semantic cursors; trimmer handles keep the resize cursor.
   ----------------------------------------------------------------------- */
   var PAW_PATHS =
     "<path d='M 226 12 L 225 13 L 216 14 L 206 19 L 198 26 L 192 34 L 188 42 L 184 57 L 184 78 L 188 93 L 194 105 L 199 112 L 207 120 L 221 128 L 229 130 L 242 130 L 254 126 L 260 122 L 271 110 L 277 98 L 279 91 L 279 87 L 280 86 L 280 65 L 275 47 L 271 39 L 261 26 L 252 19 L 244 15 L 237 13 Z'/>" +
@@ -33,21 +31,38 @@
   var PAW_LIGHT = makePaw('#000000');
   var PAW_DARK = makePaw('#ffffff');
 
-  var cursorStyle = document.createElement('style');
-  cursorStyle.id = 'fetcher-paw-cursor-fix';
-  cursorStyle.textContent =
+  /* -----------------------------------------------------------------------
+     Rail-page transition
+
+     Cross-document View Transitions are intentionally disabled. The old named
+     pill morph required distance measurement, sessionStorage timing hand-off,
+     View Transition pseudo-element cursor workarounds, and server tuning just
+     to preserve a simple navigation effect.
+
+     The replacement is deliberately simpler:
+       - outgoing page fades briefly
+       - destination page fades in
+       - the destination pill appears in place and pops once
+
+     Full motion keeps a restrained overshoot. Reserved uses a clean scale/fade.
+     Reduced uses opacity only. The rail collapse and hover motion are untouched.
+  ----------------------------------------------------------------------- */
+  var root = document.documentElement;
+  var arrivedFromRail = false;
+  try {
+    arrivedFromRail = sessionStorage.getItem('fetcher.navArrival') === '1';
+    if (arrivedFromRail) sessionStorage.removeItem('fetcher.navArrival');
+  } catch (e) {}
+  if (arrivedFromRail) root.setAttribute('data-nav-arrival', 'true');
+
+  var shellStyle = document.createElement('style');
+  shellStyle.id = 'fetcher-shell-runtime';
+  shellStyle.textContent =
+    '@view-transition{navigation:none;}' +
+
     'html[data-theme="light"]{--cursor-paw-fixed:url("' + PAW_LIGHT + '") 15 3;}' +
     'html[data-theme="dark"]{--cursor-paw-fixed:url("' + PAW_DARK + '") 15 3;}' +
     'html[data-theme]{cursor:var(--cursor-paw-fixed),auto!important;}' +
-    'html[data-theme]:active-view-transition{cursor:var(--cursor-paw-fixed),auto!important;}' +
-    '::view-transition,' +
-    '::view-transition-group(*),' +
-    '::view-transition-image-pair(*),' +
-    '::view-transition-old(*),' +
-    '::view-transition-new(*){' +
-      'pointer-events:none!important;' +
-      'cursor:var(--cursor-paw-fixed),auto!important;' +
-    '}' +
     'html[data-theme] body,html[data-theme] .app{cursor:inherit!important;}' +
     'html[data-theme] a,html[data-theme] button:not(:disabled),' +
     'html[data-theme] [role="button"]:not([aria-disabled="true"]),' +
@@ -59,80 +74,95 @@
     'html[data-theme] textarea,html[data-theme] [contenteditable="true"]{cursor:text!important;}' +
     'html[data-theme] button:disabled,html[data-theme] .seg-btn:disabled,' +
     'html[data-theme] .settings-seg-btn:disabled,html[data-theme] [aria-disabled="true"]{cursor:not-allowed!important;}' +
-    'html[data-theme] .trim-handle{cursor:ew-resize!important;}';
-  (document.head || document.documentElement).appendChild(cursorStyle);
+    'html[data-theme] .trim-handle{cursor:ew-resize!important;}' +
 
-  /*
-   * Chrome 139+ has a cursor repaint regression where a cursor can remain stale
-   * after pointer-events / animation state changes until the physical pointer
-   * moves. A synchronous layout flush makes Chromium re-evaluate the cursor.
-   *
-   * The temporary "auto" value and the paw value are both written in the same
-   * JavaScript task, so the intermediate cursor is not painted to screen.
-   */
-  function refreshPawCursor() {
-    var root = document.documentElement;
-    root.style.cursor = 'auto';
-    void root.offsetHeight;
-    root.style.cursor = 'var(--cursor-paw-fixed), auto';
-    void root.offsetHeight;
+    'html .rail-btn.active::before{view-transition-name:none!important;}' +
+
+    'html{--fetcher-page-in:170ms;--fetcher-page-out:115ms;}' +
+    'html[data-motion="reserved"]{--fetcher-page-in:145ms;--fetcher-page-out:95ms;}' +
+    'html[data-motion="reduced"]{--fetcher-page-in:100ms;--fetcher-page-out:80ms;}' +
+    'html[data-nav-arrival="true"] body{' +
+      'animation:fetcher-page-in var(--fetcher-page-in) var(--ease) both;' +
+    '}' +
+    'html[data-page-leaving="true"] body{' +
+      'opacity:0!important;transition:opacity var(--fetcher-page-out) var(--ease)!important;' +
+    '}' +
+    '@keyframes fetcher-page-in{from{opacity:0;}to{opacity:1;}}' +
+
+    'html[data-nav-arrival="true"][data-motion="full"] .rail-btn.active::before{' +
+      'animation:fetcher-nav-pop-full 230ms cubic-bezier(.34,1.3,.64,1) both;' +
+      'transform-origin:center;' +
+    '}' +
+    '@keyframes fetcher-nav-pop-full{' +
+      '0%{opacity:.35;transform:scale(.88);}' +
+      '68%{opacity:1;transform:scale(1.045);}' +
+      '100%{opacity:1;transform:scale(1);}' +
+    '}' +
+    'html[data-nav-arrival="true"][data-motion="reserved"] .rail-btn.active::before{' +
+      'animation:fetcher-nav-pop-reserved 170ms var(--ease) both;transform-origin:center;' +
+    '}' +
+    '@keyframes fetcher-nav-pop-reserved{' +
+      'from{opacity:.45;transform:scale(.96);}' +
+      'to{opacity:1;transform:scale(1);}' +
+    '}' +
+    'html[data-nav-arrival="true"][data-motion="reduced"] .rail-btn.active::before{' +
+      'animation:fetcher-nav-pop-reduced 100ms var(--ease) both;' +
+    '}' +
+    '@keyframes fetcher-nav-pop-reduced{from{opacity:.45;}to{opacity:1;}}' +
+
+    'html .trim-handle::before{' +
+      'content:"";position:absolute;inset:-8px;background:transparent;' +
+    '}';
+
+  (document.head || root).appendChild(shellStyle);
+
+  function motionMode() {
+    return root.getAttribute('data-motion') || 'full';
   }
 
-  function refreshPawCursorAfterPaint() {
-    refreshPawCursor();
-    requestAnimationFrame(function () {
-      refreshPawCursor();
-      requestAnimationFrame(refreshPawCursor);
-    });
+  function pageExitDelay() {
+    var mode = motionMode();
+    if (mode === 'reduced') return 80;
+    if (mode === 'reserved') return 95;
+    return 115;
   }
 
-  // Cover both ends of an MPA View Transition. pageswap runs on the outgoing
-  // document; pagereveal runs on the incoming one.
-  window.addEventListener('pageswap', function () {
-    refreshPawCursor();
-  });
-
-  window.addEventListener('pagereveal', function (event) {
-    refreshPawCursorAfterPaint();
-    if (event.viewTransition && event.viewTransition.finished) {
-      event.viewTransition.finished.then(
-        refreshPawCursorAfterPaint,
-        refreshPawCursorAfterPaint
-      );
-    }
-  });
-
-  // Fallback for browsers / navigations that do not expose pagereveal.
-  window.addEventListener('pageshow', refreshPawCursorAfterPaint);
-
-  /* -----------------------------------------------------------------------
-     Distance-aware sidebar highlight timing
-  ----------------------------------------------------------------------- */
-  var MIN = 240, MAX = 380, BASE = 230, PER_PX = 0.42;
-
-  try {
-    var pending = sessionStorage.getItem('nav.dur');
-    if (pending) {
-      document.documentElement.style.setProperty('--nav-dur', pending);
-      sessionStorage.removeItem('nav.dur');
-    }
-  } catch (e) {}
+  function isPlainPrimaryNavigation(ev, link) {
+    if (ev.defaultPrevented) return false;
+    if (ev.button != null && ev.button !== 0) return false;
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return false;
+    if (link.target && link.target !== '_self') return false;
+    if (link.hasAttribute('download')) return false;
+    return true;
+  }
 
   document.addEventListener('click', function (ev) {
     var link = ev.target.closest ? ev.target.closest('a.rail-btn[href]') : null;
-    if (!link) return;
+    if (!link || !isPlainPrimaryNavigation(ev, link)) return;
 
-    // Refresh immediately before the navigation starts as well. This prevents
-    // the mousedown/navigation handoff from leaving Chromium's native arrow as
-    // the cached cursor before the destination page exists.
-    refreshPawCursor();
+    var href = link.getAttribute('href');
+    if (!href || href.charAt(0) === '#') return;
 
-    var active = document.querySelector('.rail-btn.active');
-    if (!active || link === active) return;
-    var travel = Math.abs(
-      link.getBoundingClientRect().top - active.getBoundingClientRect().top
-    );
-    var dur = Math.round(Math.min(MAX, Math.max(MIN, BASE + PER_PX * travel)));
-    try { sessionStorage.setItem('nav.dur', dur + 'ms'); } catch (e) {}
+    var destination;
+    try { destination = new URL(link.href, window.location.href); }
+    catch (e) { return; }
+    if (destination.origin !== window.location.origin) return;
+
+    var current = new URL(window.location.href);
+    if (destination.pathname === current.pathname && destination.search === current.search) return;
+
+    ev.preventDefault();
+    if (root.getAttribute('data-page-leaving') === 'true') return;
+
+    try { sessionStorage.setItem('fetcher.navArrival', '1'); } catch (e) {}
+    root.setAttribute('data-page-leaving', 'true');
+
+    window.setTimeout(function () {
+      window.location.href = destination.href;
+    }, pageExitDelay());
   }, true);
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (shellStyle.parentNode) document.head.appendChild(shellStyle);
+  });
 })();
