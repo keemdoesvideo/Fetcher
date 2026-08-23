@@ -95,3 +95,8 @@ html[data-motion="reduced"] .settings-panel.active.back{
   .settings-nav-list{flex-direction:row;flex-wrap:wrap;}
   .settings-content{padding:24px 20px 40px;}
 }
+
+/* Reduced: settings state changes are immediate except for short opacity feedback. */
+html[data-motion="reduced"] .settings-nav-thumb,
+html[data-motion="reduced"] .settings-seg .thumb{transition:none!important;}
+html[data-motion="reduced"] .saved-flash{transition:opacity 120ms linear!important;}

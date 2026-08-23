@@ -116,17 +116,9 @@ a{color:inherit;text-decoration:none;}
   border-radius:6px;
 }
 
-/* Explicit override wins over (and covers) the system prefers-reduced-motion
-   case too, since fetcher-prefs.js resolves "system" against the OS setting
-   before ever setting this attribute. */
-[data-motion="reduced"] *,
-[data-motion="reduced"] *::before,
-[data-motion="reduced"] *::after{
-  animation-duration:0.001ms !important;
-  animation-iteration-count:1 !important;
-  transition-duration:0.001ms !important;
-  scroll-behavior:auto !important;
-}
+/* Reduced motion is component-owned. Pages remove spatial/overshoot motion
+   while retaining short opacity, colour and state feedback where useful. */
+html[data-motion="reduced"]{scroll-behavior:auto;}
 
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
 

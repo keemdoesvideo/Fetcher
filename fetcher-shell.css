@@ -195,3 +195,17 @@ html[data-nav-pop="true"][data-motion="reduced"] .rail-btn.active::before{
   .rail-btn{width:44px;height:44px;gap:0;}
   .rail-btn span{display:none!important;}
 }
+
+/* Reduced: structural rail changes snap; labels/page content use opacity only. */
+html[data-motion="reduced"]{--shell-rail-collapse-dur:0ms;}
+html[data-motion="reduced"] .rail-toggle,
+html[data-motion="reduced"] .rail-btn{
+  transform:none!important;
+  transition:background 100ms linear,color 100ms linear,border-color 100ms linear!important;
+}
+html[data-motion="reduced"] .rail-toggle svg,
+html[data-motion="reduced"] .rail-btn svg{transition:none!important;transform:none!important;}
+html[data-motion="reduced"] .rail-btn span{
+  transform:none!important;
+  transition:opacity 100ms linear!important;
+}

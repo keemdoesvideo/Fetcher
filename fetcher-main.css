@@ -353,3 +353,37 @@ html[data-motion="reduced"] .celebrate-msg{animation:none!important;}
   .chip:hover,.seg-btn:hover svg,.recent-refetch:hover,.recent-refetch:hover .recent-redo svg,.welcome-btn:hover{transform:none!important;}
 }
 @media (max-width:560px){.controls-row{flex-direction:column;align-items:stretch;}.paste-btn{justify-content:center;}}
+
+/* Reduced: keep useful fades/state feedback, remove spatial travel and spring. */
+html[data-motion="reduced"] .services-panel,
+html[data-motion="reduced"] .fetch-wrap,
+html[data-motion="reduced"] .dl-bubble-list,
+html[data-motion="reduced"] .kbd-bubble-list{transition:none!important;}
+html[data-motion="reduced"] .services-toggle svg.chev,
+html[data-motion="reduced"] .segmented .thumb,
+html[data-motion="reduced"] .seg-btn svg,
+html[data-motion="reduced"] .fetch-btn,
+html[data-motion="reduced"] .paste-btn,
+html[data-motion="reduced"] .dl-bubble-toggle,
+html[data-motion="reduced"] .kbd-bubble-toggle,
+html[data-motion="reduced"] .recent-refetch,
+html[data-motion="reduced"] .recent-remove,
+html[data-motion="reduced"] .welcome-btn{transform:none!important;}
+html[data-motion="reduced"] .chips,
+html[data-motion="reduced"] .fetch-wrap-inner,
+html[data-motion="reduced"] .dl-bubble-body,
+html[data-motion="reduced"] .kbd-bubble-body,
+html[data-motion="reduced"] .welcome-card{
+  transform:none!important;
+  transition:opacity 100ms linear!important;
+}
+html[data-motion="reduced"] .dl-bubble,
+html[data-motion="reduced"] .kbd-bubble{transition:box-shadow 100ms linear!important;}
+html[data-motion="reduced"] .fetch-status,
+html[data-motion="reduced"] .fetch-progress{transition:opacity 100ms linear!important;}
+html[data-motion="reduced"] .fetch-progress-bar{transition:transform 100ms linear!important;}
+html[data-motion="reduced"] .welcome-scrim{transition:opacity 120ms linear!important;}
+html[data-motion="reduced"] .celebrate-msg{
+  transform:translate(-50%,-50%) scale(1)!important;
+  transition:opacity 100ms linear!important;
+}
