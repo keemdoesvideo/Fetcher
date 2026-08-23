@@ -11,9 +11,9 @@
 
      Uses the supplied paw silhouette at the approved cursor scale. Light mode
      uses a solid black paw; dark mode uses the same shape in solid white.
-     The View Transition pseudo-tree is removed from pointer hit-testing so
-     Chrome keeps resolving the cursor against the live page underneath instead
-     of caching the browser arrow until the pointer moves again.
+     The View Transition pseudo-tree is removed from pointer hit-testing, and
+     Chromium is explicitly forced to repaint the cursor around cross-document
+     navigation so a stale native arrow cannot remain until the mouse moves.
   ----------------------------------------------------------------------- */
   var PAW_PATHS =
     "<path d='M 226 12 L 225 13 L 216 14 L 206 19 L 198 26 L 192 34 L 188 42 L 184 57 L 184 78 L 188 93 L 194 105 L 199 112 L 207 120 L 221 128 L 229 130 L 242 130 L 254 126 L 260 122 L 271 110 L 277 98 L 279 91 L 279 87 L 280 86 L 280 65 L 275 47 L 271 39 L 261 26 L 252 19 L 244 15 L 237 13 Z'/>" +
@@ -62,6 +62,49 @@
     'html[data-theme] .trim-handle{cursor:ew-resize!important;}';
   (document.head || document.documentElement).appendChild(cursorStyle);
 
+  /*
+   * Chrome 139+ has a cursor repaint regression where a cursor can remain stale
+   * after pointer-events / animation state changes until the physical pointer
+   * moves. A synchronous layout flush makes Chromium re-evaluate the cursor.
+   *
+   * The temporary "auto" value and the paw value are both written in the same
+   * JavaScript task, so the intermediate cursor is not painted to screen.
+   */
+  function refreshPawCursor() {
+    var root = document.documentElement;
+    root.style.cursor = 'auto';
+    void root.offsetHeight;
+    root.style.cursor = 'var(--cursor-paw-fixed), auto';
+    void root.offsetHeight;
+  }
+
+  function refreshPawCursorAfterPaint() {
+    refreshPawCursor();
+    requestAnimationFrame(function () {
+      refreshPawCursor();
+      requestAnimationFrame(refreshPawCursor);
+    });
+  }
+
+  // Cover both ends of an MPA View Transition. pageswap runs on the outgoing
+  // document; pagereveal runs on the incoming one.
+  window.addEventListener('pageswap', function () {
+    refreshPawCursor();
+  });
+
+  window.addEventListener('pagereveal', function (event) {
+    refreshPawCursorAfterPaint();
+    if (event.viewTransition && event.viewTransition.finished) {
+      event.viewTransition.finished.then(
+        refreshPawCursorAfterPaint,
+        refreshPawCursorAfterPaint
+      );
+    }
+  });
+
+  // Fallback for browsers / navigations that do not expose pagereveal.
+  window.addEventListener('pageshow', refreshPawCursorAfterPaint);
+
   /* -----------------------------------------------------------------------
      Distance-aware sidebar highlight timing
   ----------------------------------------------------------------------- */
@@ -78,6 +121,12 @@
   document.addEventListener('click', function (ev) {
     var link = ev.target.closest ? ev.target.closest('a.rail-btn[href]') : null;
     if (!link) return;
+
+    // Refresh immediately before the navigation starts as well. This prevents
+    // the mousedown/navigation handoff from leaving Chromium's native arrow as
+    // the cached cursor before the destination page exists.
+    refreshPawCursor();
+
     var active = document.querySelector('.rail-btn.active');
     if (!active || link === active) return;
     var travel = Math.abs(
