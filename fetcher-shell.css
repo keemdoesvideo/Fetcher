@@ -79,7 +79,7 @@ html[data-theme] .trim-handle{cursor:ew-resize!important;}
   transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease-bounce);
 }
 .rail-toggle:hover{background:var(--surface);color:var(--ink);}
-.rail-toggle:active{transform:scale(.92);}
+.rail-toggle:active{transform:scale(.97);}
 .rail-toggle svg{transition:transform var(--dur-base) var(--ease-bounce);}
 
 .rail-primary{display:flex;flex-direction:column;gap:6px;margin-top:14px;align-items:center;width:100%;padding:0 12px;}
@@ -96,8 +96,8 @@ html[data-theme] .trim-handle{cursor:ew-resize!important;}
     gap var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease);
 }
 .rail-btn svg{transition:transform var(--dur-fast) var(--ease-bounce);}
-.rail-btn:hover svg{transform:translateY(-1px);}
-.rail-btn:active{transform:scale(.95);}
+
+.rail-btn:active{transform:scale(.97);}
 .rail-btn span{
   display:block;max-height:14px;line-height:14px;overflow:hidden;opacity:1;transform:translateY(0);white-space:nowrap;
   transition:
@@ -115,7 +115,7 @@ html[data-theme] .trim-handle{cursor:ew-resize!important;}
 .rail-icons{display:flex;flex-direction:column;gap:4px;align-items:center;padding-bottom:2px;width:100%;padding-inline:8px;}
 .rail-icons .rail-btn:not(.active):hover{background:var(--surface);}
 .rail-icons .rail-btn.donate:hover{color:var(--mute);}
-.rail-icons .rail-btn.donate:hover svg{transform:translateY(-1px) scale(1.06);}
+
 
 /* Collapsed state is driven by the parent shell and persisted in localStorage. */
 html[data-rail-collapsed="true"] .rail{width:64px;flex-basis:64px;}
@@ -186,7 +186,10 @@ html[data-nav-pop="true"][data-motion="reduced"] .rail-btn.active::before{
 }
 @keyframes fetcher-nav-pop-reduced{from{opacity:.45;}to{opacity:1;}}
 
-@media (hover:none),(pointer:coarse){.rail-btn:hover svg,.rail-icons .rail-btn.donate:hover svg{transform:none!important;}}
+@media (hover:hover) and (pointer:fine){
+  html[data-motion="full"] .rail-btn:hover svg{transform:translateY(-1px);}
+  html[data-motion="full"] .rail-icons .rail-btn.donate:hover svg{transform:translateY(-1px) scale(1.06);}
+}
 @media (max-width:560px){
   .rail{width:64px;flex-basis:64px;}
   .rail-btn{width:44px;height:44px;gap:0;}
