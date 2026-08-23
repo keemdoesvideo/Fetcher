@@ -16,7 +16,9 @@
     'fetcher.audioFormat': 'mp3',
     'fetcher.audioQuality': 'best',
     'fetcher.filenameStyle': 'clean',
-    'fetcher.motion': 'system'
+    'fetcher.motion': 'system',
+    'fetcher.showShortcuts': 'on',
+    'fetcher.showDownloads': 'on'
   };
 
   function get(key) {
@@ -71,11 +73,21 @@
     document.documentElement.setAttribute('data-motion', resolveMotion());
   }
 
+  // Floating-chrome visibility (shortcuts + downloads bubbles). Set as html
+  // attributes pre-paint so CSS can hide them with no flash. 'off' hides.
+  function applyChrome() {
+    document.documentElement.setAttribute(
+      'data-shortcuts', get('fetcher.showShortcuts') === 'off' ? 'off' : 'on');
+    document.documentElement.setAttribute(
+      'data-downloads', get('fetcher.showDownloads') === 'off' ? 'off' : 'on');
+  }
+
   // Apply immediately — this script must be loaded synchronously and early
   // in <head>, before the stylesheet, so these attributes exist before the
   // browser paints anything.
   applyTheme();
   applyMotion();
+  applyChrome();
 
   // Live-respond to system changes, but only when the user hasn't pinned an
   // explicit override (auto/system).
@@ -99,6 +111,7 @@
     if (!e.detail) return;
     if (e.detail.key === 'fetcher.theme') applyTheme();
     if (e.detail.key === 'fetcher.motion') applyMotion();
+    if (e.detail.key === 'fetcher.showShortcuts' || e.detail.key === 'fetcher.showDownloads') applyChrome();
   });
 
   global.FetcherPrefs = {
@@ -108,6 +121,7 @@
     resolveTheme: resolveTheme,
     resolveMotion: resolveMotion,
     applyTheme: applyTheme,
-    applyMotion: applyMotion
+    applyMotion: applyMotion,
+    applyChrome: applyChrome
   };
 })(window);

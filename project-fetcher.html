@@ -197,6 +197,99 @@
 .paste-btn:disabled{opacity:.5;cursor:not-allowed;}
 .paste-btn:active:disabled{transform:none;}
 
+/* Floating downloads bubble — top-right glass pill (mirrors the shortcuts bubble
+   at bottom-right) that springs open DOWNWARD into a recent-downloads list. Only
+   rendered after a download, and auto-hidden once there've been no downloads for
+   7 days (JS toggles [hidden]). Settings can hide either bubble. Rows re-use the
+   .recent-* styles below. Only metadata is stored — never files. */
+.dl-bubble{
+  position:fixed;right:22px;top:20px;z-index:210;
+  width:150px;display:flex;flex-direction:column;
+  border-radius:17px;
+  background:color-mix(in srgb, var(--surface) 58%, transparent);
+  -webkit-backdrop-filter:blur(16px) saturate(1.6);
+  backdrop-filter:blur(16px) saturate(1.6);
+  border:1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  box-shadow:0 6px 22px -10px rgba(0,0,0,.32);
+  overflow:hidden;
+  transition:width 380ms cubic-bezier(.34,1.56,.64,1),
+             border-radius 380ms cubic-bezier(.34,1.56,.64,1),
+             box-shadow var(--dur-base) var(--ease);
+}
+.dl-bubble[hidden]{display:none;}
+html[data-downloads="off"] #dl-bubble{display:none;}
+html[data-shortcuts="off"] #kbd-bubble{display:none;}
+.dl-bubble.open{width:322px;border-radius:20px;box-shadow:0 18px 48px -14px rgba(0,0,0,.5);}
+.dl-bubble-toggle{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  border:none;background:transparent;cursor:pointer;width:100%;
+  color:var(--ink-soft);font-family:inherit;font-size:12.5px;font-weight:500;
+  padding:11px 14px;border-bottom:1px solid transparent;
+  transition:color var(--dur-fast) var(--ease), border-color var(--dur-base) var(--ease);
+}
+.dl-bubble-toggle:hover{color:var(--ink);}
+.dl-bubble-toggle svg{color:var(--ink-faint);flex:0 0 auto;transition:color var(--dur-fast) var(--ease);}
+.dl-bubble-toggle:hover svg{color:var(--accent);}
+.dl-bubble-toggle:active{transform:scale(.95);}
+.dl-bubble.open .dl-bubble-toggle{border-bottom-color:color-mix(in srgb, var(--ink) 9%, transparent);}
+.dl-count{
+  min-width:17px;height:17px;padding:0 5px;border-radius:999px;
+  background:var(--accent);color:var(--on-accent);
+  font-size:10px;font-weight:700;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.dl-bubble-list{display:grid;grid-template-rows:0fr;transition:grid-template-rows 380ms cubic-bezier(.34,1.56,.64,1);}
+.dl-bubble.open .dl-bubble-list{grid-template-rows:1fr;}
+.dl-bubble-list-inner{overflow:hidden;min-height:0;}
+.dl-bubble-body{
+  padding:12px;opacity:0;transform:translateY(-10px) scale(.98);
+  transition:opacity 200ms var(--ease), transform 360ms cubic-bezier(.34,1.56,.64,1);
+}
+.dl-bubble.open .dl-bubble-body{opacity:1;transform:none;}
+.dl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px;}
+.dl-head-title{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);}
+.dl-clear{
+  border:none;background:transparent;cursor:pointer;font-family:inherit;
+  font-size:11.5px;color:var(--ink-faint);padding:3px 7px;border-radius:7px;
+  transition:color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.dl-clear:hover{color:var(--danger);background:var(--surface);}
+.recent-list{list-style:none;display:flex;flex-direction:column;gap:4px;max-height:264px;overflow-y:auto;}
+.recent-item{display:flex;align-items:center;gap:6px;}
+.recent-refetch{
+  flex:1;min-width:0;display:flex;align-items:center;gap:11px;
+  border:1px solid var(--border);border-radius:11px;background:var(--surface);
+  padding:9px 12px;cursor:pointer;font-family:inherit;text-align:left;
+  transition:border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-bounce), background var(--dur-fast) var(--ease);
+}
+.recent-refetch:hover{border-color:var(--border-strong);transform:translateY(-1px);}
+.recent-refetch:active{transform:translateY(0) scale(.99);}
+.recent-icon{
+  width:30px;height:30px;border-radius:8px;flex:0 0 auto;background:var(--rail);
+  display:flex;align-items:center;justify-content:center;
+}
+.recent-icon svg{width:15px;height:15px;}
+.recent-icon.video{color:var(--accent);}
+.recent-icon.audio{color:var(--audio);}
+.recent-text{min-width:0;display:flex;flex-direction:column;gap:2px;}
+.recent-name{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.recent-meta{font-size:11.5px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.recent-redo{
+  flex:0 0 auto;margin-left:auto;color:var(--ink-faint);display:flex;align-items:center;
+  opacity:0;transition:opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-bounce);
+}
+.recent-refetch:hover .recent-redo{opacity:.85;}
+.recent-refetch:hover .recent-redo svg{transform:rotate(-25deg);}
+.recent-redo svg{transition:transform var(--dur-fast) var(--ease-bounce);}
+.recent-remove{
+  flex:0 0 auto;width:30px;height:30px;border-radius:8px;border:none;cursor:pointer;
+  background:transparent;color:var(--ink-faint);
+  display:flex;align-items:center;justify-content:center;
+  transition:color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-bounce);
+}
+.recent-remove:hover{color:var(--danger);background:var(--surface);}
+.recent-remove:active{transform:scale(.9);}
+
 /* fetch status — a single caption line above the input; it carries the
    Fetcher-voice message for each stage of the fetch (and errors). */
 .fetch-status{
@@ -457,6 +550,28 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
       </div>
     </div>
   </main>
+</div>
+
+<!-- Floating downloads bubble — top-right glass pill; appears after a download,
+     expands downward into the recent-downloads list. Auto-hidden once there've
+     been no downloads for 7 days. Click a row to re-fetch it. -->
+<div class="dl-bubble" id="dl-bubble" hidden>
+  <button class="dl-bubble-toggle" id="dl-bubble-toggle" aria-expanded="false" aria-label="Recent downloads">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+    <span>downloads</span>
+    <span class="dl-count" id="dl-count"></span>
+  </button>
+  <div class="dl-bubble-list">
+    <div class="dl-bubble-list-inner">
+      <div class="dl-bubble-body">
+        <div class="dl-head">
+          <span class="dl-head-title">recent downloads</span>
+          <button class="dl-clear" id="recent-clear" type="button">clear</button>
+        </div>
+        <ul class="recent-list" id="recent-list"></ul>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Floating shortcuts bubble — bottom-right glass pill that springs open into a
@@ -772,6 +887,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     setProgress(100, false);
     setStatus('success', 'fetched!');
     startDownload(currentJobId, filename);
+    if (lastFetch) recordHistory(lastFetch.url, filename, lastFetch.mode);
     wait(1400).then(function(){
       clearStatus();
       hideProgress();
@@ -849,6 +965,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     if (!url) return;
     var mode = getMode();
     var preferences = buildPreferences(mode);
+    lastFetch = { url: url, mode: mode };   // remembered for the history entry on success
 
     cancelled = false;
     currentJobId = null;
@@ -909,6 +1026,124 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
   });
 
   // ---------------------------------------------------------------------
+  // Download history — a "recent" list persisted in localStorage. Every
+  // successful fetch is recorded (title from the filename, source host,
+  // mode, time); click a row to re-fetch it. No files are stored — only the
+  // metadata needed to run the same fetch again.
+  // ---------------------------------------------------------------------
+  var HISTORY_KEY = 'fetcher.history';
+  var HISTORY_MAX = 25;
+  var WEEK_MS = 7 * 24 * 60 * 60 * 1000;   // entries older than this expire
+  var lastFetch = null;                     // {url, mode} captured when a fetch starts
+  var dlBubble = document.getElementById('dl-bubble');
+  var dlToggle = document.getElementById('dl-bubble-toggle');
+  var dlCount = document.getElementById('dl-count');
+  var recentList = document.getElementById('recent-list');
+  var recentClear = document.getElementById('recent-clear');
+
+  function loadHistory(){
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+    catch (e) { return []; }
+  }
+  function saveHistory(items){
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(items)); } catch (e) {}
+  }
+  function recordHistory(url, filename, mode){
+    if (!url) return;
+    mode = (mode === 'audio') ? 'audio' : 'video';
+    // De-dupe on url+mode so a repeat fetch just moves to the top.
+    var items = loadHistory().filter(function(it){ return !(it.url === url && it.mode === mode); });
+    items.unshift({ url: url, filename: filename || '', mode: mode, ts: Date.now() });
+    if (items.length > HISTORY_MAX) items = items.slice(0, HISTORY_MAX);
+    saveHistory(items);
+    renderHistory();
+  }
+  function removeHistory(entry){
+    var items = loadHistory().filter(function(it){
+      return !(it.url === entry.url && it.mode === entry.mode && it.ts === entry.ts);
+    });
+    saveHistory(items);
+    renderHistory();
+  }
+
+  function prettyHost(url){
+    try { return new URL(url).hostname.replace(/^www\./, '').replace(/^m\./, ''); }
+    catch (e) { return 'link'; }
+  }
+  function stripExt(name){ return name ? name.replace(/\.[a-z0-9]{1,5}$/i, '') : ''; }
+  function timeAgo(ts){
+    var s = Math.max(0, (Date.now() - ts) / 1000);
+    if (s < 45) return 'just now';
+    if (s < 3600) return Math.round(s / 60) + 'm ago';
+    if (s < 86400) return Math.round(s / 3600) + 'h ago';
+    if (s < 604800) return Math.round(s / 86400) + 'd ago';
+    return new Date(ts).toLocaleDateString();
+  }
+
+  var ICON_VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="14" height="14" rx="2.5"/><path d="m21 8-4.5 3.2v1.6L21 16V8Z"/></svg>';
+  var ICON_AUDIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+  var ICON_REDO = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>';
+  var ICON_X = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+
+  function renderHistory(){
+    var items = loadHistory();
+    var cutoff = Date.now() - WEEK_MS;
+    var active = items.filter(function(it){ return it.ts > cutoff; });
+    if (active.length !== items.length) saveHistory(active);   // prune expired entries
+    if (!active.length){
+      // Nothing downloaded this week — the bubble doesn't exist at all.
+      setDl(false);
+      dlBubble.hidden = true;
+      recentList.innerHTML = '';
+      return;
+    }
+    dlBubble.hidden = false;
+    dlCount.textContent = active.length;
+    recentList.innerHTML = '';
+    active.forEach(function(it){
+      var isAudio = it.mode === 'audio';
+      var li = document.createElement('li');
+      li.className = 'recent-item';
+      // Static markup only; user-derived text is set via textContent below (no injection).
+      li.innerHTML =
+        '<button class="recent-refetch" type="button">' +
+          '<span class="recent-icon ' + (isAudio ? 'audio' : 'video') + '">' + (isAudio ? ICON_AUDIO : ICON_VIDEO) + '</span>' +
+          '<span class="recent-text"><span class="recent-name"></span><span class="recent-meta"></span></span>' +
+          '<span class="recent-redo">' + ICON_REDO + '</span>' +
+        '</button>' +
+        '<button class="recent-remove" type="button" aria-label="Remove from history" title="Remove">' + ICON_X + '</button>';
+      var refetchBtn = li.querySelector('.recent-refetch');
+      refetchBtn.querySelector('.recent-name').textContent = stripExt(it.filename) || prettyHost(it.url);
+      refetchBtn.querySelector('.recent-meta').textContent =
+        prettyHost(it.url) + ' · ' + (isAudio ? 'audio' : 'video') + ' · ' + timeAgo(it.ts);
+      refetchBtn.title = 'Re-fetch ' + it.url;
+      refetchBtn.addEventListener('click', function(){ refetch(it); });
+      li.querySelector('.recent-remove').addEventListener('click', function(){ removeHistory(it); });
+      recentList.appendChild(li);
+    });
+  }
+
+  function refetch(entry){
+    if (busy) return;
+    input.value = entry.url;
+    updateFetchVisibility();
+    selectMode(entry.mode === 'audio' ? 'audio' : 'video');
+    detectProvider();     // re-sync mode availability / trim UI for this link
+    runFetchFlow();
+    input.blur();
+  }
+
+  if (recentClear) recentClear.addEventListener('click', function(){ saveHistory([]); renderHistory(); });
+
+  // Downloads bubble open/close (mirrors the shortcuts bubble at bottom-right).
+  function setDl(open){ dlBubble.classList.toggle('open', open); dlToggle.setAttribute('aria-expanded', String(open)); }
+  function dlOpen(){ return dlBubble.classList.contains('open'); }
+  dlToggle.addEventListener('click', function(e){ e.stopPropagation(); setDl(!dlOpen()); });
+  document.addEventListener('click', function(e){ if (dlOpen() && !dlBubble.contains(e.target)) setDl(false); });
+
+  renderHistory();
+
+  // ---------------------------------------------------------------------
   // Website keyboard shortcuts (fetch page). The trim viewer has its own
   // handler (fetcher-trimmer.js) that only fires while it's open.
   //   /    focus the link field       Esc  close help / cancel / clear
@@ -930,6 +1165,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     if (e.key === '?' && !typing) { e.preventDefault(); toggleHelp(); return; }
 
     if (e.key === 'Escape') {
+      if (dlOpen()) { setDl(false); return; }            // close downloads bubble first
       if (helpOpen()) { setHelp(false); return; }
       if (busy) { cancelFetch(); return; }               // cancel an in-flight fetch
       if (input.value) {                                  // otherwise clear the field
