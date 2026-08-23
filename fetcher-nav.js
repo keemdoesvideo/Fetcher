@@ -43,9 +43,9 @@
   /* -----------------------------------------------------------------------
      Shared shell styling
 
-     The @view-transition override remains temporarily because the legacy theme
-     stylesheet still contains Claude's old cross-document View Transition rule.
-     The shell itself does not use View Transitions.
+     The legacy theme stylesheet still declares the abandoned cross-document
+     View Transition experiment. The shell explicitly disables it until that
+     block is physically removed from fetcher-theme.css during the theme cleanup.
   ----------------------------------------------------------------------- */
   var shellStyle = document.createElement('style');
   shellStyle.id = 'fetcher-shell-runtime';
@@ -55,10 +55,14 @@
     'html{' +
       '--shell-page-fade:170ms;' +
       '--shell-nav-pop:230ms;' +
+      '--shell-rail-size-dur:240ms;' +
+      '--shell-rail-label-dur:190ms;' +
     '}' +
     'html[data-motion="reserved"]{' +
       '--shell-page-fade:145ms;' +
       '--shell-nav-pop:170ms;' +
+      '--shell-rail-size-dur:190ms;' +
+      '--shell-rail-label-dur:150ms;' +
     '}' +
     'html[data-motion="reduced"]{' +
       '--shell-page-fade:100ms;' +
@@ -83,10 +87,33 @@
 
     'html .rail,html .rail-btn.active::before{view-transition-name:none!important;}' +
 
+    'html .rail .rail-btn{' +
+      'width:64px;max-width:64px;gap:6px;' +
+      'transition:background var(--dur-fast) var(--ease),' +
+                 'transform var(--dur-fast) var(--ease-bounce),' +
+                 'color var(--dur-fast) var(--ease),' +
+                 'width var(--shell-rail-size-dur) var(--ease-bounce),' +
+                 'height var(--shell-rail-size-dur) var(--ease-bounce),' +
+                 'gap var(--shell-rail-label-dur) var(--ease)!important;' +
+    '}' +
+    'html .rail .rail-btn span{' +
+      'display:block;max-height:16px;line-height:14px;overflow:hidden;opacity:1;transform:translateY(0);' +
+      'transition:opacity 120ms var(--ease) 60ms,' +
+                 'max-height var(--shell-rail-label-dur) var(--ease),' +
+                 'transform var(--shell-rail-label-dur) var(--ease)!important;' +
+    '}' +
+
     'html[data-rail-collapsed="true"] .rail{width:64px;flex-basis:64px;}' +
     'html[data-rail-collapsed="true"] .rail .rail-toggle svg{transform:rotate(180deg);}' +
-    'html[data-rail-collapsed="true"] .rail .rail-btn span{opacity:0;max-height:0;overflow:hidden;}' +
-    'html[data-rail-collapsed="true"] .rail .rail-btn{height:44px;}' +
+    'html[data-rail-collapsed="true"] .rail .rail-btn{' +
+      'width:44px;max-width:44px;height:44px;gap:0;' +
+    '}' +
+    'html[data-rail-collapsed="true"] .rail .rail-btn span{' +
+      'opacity:0;max-height:0;transform:translateY(-3px);pointer-events:none;' +
+      'transition:opacity 90ms var(--ease),' +
+                 'max-height var(--shell-rail-label-dur) var(--ease),' +
+                 'transform var(--shell-rail-label-dur) var(--ease)!important;' +
+    '}' +
 
     'html[data-fetcher-embedded="true"] .rail{display:none!important;}' +
     'html[data-fetcher-embedded="true"] .app{width:100%!important;}' +
@@ -125,8 +152,6 @@
     '}' +
     '@keyframes fetcher-nav-pop-reduced{from{opacity:.45;}to{opacity:1;}}' +
 
-    /* Reserved retunes the existing expressive components; Full is unchanged. */
-    'html[data-motion="reserved"] .rail-btn,' +
     'html[data-motion="reserved"] .rail-btn svg,' +
     'html[data-motion="reserved"] .fetch-btn,' +
     'html[data-motion="reserved"] .paste-btn,' +
@@ -138,6 +163,24 @@
     'html[data-motion="reserved"] .settings-seg .thumb,' +
     'html[data-motion="reserved"] .segmented .thumb{' +
       'transition-duration:150ms!important;transition-timing-function:var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .rail .rail-btn{' +
+      'transition:background 150ms var(--ease),' +
+                 'transform 150ms var(--ease),' +
+                 'color 150ms var(--ease),' +
+                 'width var(--shell-rail-size-dur) var(--ease),' +
+                 'height var(--shell-rail-size-dur) var(--ease),' +
+                 'gap var(--shell-rail-label-dur) var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"] .rail .rail-btn span{' +
+      'transition:opacity 100ms var(--ease) 35ms,' +
+                 'max-height var(--shell-rail-label-dur) var(--ease),' +
+                 'transform var(--shell-rail-label-dur) var(--ease)!important;' +
+    '}' +
+    'html[data-motion="reserved"][data-rail-collapsed="true"] .rail .rail-btn span{' +
+      'transition:opacity 80ms var(--ease),' +
+                 'max-height var(--shell-rail-label-dur) var(--ease),' +
+                 'transform var(--shell-rail-label-dur) var(--ease)!important;' +
     '}' +
     'html[data-motion="reserved"] .services-panel{' +
       'transition:grid-template-rows 180ms var(--ease)!important;' +
@@ -231,7 +274,6 @@
     }, true);
 
     document.addEventListener('DOMContentLoaded', function () {
-      /* Re-append so these overrides follow fetcher-theme.css in cascade order. */
       if (shellStyle.parentNode) document.head.appendChild(shellStyle);
     });
     return;
@@ -272,12 +314,6 @@
     rail.classList.toggle('collapsed', savedRailCollapsed);
     syncRailState();
 
-    /*
-     * A few older page files still contain anonymous rail-toggle listeners.
-     * Capture-phase ownership makes the shared shell the single runtime owner,
-     * so those legacy handlers cannot double-toggle while their dead source
-     * blocks are removed page-by-page.
-     */
     railToggle.addEventListener('click', function (event) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -429,7 +465,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    /* Re-append so these overrides follow fetcher-theme.css in cascade order. */
     if (shellStyle.parentNode) document.head.appendChild(shellStyle);
 
     restoreRailState();
