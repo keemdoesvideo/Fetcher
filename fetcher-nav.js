@@ -125,8 +125,6 @@
     '}' +
     '@keyframes fetcher-nav-pop-reduced{from{opacity:.45;}to{opacity:1;}}' +
 
-    'html .trim-handle::before{content:"";position:absolute;inset:-8px;background:transparent;}' +
-
     /* Reserved retunes the existing expressive components; Full is unchanged. */
     'html[data-motion="reserved"] .rail-btn,' +
     'html[data-motion="reserved"] .rail-btn svg,' +
@@ -275,10 +273,10 @@
     syncRailState();
 
     /*
-     * The older page files still contain anonymous rail-toggle listeners.
-     * Capture-phase ownership here makes the shared shell the single runtime
-     * owner immediately, so those legacy handlers cannot double-toggle the rail.
-     * Their dead source blocks can then be removed page-by-page safely.
+     * A few older page files still contain anonymous rail-toggle listeners.
+     * Capture-phase ownership makes the shared shell the single runtime owner,
+     * so those legacy handlers cannot double-toggle while their dead source
+     * blocks are removed page-by-page.
      */
     railToggle.addEventListener('click', function (event) {
       event.preventDefault();
