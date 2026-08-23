@@ -1,0 +1,74 @@
+name: Finalize Fetcher shell ownership
+
+on:
+  push:
+    branches:
+      - fix/paw-cursor-readability
+    paths:
+      - .github/workflows/finalize-shell-ownership.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/paw-cursor-readability
+          fetch-depth: 0
+
+      - name: Remove rail component from global theme
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('fetcher-theme.css')
+          text = path.read_text(encoding='utf-8')
+          marker = '/* ---------- Sidebar (identical on every page) ---------- */'
+          start = text.find(marker)
+          if start < 0:
+              raise SystemExit('legacy sidebar block marker missing')
+          text = text[:start].rstrip() + '\n'
+          path.write_text(text, encoding='utf-8')
+
+      - name: Validate final ownership
+        shell: bash
+        run: |
+          for file in fetcher-prefs.js fetcher-nav.js fetcher-main.js fetcher-settings.js fetcher-trimmer.js; do
+            node --check "$file"
+          done
+          python -m compileall -q server run.py
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          theme = Path('fetcher-theme.css').read_text(encoding='utf-8')
+          shell = Path('fetcher-shell.css').read_text(encoding='utf-8')
+          assert '.rail{' not in theme and '.rail-btn' not in theme and '.rail-toggle' not in theme
+          assert '.rail{' in shell and '.rail-btn{' in shell and '.rail-toggle{' in shell
+          assert '@view-transition' not in theme and '@view-transition' not in shell
+          assert '--cursor-paw' not in theme
+          assert 'paw-cursor-light.svg' in shell and 'paw-cursor-dark.svg' in shell
+
+          for page in ['project-fetcher.html','image.html','chat.html','settings.html','donate.html','updates.html','about.html']:
+              text = Path(page).read_text(encoding='utf-8')
+              assert text.count('href="fetcher-theme.css"') == 1
+              assert text.count('href="fetcher-shell.css"') == 1
+
+          for css in ['fetcher-theme.css','fetcher-shell.css','fetcher-main.css','fetcher-settings.css','fetcher-trimmer.css']:
+              text = Path(css).read_text(encoding='utf-8')
+              stripped = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
+              stripped = re.sub(r'"(?:\\.|[^"\\])*"', '""', stripped)
+              stripped = re.sub(r"'(?:\\.|[^'\\])*'", "''", stripped)
+              assert stripped.count('{') == stripped.count('}'), f'{css}: unbalanced braces'
+          PY
+
+      - name: Commit cleanup and remove one-shot workflow
+        run: |
+          rm .github/workflows/finalize-shell-ownership.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fetcher-theme.css .github/workflows/finalize-shell-ownership.yml
+          git commit -m "Make shell the sole owner of rail styling"
+          git push origin HEAD:fix/paw-cursor-readability
