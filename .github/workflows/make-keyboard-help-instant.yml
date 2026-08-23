@@ -1,0 +1,102 @@
+name: Make keyboard help instant
+
+on:
+  push:
+    branches:
+      - fix/paw-cursor-readability
+    paths:
+      - .github/workflows/make-keyboard-help-instant.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/paw-cursor-readability
+          fetch-depth: 0
+
+      - name: Separate keyboard and pointer invocation motion
+        shell: python
+        run: |
+          from pathlib import Path
+
+          js = Path('fetcher-main.js')
+          text = js.read_text(encoding='utf-8')
+          old = '''  function setHelp(open) {
+            kbdBubble.classList.toggle('open', open);
+            kbdToggle.setAttribute('aria-expanded', String(open));
+          }
+          function helpOpen() { return kbdBubble.classList.contains('open'); }
+          function toggleHelp(show) { setHelp(show === undefined ? !helpOpen() : show); }
+
+          kbdToggle.addEventListener('click', function (event) { event.stopPropagation(); toggleHelp(); });
+          document.addEventListener('click', function (event) { if (helpOpen() && !kbdBubble.contains(event.target)) setHelp(false); });'''
+          new = '''  function setHelp(open, instant) {
+            if (instant) kbdBubble.classList.add('instant');
+            kbdBubble.classList.toggle('open', open);
+            kbdToggle.setAttribute('aria-expanded', String(open));
+            if (instant) {
+              requestAnimationFrame(function () {
+                requestAnimationFrame(function () { kbdBubble.classList.remove('instant'); });
+              });
+            }
+          }
+          function helpOpen() { return kbdBubble.classList.contains('open'); }
+          function toggleHelp(show, instant) { setHelp(show === undefined ? !helpOpen() : show, instant); }
+
+          kbdToggle.addEventListener('click', function (event) { event.stopPropagation(); toggleHelp(); });
+          document.addEventListener('click', function (event) { if (helpOpen() && !kbdBubble.contains(event.target)) setHelp(false); });'''
+          if old not in text:
+              raise SystemExit('fetcher-main.js: help-controller marker missing')
+          text = text.replace(old, new, 1)
+          text = text.replace('      toggleHelp();\n      return;\n    }\n\n    if (event.key === \'Escape\') {', '      toggleHelp(undefined, true);\n      return;\n    }\n\n    if (event.key === \'Escape\') {', 1)
+          text = text.replace("      if (helpOpen()) { setHelp(false); return; }", "      if (helpOpen()) { setHelp(false, true); return; }", 1)
+          js.write_text(text, encoding='utf-8')
+
+          css = Path('fetcher-main.css')
+          style = css.read_text(encoding='utf-8')
+          marker = '/* Keyboard invocation deliberately bypasses panel motion. */'
+          block = '''
+          /* Keyboard invocation deliberately bypasses panel motion. Pointer clicks
+             still use the selected Full/Reserved motion language. */
+          .kbd-bubble.instant,
+          .kbd-bubble.instant .kbd-bubble-list,
+          .kbd-bubble.instant .kbd-bubble-body{
+            transition:none!important;
+            animation:none!important;
+          }
+          '''
+          if marker not in style:
+              css.write_text(style.rstrip() + '\n\n' + block.strip() + '\n', encoding='utf-8')
+
+      - name: Validate
+        shell: bash
+        run: |
+          node --check fetcher-main.js
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          js = Path('fetcher-main.js').read_text(encoding='utf-8')
+          css = Path('fetcher-main.css').read_text(encoding='utf-8')
+          assert 'toggleHelp(undefined, true)' in js
+          assert 'setHelp(false, true)' in js
+          assert "classList.add('instant')" in js
+          assert '.kbd-bubble.instant' in css
+          stripped = re.sub(r'/\*.*?\*/', '', css, flags=re.S)
+          stripped = re.sub(r'"(?:\\.|[^"\\])*"', '""', stripped)
+          stripped = re.sub(r"'(?:\\.|[^'\\])*'", "''", stripped)
+          assert stripped.count('{') == stripped.count('}')
+          PY
+
+      - name: Commit and remove workflow
+        run: |
+          rm .github/workflows/make-keyboard-help-instant.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fetcher-main.js fetcher-main.css .github/workflows/make-keyboard-help-instant.yml
+          git commit -m "Make keyboard shortcut help immediate"
+          git push origin HEAD:fix/paw-cursor-readability
