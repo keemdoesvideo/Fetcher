@@ -11,8 +11,9 @@
 
      Uses the supplied paw silhouette at the approved cursor scale. Light mode
      uses a solid black paw; dark mode uses the same shape in solid white.
-     The cursor is also applied to the View Transition overlay so the browser's
-     default arrow cannot flash while cross-document page transitions run.
+     The View Transition pseudo-tree is removed from pointer hit-testing so
+     Chrome keeps resolving the cursor against the live page underneath instead
+     of caching the browser arrow until the pointer moves again.
   ----------------------------------------------------------------------- */
   var PAW_PATHS =
     "<path d='M 226 12 L 225 13 L 216 14 L 206 19 L 198 26 L 192 34 L 188 42 L 184 57 L 184 78 L 188 93 L 194 105 L 199 112 L 207 120 L 221 128 L 229 130 L 242 130 L 254 126 L 260 122 L 271 110 L 277 98 L 279 91 L 279 87 L 280 86 L 280 65 L 275 47 L 271 39 L 261 26 L 252 19 L 244 15 L 237 13 Z'/>" +
@@ -44,6 +45,7 @@
     '::view-transition-image-pair(*),' +
     '::view-transition-old(*),' +
     '::view-transition-new(*){' +
+      'pointer-events:none!important;' +
       'cursor:var(--cursor-paw-fixed),auto!important;' +
     '}' +
     'html[data-theme] body,html[data-theme] .app{cursor:inherit!important;}' +
