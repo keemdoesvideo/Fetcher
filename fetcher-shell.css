@@ -5,9 +5,6 @@
  * each page rather than being retuned from this shared layer.
  */
 
-/* The persistent shell replaced the old cross-document View Transition system. */
-@view-transition{navigation:none;}
-
 html{
   --shell-page-fade:170ms;
   --shell-nav-pop:230ms;
