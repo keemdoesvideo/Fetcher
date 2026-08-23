@@ -126,10 +126,3 @@
 .trim-dash{color:var(--ink-faint);}
 .trim-sel-dur{color:var(--ink-faint);}
 .trim-hint{font-size:11.5px;color:var(--ink-faint);}
-
-/* Reduced: mount geometry snaps; the panel itself simply fades into place. */
-html[data-motion="reduced"] .trim-mount{transition:none!important;}
-html[data-motion="reduced"] .trim-panel{
-  transform:none!important;
-  transition:opacity 100ms linear,border-color 100ms linear,background 100ms linear!important;
-}

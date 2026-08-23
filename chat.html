@@ -9,7 +9,79 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317171a'/%3E%3Cpath d='M16 8v13M10 15l6 6 6-6' stroke='%23fafaf8' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="fetcher-theme.css">
 <link rel="stylesheet" href="fetcher-shell.css">
-<link rel="stylesheet" href="fetcher-soon.css">
+<style>
+/* ---------- Coming soon (page-specific) ---------- */
+.main{
+  flex:1;height:100%;overflow-y:auto;
+  display:flex;align-items:center;justify-content:center;
+  padding:48px 24px;
+}
+.soon{width:100%;max-width:480px;text-align:center;}
+
+.soon-badge{
+  width:64px;height:64px;border-radius:20px;
+  background:var(--accent-tint);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 22px;
+  transition:background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
+}
+.soon-badge svg{width:30px;height:30px;}
+
+.soon-eyebrow{
+  display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:10px;
+}
+.soon h1{font-size:27px;font-weight:600;letter-spacing:-.02em;margin-bottom:16px;}
+
+.soon-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--accent-ink);background:var(--accent-tint);
+  padding:6px 13px;border-radius:999px;margin-bottom:20px;
+  transition:background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
+}
+.soon-tag .dot{
+  width:6px;height:6px;border-radius:50%;background:var(--accent);
+  animation:soon-pulse 1.8s var(--ease) infinite;
+}
+@keyframes soon-pulse{0%,100%{opacity:.35;transform:scale(.75);}50%{opacity:1;transform:scale(1.15);}}
+
+.soon-lead{
+  font-size:14.5px;line-height:1.65;color:var(--ink-soft);
+  max-width:44ch;margin:0 auto 22px;
+}
+
+.soon-feats{
+  display:flex;flex-wrap:wrap;gap:8px;justify-content:center;
+  max-width:400px;margin:0 auto;
+}
+.soon-feats span{
+  font-size:12px;color:var(--ink-soft);
+  border:1px solid var(--border);border-radius:999px;
+  padding:6px 13px;background:var(--surface);
+  transition:border-color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+}
+
+.soon-follow{
+  margin-top:32px;padding-top:26px;border-top:1px solid var(--border);
+  transition:border-color var(--dur-base) var(--ease);
+}
+.soon-follow p{font-size:13px;color:var(--ink-soft);margin-bottom:16px;}
+.soon-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.soon-btn{
+  display:inline-flex;align-items:center;gap:9px;
+  border-radius:999px;padding:11px 20px;
+  font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;
+  transition:transform var(--dur-fast) var(--ease-bounce), box-shadow var(--dur-base) var(--ease), filter var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.soon-btn svg{width:17px;height:17px;flex:0 0 auto;}
+.soon-btn.primary{background:var(--accent);color:var(--on-accent);box-shadow:var(--shadow-sm);}
+.soon-btn.primary:hover{transform:translateY(-2px);box-shadow:0 10px 24px -10px rgba(0,0,0,.4);filter:brightness(1.03);}
+.soon-btn.primary:active{transform:translateY(0) scale(.98);}
+.soon-btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--border-strong);}
+.soon-btn.ghost:hover{transform:translateY(-2px);border-color:var(--ink);}
+.soon-btn.ghost:active{transform:translateY(0) scale(.98);}
+</style>
 </head>
 <body>
 <div class="app">

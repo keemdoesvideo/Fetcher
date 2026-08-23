@@ -9,7 +9,79 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317171a'/%3E%3Cpath d='M16 8v13M10 15l6 6 6-6' stroke='%23fafaf8' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="fetcher-theme.css">
 <link rel="stylesheet" href="fetcher-shell.css">
-<link rel="stylesheet" href="fetcher-about.css">
+<style>
+/* ---------- About (page-specific) ---------- */
+.main{
+  flex:1;height:100%;overflow-y:auto;
+  display:flex;justify-content:center;
+  padding:52px 24px;
+}
+.about{width:100%;max-width:560px;}
+
+.about-eyebrow{
+  display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:8px;
+}
+.about-title-row{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;}
+.about h1{font-size:27px;font-weight:600;letter-spacing:-.02em;}
+.about-version{
+  font-size:12px;font-weight:600;color:var(--accent-ink);
+  background:var(--accent-tint);padding:3px 10px;border-radius:999px;
+  transition:background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
+}
+.about-lead{
+  font-size:15px;line-height:1.65;color:var(--ink-soft);
+  max-width:52ch;margin-bottom:6px;
+}
+
+.about-block{padding:24px 0;border-top:1px solid var(--border);transition:border-color var(--dur-base) var(--ease);}
+.about-block h2{
+  font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--ink-faint);margin-bottom:10px;
+}
+.about-block p{font-size:14px;line-height:1.68;color:var(--ink-soft);max-width:56ch;}
+
+.about-repo{
+  display:inline-flex;align-items:center;gap:9px;margin-top:16px;
+  border:1px solid var(--border-strong);border-radius:11px;
+  padding:10px 16px;font-size:13.5px;font-weight:500;color:var(--ink);
+  transition:border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-bounce), background var(--dur-fast) var(--ease);
+}
+.about-repo:hover{border-color:var(--ink);transform:translateY(-1px);background:var(--surface);}
+.about-repo:active{transform:translateY(0);}
+.about-repo svg{width:17px;height:17px;flex:0 0 auto;}
+
+.about-foot{
+  margin-top:26px;padding-top:22px;border-top:1px solid var(--border);
+  font-size:12px;line-height:1.6;color:var(--ink-faint);max-width:56ch;
+  transition:border-color var(--dur-base) var(--ease);
+}
+
+/* Live visit stat */
+.about-stat{text-align:center;}
+.about-stat-num{
+  font-size:46px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--accent-ink);
+  font-variant-numeric:tabular-nums;
+}
+.about-stat-label{font-size:13px;color:var(--ink-soft);margin-top:7px;}
+
+/* First-100 plaque — a curated honor roll (names filled in by hand over time). */
+.plaque{
+  list-style:none;counter-reset:seat;margin-top:16px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px;
+}
+.plaque li{
+  counter-increment:seat;display:flex;align-items:center;gap:10px;
+  font-size:13px;color:var(--ink);
+  border:1px solid var(--border);border-radius:10px;padding:9px 12px;background:var(--surface);
+  transition:border-color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+}
+.plaque li::before{
+  content:counter(seat);
+  font-size:11px;font-weight:700;color:var(--accent-ink);min-width:18px;
+  font-variant-numeric:tabular-nums;
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -102,6 +174,29 @@
   </main>
 </div>
 
-<script src="fetcher-about.js"></script>
+<script>
+(function(){
+  // Live visit count (from /api/visits), with a small count-up for delight.
+  var countEl = document.getElementById('visit-count');
+  var labelEl = document.getElementById('visit-label');
+  var statBlock = document.querySelector('.about-stat');
+  var reduce = document.documentElement.getAttribute('data-motion') === 'reduced';
+  fetch('/api/visits').then(function(r){ return r.json(); }).then(function(d){
+    var n = (d && typeof d.count === 'number') ? d.count : 0;
+    labelEl.textContent = (n === 1 ? 'person has' : 'people have') + ' opened fetcher';
+    if (reduce || n <= 0 || document.hidden) { countEl.textContent = n.toLocaleString(); return; }
+    var start = performance.now(), dur = 900;
+    (function tick(now){
+      var t = Math.min(1, (now - start) / dur);
+      var eased = 1 - Math.pow(1 - t, 3);
+      countEl.textContent = Math.round(eased * n).toLocaleString();
+      if (t < 1) requestAnimationFrame(tick);
+    })(performance.now());
+    // Guarantee the final value even if rAF is throttled (e.g. loaded in a
+    // background tab, where requestAnimationFrame is paused).
+    setTimeout(function(){ countEl.textContent = n.toLocaleString(); }, dur + 150);
+  }).catch(function(){ if (statBlock) statBlock.style.display = 'none'; });
+})();
+</script>
 </body>
 </html>
