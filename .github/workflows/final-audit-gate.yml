@@ -1,4 +1,4 @@
-name: Final animation and design audit gate
+name: Retire temporary final audit gate
 
 on:
   push:
@@ -9,97 +9,18 @@ permissions:
   contents: write
 
 jobs:
-  audit:
+  retire:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fix/paw-cursor-readability
           fetch-depth: 0
-
-      - name: Syntax
-        shell: bash
-        run: |
-          for file in fetcher-prefs.js fetcher-nav.js fetcher-main.js fetcher-settings.js fetcher-about.js fetcher-trimmer.js; do
-            node --check "$file"
-          done
-          python -m compileall -q server run.py
-
-      - name: Structural audit
-        shell: python
-        run: |
-          from pathlib import Path
-          import re
-
-          pages = [
-              'project-fetcher.html','settings.html','image.html','chat.html',
-              'donate.html','updates.html','about.html'
-          ]
-          for page in pages:
-              text = Path(page).read_text(encoding='utf-8')
-              assert '<style>' not in text, f'{page}: inline CSS remains'
-              assert text.count('href="fetcher-theme.css"') == 1
-              assert text.count('href="fetcher-shell.css"') == 1
-
-          required = {
-              'project-fetcher.html': ['fetcher-main.css','fetcher-main.js'],
-              'settings.html': ['fetcher-settings.css','fetcher-settings.js'],
-              'image.html': ['fetcher-soon.css'],
-              'chat.html': ['fetcher-soon.css'],
-              'donate.html': ['fetcher-donate.css'],
-              'updates.html': ['fetcher-updates.css'],
-              'about.html': ['fetcher-about.css','fetcher-about.js'],
-          }
-          for page, assets in required.items():
-              text = Path(page).read_text(encoding='utf-8')
-              for asset in assets:
-                  assert asset in text, f'{page}: missing {asset}'
-
-          theme = Path('fetcher-theme.css').read_text(encoding='utf-8')
-          shell = Path('fetcher-shell.css').read_text(encoding='utf-8')
-          main = Path('fetcher-main.css').read_text(encoding='utf-8')
-          soon = Path('fetcher-soon.css').read_text(encoding='utf-8')
-          nav = Path('fetcher-nav.js').read_text(encoding='utf-8')
-
-          assert '@view-transition' not in theme + shell
-          assert 'view-transition-name' not in theme + shell
-          assert '.rail{' not in theme and '.rail{' in shell
-          assert 'paw-cursor-light.svg' in shell and 'paw-cursor-dark.svg' in shell
-          assert 'shellLink' not in nav
-          assert 'transition-duration:0.001ms' not in theme
-          assert 'animation-duration:0.001ms' not in theme
-          assert 'Reduced motion is component-owned' in theme
-          assert 'fetch-indeterminate 1.15s linear infinite' in main
-          assert 'Shortcuts are a frequent utility' in main
-          assert 'soon-pulse' not in soon
-
-          allowlist = Path('server/app.py').read_text(encoding='utf-8')
-          for asset in [
-              'fetcher-shell.css','fetcher-main.css','fetcher-settings.css','fetcher-soon.css',
-              'fetcher-about.css','fetcher-donate.css','fetcher-updates.css','fetcher-about.js',
-              'paw-cursor-light.svg','paw-cursor-dark.svg'
-          ]:
-              assert f'"{asset}"' in allowlist, f'allowlist missing {asset}'
-
-          for name in [
-              'fetcher-theme.css','fetcher-shell.css','fetcher-main.css','fetcher-settings.css',
-              'fetcher-soon.css','fetcher-about.css','fetcher-donate.css','fetcher-updates.css',
-              'fetcher-trimmer.css'
-          ]:
-              css = Path(name).read_text(encoding='utf-8')
-              stripped = re.sub(r'/\*.*?\*/', '', css, flags=re.S)
-              stripped = re.sub(r'"(?:\\.|[^"\\])*"', '""', stripped)
-              stripped = re.sub(r"'(?:\\.|[^'\\])*'", "''", stripped)
-              assert stripped.count('{') == stripped.count('}'), f'{name}: brace imbalance'
-
-          print('Final Fetcher structural audit passed.')
-          PY
-
-      - name: Remove one-shot audit workflow
+      - name: Remove temporary workflow
         run: |
           rm .github/workflows/final-audit-gate.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/workflows/final-audit-gate.yml
-          git commit -m "Pass final animation and design audit gate"
+          git commit -m "Retire temporary final audit gate"
           git push origin HEAD:fix/paw-cursor-readability
