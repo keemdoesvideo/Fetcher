@@ -20,6 +20,19 @@
   if (embedded) root.setAttribute('data-fetcher-embedded', 'true');
 
   /* -----------------------------------------------------------------------
+     First-visit welcome repair
+
+     Older welcome code marked a browser as greeted even if /api/visits/claim
+     failed. A successful claim always stores a visitor number, so a seen flag
+     without a number is a safe signal to retry on the next page load.
+  ----------------------------------------------------------------------- */
+  try {
+    if (localStorage.getItem('fetcher.welcomed') && !localStorage.getItem('fetcher.visitorNumber')) {
+      localStorage.removeItem('fetcher.welcomed');
+    }
+  } catch (e) {}
+
+  /* -----------------------------------------------------------------------
      Paw cursor
   ----------------------------------------------------------------------- */
   var PAW_PATHS =
@@ -221,6 +234,94 @@
     '}';
 
   (document.head || root).appendChild(shellStyle);
+
+  /* -----------------------------------------------------------------------
+     Welcome dialog accessibility
+
+     The main Fetch page owns the welcome content and dismissal animation. The
+     shell adds generic modal keyboard behavior so the same rules also apply
+     when that page is running inside the persistent content frame.
+  ----------------------------------------------------------------------- */
+  function installWelcomeAccessibility() {
+    var welcome = document.getElementById('welcome');
+    var card = welcome && welcome.querySelector('.welcome-card');
+    var button = welcome && welcome.querySelector('#welcome-btn');
+    if (!welcome || !card || !button) return;
+
+    card.setAttribute('aria-describedby', 'welcome-copy');
+
+    function isOpen() {
+      return !welcome.hidden && welcome.classList.contains('in') && welcome.isConnected;
+    }
+
+    function focusableElements() {
+      var nodes = card.querySelectorAll(
+        'a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])'
+      );
+      return Array.prototype.filter.call(nodes, function (node) {
+        return node.getClientRects().length > 0;
+      });
+    }
+
+    function focusFetchFieldSoon() {
+      window.setTimeout(function () {
+        var field = document.getElementById('url-input');
+        if (field && !field.disabled) {
+          try { field.focus(); } catch (e) {}
+        }
+      }, 340);
+    }
+
+    welcome.addEventListener('click', function (event) {
+      if (event.target.closest && event.target.closest('#welcome-btn')) {
+        focusFetchFieldSoon();
+      } else if (!(event.target.closest && event.target.closest('.welcome-card'))) {
+        focusFetchFieldSoon();
+      }
+    }, true);
+
+    document.addEventListener('keydown', function (event) {
+      if (!isOpen()) return;
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        button.click();
+        focusFetchFieldSoon();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      var focusables = focusableElements();
+      if (!focusables.length) {
+        event.preventDefault();
+        try { button.focus(); } catch (e) {}
+        return;
+      }
+
+      var first = focusables[0];
+      var last = focusables[focusables.length - 1];
+      var active = document.activeElement;
+
+      if (event.shiftKey) {
+        if (active === first || !card.contains(active)) {
+          event.preventDefault();
+          try { last.focus(); } catch (e) {}
+        }
+      } else if (active === last || !card.contains(active)) {
+        event.preventDefault();
+        try { first.focus(); } catch (e) {}
+      }
+    }, true);
+
+    document.addEventListener('focusin', function (event) {
+      if (!isOpen() || card.contains(event.target)) return;
+      try { button.focus(); } catch (e) {}
+    }, true);
+  }
+
+  document.addEventListener('DOMContentLoaded', installWelcomeAccessibility);
 
   /* -----------------------------------------------------------------------
      Route helpers
