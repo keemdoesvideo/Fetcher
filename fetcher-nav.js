@@ -1,10 +1,8 @@
 /*
  * fetcher-nav.js
- * Persistent Fetcher shell: rail state, page-content routing/fades, welcome
- * accessibility and cross-frame preference synchronisation.
- *
- * Presentation lives in fetcher-shell.css. Keeping CSS out of this router avoids
- * the old pattern where navigation JS manufactured a second competing stylesheet.
+ * Persistent Fetcher shell: rail state, page-content routing/fades and welcome
+ * accessibility. Preference resolution lives in fetcher-prefs.js; presentation
+ * and motion timings live in fetcher-shell.css.
  */
 (function () {
   'use strict';
@@ -19,7 +17,7 @@
      This script is intentionally loaded before fetcher-theme.css on every page.
      Start the shell stylesheet request immediately, then move the same <link> to
      the end of <head> once parsing finishes so shell overrides have one clear,
-     deterministic place in the cascade without duplicating any CSS in JS.
+     deterministic place in the cascade without duplicating CSS in JavaScript.
   ----------------------------------------------------------------------- */
   var shellLink = document.getElementById('fetcher-shell-styles');
   if (!shellLink) {
@@ -34,6 +32,15 @@
     if (document.head && shellLink && shellLink.parentNode) {
       document.head.appendChild(shellLink);
     }
+  }
+
+  function cssDuration(name, fallback) {
+    var raw = '';
+    try { raw = getComputedStyle(root).getPropertyValue(name).trim(); } catch (e) {}
+    if (!raw) return fallback;
+    if (/ms$/i.test(raw)) return Math.max(0, parseFloat(raw) || fallback);
+    if (/s$/i.test(raw)) return Math.max(0, (parseFloat(raw) || 0) * 1000);
+    return Math.max(0, parseFloat(raw) || fallback);
   }
 
   /* -----------------------------------------------------------------------
@@ -60,10 +67,6 @@
 
   /* -----------------------------------------------------------------------
      Welcome dialog accessibility
-
-     The Fetch page owns the welcome copy and dismissal animation. The shared
-     shell owns modal keyboard behavior so it works identically when the Fetch
-     page is the top document or an embedded page inside the persistent shell.
   ----------------------------------------------------------------------- */
   function installWelcomeAccessibility() {
     var welcome = document.getElementById('welcome');
@@ -184,10 +187,6 @@
 
   /* -----------------------------------------------------------------------
      Embedded page routing
-
-     Page documents loaded inside the persistent content pane keep page-specific
-     JS isolated. Same-origin Fetcher links are handed back to the parent shell
-     instead of causing an iframe-local navigation.
   ----------------------------------------------------------------------- */
   if (embedded) {
     document.addEventListener('click', function (ev) {
@@ -216,6 +215,7 @@
   var contentHost = null;
   var currentLayer = null;
   var navToken = 0;
+  var navPopTimer = null;
 
   function railIsCollapsed() {
     return !!(rail && rail.classList.contains('collapsed'));
@@ -287,29 +287,19 @@
 
     if (!active) return;
 
-    root.removeAttribute('data-nav-pop');
-    void active.offsetWidth;
-    root.setAttribute('data-nav-pop', 'true');
-    window.setTimeout(function () {
-      root.removeAttribute('data-nav-pop');
-    }, 280);
-  }
-
-  function applyParentPrefsFromStorage(event) {
-    if (!window.FetcherPrefs || !event || !event.key) return;
-
-    if (event.key === 'fetcher.theme') window.FetcherPrefs.applyTheme();
-    else if (event.key === 'fetcher.motion') window.FetcherPrefs.applyMotion();
-    else if (event.key === 'fetcher.showShortcuts' || event.key === 'fetcher.showDownloads') {
-      window.FetcherPrefs.applyChrome();
+    if (navPopTimer) {
+      clearTimeout(navPopTimer);
+      navPopTimer = null;
     }
-  }
+    root.removeAttribute('data-nav-pop');
 
-  function transitionDuration() {
-    var mode = root.getAttribute('data-motion');
-    if (mode === 'reduced') return 100;
-    if (mode === 'reserved') return 145;
-    return 170;
+    requestAnimationFrame(function () {
+      root.setAttribute('data-nav-pop', 'true');
+      navPopTimer = window.setTimeout(function () {
+        root.removeAttribute('data-nav-pop');
+        navPopTimer = null;
+      }, cssDuration('--shell-nav-pop', 230) + 40);
+    });
   }
 
   function routeTo(destination, options) {
@@ -366,7 +356,7 @@
         if (old && old !== frame && old.parentNode === contentHost) old.remove();
         currentLayer = frame;
         contentHost.removeAttribute('aria-busy');
-      }, transitionDuration() + 35);
+      }, cssDuration('--shell-page-fade', 170) + 35);
     });
 
     if (options.push !== false) {
@@ -412,7 +402,5 @@
     window.addEventListener('popstate', function () {
       routeTo(new URL(window.location.href), { push: false, force: true });
     });
-
-    window.addEventListener('storage', applyParentPrefsFromStorage);
   });
 })();
