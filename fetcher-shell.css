@@ -2,7 +2,8 @@
  * fetcher-shell.css
  * Canonical styling for Fetcher's persistent shell, page-content transitions,
  * motion-mode retuning and custom paw cursor. The router owns state; this file
- * owns presentation. Loaded by fetcher-nav.js after the legacy theme sheet.
+ * owns presentation. fetcher-nav.js requests it early and places the same link
+ * after the legacy theme sheet so there is one deterministic override layer.
  */
 
 /* The persistent shell replaced the old cross-document View Transition system. */
