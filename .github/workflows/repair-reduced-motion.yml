@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - fix/paw-cursor-readability
-    paths:
-      - .github/workflows/repair-reduced-motion.yml
 
 permissions:
   contents: write
