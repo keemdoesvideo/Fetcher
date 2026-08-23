@@ -1,0 +1,58 @@
+/*
+ * fetcher-donate.css
+ * Donate-page presentation. The page stays deliberately simple; decorative
+ * pointer lift is reserved for Full motion on a real hover pointer.
+ */
+.main{
+  flex:1;height:100%;overflow-y:auto;
+  display:flex;align-items:center;justify-content:center;
+  padding:48px 24px;
+}
+.donate{width:100%;max-width:460px;text-align:center;}
+.donate-badge{
+  width:62px;height:62px;border-radius:50%;
+  background:var(--accent-tint);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 22px;
+  transition:background var(--dur-base) var(--ease),color var(--dur-base) var(--ease);
+}
+.donate-badge svg{width:29px;height:29px;}
+
+.donate-eyebrow{
+  display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:8px;
+}
+.donate h1{font-size:26px;font-weight:600;letter-spacing:-.02em;margin-bottom:14px;}
+.donate-lead{
+  font-size:14.5px;line-height:1.65;color:var(--ink-soft);
+  max-width:42ch;margin:0 auto 30px;
+}
+
+.kofi-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--accent);color:var(--on-accent);
+  border-radius:999px;padding:13px 24px;
+  font-family:inherit;font-size:14.5px;font-weight:600;
+  box-shadow:var(--shadow-sm);cursor:pointer;
+  transition:transform var(--dur-fast) var(--ease-bounce),box-shadow var(--dur-base) var(--ease),filter var(--dur-fast) var(--ease);
+}
+.kofi-btn:hover{filter:brightness(1.03);}
+.kofi-btn:active{transform:scale(.97);}
+.kofi-btn svg{width:19px;height:19px;flex:0 0 auto;}
+
+.donate-note{
+  font-size:12px;line-height:1.55;color:var(--ink-faint);
+  max-width:38ch;margin:18px auto 0;
+}
+
+@media (hover:hover) and (pointer:fine){
+  html[data-motion="full"] .kofi-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 10px 24px -10px rgba(0,0,0,.4);
+  }
+}
+html[data-motion="reserved"] .kofi-btn{
+  transition-duration:150ms;
+  transition-timing-function:var(--ease);
+}
+html[data-motion="reduced"] .kofi-btn{transform:none!important;}
