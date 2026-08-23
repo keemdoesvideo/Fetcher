@@ -323,39 +323,29 @@ html[data-shortcuts="off"] #kbd-bubble{display:none;}
 .recent-remove:active{transform:scale(.9);}
 
 /* First-visit welcome — a soft glass card over a gentle blur of the whole site,
-   shown once to the first N visitors. Dismissing eases the blur off to reveal
-   the app. */
+   shown once to the first N visitors. PERF: the blur radius is never animated
+   (animating backdrop-filter blur every frame is very expensive / janky) — the
+   static-blur scrim just cross-fades via opacity, and the card fades + rises. */
 .welcome{
   position:fixed;inset:0;z-index:500;
   display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.welcome[hidden]{display:none;}
+/* The page-blur layer — static blur, faded in/out by opacity only. */
+.welcome-scrim{
+  position:absolute;inset:0;
   background:color-mix(in srgb, var(--bg) 30%, transparent);
   -webkit-backdrop-filter:blur(15px) saturate(1.08);
   backdrop-filter:blur(15px) saturate(1.08);
-  opacity:1;
-  /* ENTER: the page blur + tint ease in from nothing (matches the ease-out on
-     dismiss). Opacity stays 1 so it doesn't dim the card, which fades in itself. */
-  animation:welcome-overlay-in 640ms var(--ease) backwards;
-  transition:opacity 520ms var(--ease),
-             backdrop-filter 640ms var(--ease),
-             -webkit-backdrop-filter 640ms var(--ease);
+  opacity:0;
+  transition:opacity 460ms var(--ease);
 }
-@keyframes welcome-overlay-in{
-  from{
-    background:transparent;
-    -webkit-backdrop-filter:blur(0px) saturate(1);
-    backdrop-filter:blur(0px) saturate(1);
-  }
-}
-.welcome[hidden]{display:none;}
-.welcome.leaving{
-  opacity:0;pointer-events:none;
-  -webkit-backdrop-filter:blur(0px) saturate(1);
-  backdrop-filter:blur(0px) saturate(1);
-}
+.welcome.in .welcome-scrim{opacity:1;}
 .welcome-card{
+  position:relative;z-index:1;
   width:100%;max-width:400px;text-align:center;
   /* Apple-style glass: translucent enough to see the blurred site through it,
-     with a heavy backdrop blur + saturation that diffuses that backdrop so the
+     with a static backdrop blur + saturation that diffuses that backdrop so the
      text stays readable. A bright inset top edge gives it the specular glass rim. */
   background:color-mix(in srgb, var(--surface) 45%, transparent);
   -webkit-backdrop-filter:blur(28px) saturate(1.8);
@@ -366,12 +356,11 @@ html[data-shortcuts="off"] #kbd-bubble{display:none;}
              inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent),
              inset 0 0 0 1px color-mix(in srgb, #fff 5%, transparent);
   padding:38px 32px 30px;
-  /* ENTER: a smooth rise + fade (slight lead after the blur begins), no bounce. */
-  animation:welcome-pop 660ms var(--ease) 90ms backwards;
+  /* ENTER/EXIT: fade + a small rise, no blur animation. */
+  opacity:0;transform:translateY(14px);
+  transition:opacity 440ms var(--ease), transform 500ms var(--ease);
 }
-.welcome.leaving .welcome-card{animation:welcome-out 420ms var(--ease) forwards;}
-@keyframes welcome-pop{from{transform:scale(.94) translateY(16px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
-@keyframes welcome-out{to{transform:scale(.96) translateY(8px);opacity:0;}}
+.welcome.in .welcome-card{opacity:1;transform:none;}
 .welcome-eyebrow{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;}
 .welcome-num{font-size:64px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--accent-ink);margin-bottom:8px;}
 .welcome-title{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-bottom:10px;}
@@ -667,6 +656,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
 <!-- First-visit welcome — a soft glass card over a gentle blur of the whole site,
      shown once to the first N visitors (number assigned by /api/visits). -->
 <div class="welcome" id="welcome" hidden>
+  <div class="welcome-scrim" aria-hidden="true"></div>
   <div class="welcome-card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
     <span class="welcome-eyebrow">welcome to fetcher</span>
     <div class="welcome-num" id="welcome-num">#1</div>
@@ -1433,8 +1423,9 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
     var dismissed = false;
     function dismiss(){
       if (dismissed) return; dismissed = true;
-      welcome.classList.add('leaving');
-      setTimeout(function(){ if (welcome.parentNode) welcome.remove(); }, 660);
+      welcome.classList.remove('in');        // reverse the ease-in transitions
+      welcome.style.pointerEvents = 'none';
+      setTimeout(function(){ if (welcome.parentNode) welcome.remove(); }, 540);
     }
     function showWelcome(num, cap){
       document.getElementById('welcome-num').textContent = '#' + num;
@@ -1443,9 +1434,11 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
       document.getElementById('welcome-copy').textContent =
         "thanks so much for using my tool. you're one of the first " + cap + " people to ever open fetcher.";
       welcome.hidden = false;
+      void welcome.offsetWidth;              // flush the hidden->shown layout
+      welcome.classList.add('in');           // then transition the scrim + card in
       var btn = document.getElementById('welcome-btn');
       btn.addEventListener('click', dismiss);
-      welcome.addEventListener('click', function(e){ if (e.target === welcome) dismiss(); });
+      welcome.addEventListener('click', function(e){ if (!e.target.closest('.welcome-card')) dismiss(); });
       try { btn.focus(); } catch (e) {}
     }
   })();
