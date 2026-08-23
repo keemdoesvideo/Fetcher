@@ -50,9 +50,11 @@ ALLOWED_ASSETS: dict[str, str] = {
     "updates.html": "text/html; charset=utf-8",
     "fetcher-theme.css": "text/css; charset=utf-8",
     "fetcher-shell.css": "text/css; charset=utf-8",
+    "fetcher-main.css": "text/css; charset=utf-8",
     "fetcher-trimmer.css": "text/css; charset=utf-8",
     "fetcher-prefs.js": "application/javascript; charset=utf-8",
     "fetcher-nav.js": "application/javascript; charset=utf-8",
+    "fetcher-main.js": "application/javascript; charset=utf-8",
     "fetcher-trimmer.js": "application/javascript; charset=utf-8",
     "paw-cursor-light.svg": "image/svg+xml",
     "paw-cursor-dark.svg": "image/svg+xml",
@@ -180,7 +182,7 @@ async def detect(url: str = ""):
         "supported": True,
         "provider": provider.name,
         "modes": sorted(provider.MODES),
-        "longForm": provider.long_form(url),   # UI shows the section-trim fields
+        "longForm": provider.long_form(url),
     }
 
 
@@ -222,9 +224,6 @@ def preview_segment(pid: str, name: str):
 
 @app.post("/api/prepare")
 async def prepare(req: PrepareRequest):
-    # Reject obviously-bad input synchronously (fast, no worker thread) so the
-    # client hears about a bad URL — or a mode the source can't deliver
-    # (e.g. video from an audio-only site) — immediately.
     try:
         provider = downloader.resolve_provider(req.url)
         if not provider.supports(req.mode):
@@ -239,9 +238,6 @@ async def prepare(req: PrepareRequest):
     job = store.create()
     job.mode = req.mode
     job.section = section
-    # A full long-form download (a whole VOD, no trim) gets the longer timeout;
-    # everything else — clips, tracks, normal videos, trimmed sections — the
-    # normal one.
     job.timeout = (
         config.LONG_TIMEOUT_SECONDS
         if (section is None and provider.long_form(req.url))
@@ -289,13 +285,11 @@ async def download(job_id: str):
     if job is None or not job.ready:
         return _error_response(errors.FetcherError(errors.JOB_NOT_FOUND))
 
-    # Delete the whole job directory once the response has finished streaming —
-    # media is never kept permanently. Abandoned jobs are caught by the sweeper.
     cleanup = BackgroundTask(store.remove, job.id)
     return FileResponse(
         path=str(job.filepath),
         media_type=job.media_type or "application/octet-stream",
-        filename=job.filename,          # Starlette adds RFC 5987 encoding for us
+        filename=job.filename,
         background=cleanup,
     )
 
