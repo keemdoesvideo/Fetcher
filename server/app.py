@@ -39,6 +39,8 @@ log = logging.getLogger("fetcher.app")
 # The only files reachable over HTTP, with their content types.
 ALLOWED_ASSETS: dict[str, str] = {
     "project-fetcher.html": "text/html; charset=utf-8",
+    "image.html": "text/html; charset=utf-8",
+    "chat.html": "text/html; charset=utf-8",
     "settings.html": "text/html; charset=utf-8",
     "donate.html": "text/html; charset=utf-8",
     "about.html": "text/html; charset=utf-8",
@@ -267,9 +269,13 @@ async def download(job_id: str):
 
 
 # --- Frontend (allowlist only) --------------------------------------------
-# Dev tool: never let the browser cache the frontend, so edits (and removals,
-# like the mascot) always show up on a plain reload — no stale-cache surprises.
-_NO_CACHE = {"Cache-Control": "no-store, max-age=0"}
+# Dev tool: keep the frontend always-fresh, but *cacheable*. "no-cache" makes the
+# browser revalidate every asset before use (ETag/Last-Modified -> 304 when
+# unchanged), so edits still show up on a plain reload — no stale-cache surprises
+# — yet an unchanged theme.css (with its embedded ~60KB font) isn't re-downloaded
+# on every navigation. Full re-downloads on each hop ("no-store") slowed the new
+# page's first paint enough to disrupt the cross-document view transition.
+_NO_CACHE = {"Cache-Control": "no-cache"}
 
 
 @app.get("/")

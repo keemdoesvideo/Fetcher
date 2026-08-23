@@ -65,6 +65,10 @@
   border:1.5px solid var(--ink);border-radius:var(--r-lg);
   padding:10px 15px;background:var(--surface);
   box-shadow:var(--shadow-sm);
+  /* clip children at the rounded edge so the fetch pill can slide in from just
+     off the right edge without poking past the border. The row's own focus glow
+     is an outset box-shadow on this element, so overflow:hidden doesn't touch it. */
+  overflow:hidden;
   transition:box-shadow var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
 }
 .input-row:focus-within{
@@ -86,15 +90,44 @@
 
 /* Fetch action — collapses to zero width when the input is empty (grid 0fr/1fr
    trick, so it doesn't need a hardcoded pixel width to animate against), and
-   swaps its icon+label for a spinner while a fetch is in flight. */
+   swaps its icon+label for a spinner while a fetch is in flight. The reserved
+   width slides open on the smooth ease (a bouncing *width* wobbles and reads as
+   glitchy); the whole pill then slides in from off the right edge (translateX)
+   with a fade and soft bounce — the input-row's overflow:hidden clips it at the
+   rounded edge, so it reads as one shape sliding in rather than a width wipe. */
 .fetch-wrap{
   flex:0 0 auto;
   display:grid;grid-template-columns:0fr;
-  transition:grid-template-columns var(--dur-base) var(--ease-bounce);
-  overflow:hidden;
+  overflow:visible;   /* the input-row does the clipping, so the pill can travel */
+  /* CLOSE: reclaim the space gracefully as the pill slides out. */
+  transition:grid-template-columns var(--dur-base) var(--ease);
 }
-.fetch-wrap.show{grid-template-columns:1fr;}
-.fetch-wrap-inner{overflow:hidden;min-width:0;}
+/* OPEN: snap the space open quickly so it's settled before the pill's bounce
+   peaks — otherwise the two motions cancel and the overshoot disappears. */
+.fetch-wrap.show{grid-template-columns:1fr;transition:grid-template-columns var(--dur-fast) var(--ease);}
+.fetch-wrap-inner{
+  overflow:visible;min-width:0;
+  transform:translateX(110px);opacity:0;
+  /* EXIT (class removed): slide back out to the right and fade, both graceful. */
+  transition:transform var(--dur-base) var(--ease), opacity var(--dur-base) var(--ease);
+}
+.fetch-wrap.show .fetch-wrap-inner{
+  transform:translateX(0);opacity:1;
+  /* ENTER: the keyframe makes the ~5% overshoot explicit and visible (a plain
+     cubic-bezier overshoot was too subtle here); opacity fades in quickly. */
+  /* 'backwards' (not 'both') holds only the START frame, so the resting transform
+     comes from the declaration above — letting the EXIT transition out cleanly
+     instead of snapping off a held end-frame. */
+  animation:fetch-slide-in var(--dur-base) var(--ease) backwards;
+  transition:opacity var(--dur-fast) var(--ease);
+}
+/* slide in from off the right edge, overshoot ~5% of the travel past the landing,
+   then settle — the same soft-bounce feel as the rest of the UI. */
+@keyframes fetch-slide-in{
+  0%{transform:translateX(110px);}
+  62%{transform:translateX(-6px);}
+  100%{transform:translateX(0);}
+}
 .fetch-btn{
   display:flex;align-items:center;gap:6px;white-space:nowrap;
   height:30px;padding:0 14px;
@@ -314,6 +347,14 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
         <span>save</span>
       </a>
+      <a class="rail-btn" href="image.html" title="Image tools">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m21 15-4.5-4.5L6 21"/></svg>
+        <span>image</span>
+      </a>
+      <a class="rail-btn" href="chat.html" title="Chat capture">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span>chat</span>
+      </a>
     </div>
 
     <div class="rail-spacer rail-icons">
@@ -326,7 +367,7 @@ html[data-motion="reduced"] .fetch-progress.indeterminate .fetch-progress-bar{
         <span>donate</span>
       </a>
       <a class="rail-btn" href="updates.html" title="Updates">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 5 19l-2-2 4.94-4.94"/><path d="m14 6 4 4"/><path d="M12 3 9.5 5.5 12 8l2.5-2.5L12 3Z"/><path d="m18.5 9.5 2.5 2.5-2.5 2.5L16 12l2.5-2.5Z"/></svg>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>
         <span>updates</span>
       </a>
       <a class="rail-btn" href="about.html" title="About Project Fetcher">

@@ -14,9 +14,11 @@
 (function () {
   'use strict';
 
-  // Tuned so save<->bottom-icons lands near the 500ms that already feels good,
-  // while adjacent icons come in noticeably snappier (~290ms).
-  var MIN = 260, MAX = 520, BASE = 250, PER_PX = 0.55;
+  // Tuned to keep adjacent hops feeling the same (~255ms) while capping the long
+  // save<->bottom-icon hops lower (~380ms, was ~520ms). The shorter ceiling
+  // narrows the window in which a rapid second click can supersede — and skip —
+  // an in-flight cross-document transition (the "blink" under fast back-and-forth).
+  var MIN = 240, MAX = 380, BASE = 230, PER_PX = 0.42;
 
   // 1) Apply the duration the previous page's click computed — before first paint.
   try {
