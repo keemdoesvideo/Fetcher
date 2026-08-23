@@ -74,8 +74,6 @@
     document.documentElement.setAttribute('data-motion', resolveMotion());
   }
 
-  // Floating-chrome visibility (shortcuts + downloads bubbles). Set as html
-  // attributes pre-paint so CSS can hide them with no flash. 'off' hides.
   function applyChrome() {
     document.documentElement.setAttribute(
       'data-shortcuts', get('fetcher.showShortcuts') === 'off' ? 'off' : 'on');
@@ -83,15 +81,10 @@
       'data-downloads', get('fetcher.showDownloads') === 'off' ? 'off' : 'on');
   }
 
-  // Apply immediately — this script must be loaded synchronously and early
-  // in <head>, before the stylesheet, so these attributes exist before the
-  // browser paints anything.
   applyTheme();
   applyMotion();
   applyChrome();
 
-  // Live-respond to system changes, but only when the user hasn't pinned an
-  // explicit override (auto/system).
   if (global.matchMedia) {
     var mqDark = global.matchMedia('(prefers-color-scheme: dark)');
     var onDarkChange = function () {
@@ -113,6 +106,17 @@
     if (e.detail.key === 'fetcher.theme') applyTheme();
     if (e.detail.key === 'fetcher.motion') applyMotion();
     if (e.detail.key === 'fetcher.showShortcuts' || e.detail.key === 'fetcher.showDownloads') applyChrome();
+  });
+
+  /* A Settings page may now live inside the persistent content frame while the
+     primary rail stays in the parent document. localStorage's storage event is
+     the clean cross-context bridge: whichever document did not make the change
+     updates its own theme/motion/chrome immediately. */
+  global.addEventListener('storage', function (e) {
+    if (!e || !e.key) return;
+    if (e.key === 'fetcher.theme') applyTheme();
+    if (e.key === 'fetcher.motion') applyMotion();
+    if (e.key === 'fetcher.showShortcuts' || e.key === 'fetcher.showDownloads') applyChrome();
   });
 
   global.FetcherPrefs = {
