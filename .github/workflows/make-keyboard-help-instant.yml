@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - fix/paw-cursor-readability
-    paths:
-      - .github/workflows/make-keyboard-help-instant.yml
 
 permissions:
   contents: write
@@ -26,16 +24,15 @@ jobs:
 
           js = Path('fetcher-main.js')
           text = js.read_text(encoding='utf-8')
-          old = '''  function setHelp(open) {
+
+          old = """  function setHelp(open) {
             kbdBubble.classList.toggle('open', open);
             kbdToggle.setAttribute('aria-expanded', String(open));
           }
           function helpOpen() { return kbdBubble.classList.contains('open'); }
           function toggleHelp(show) { setHelp(show === undefined ? !helpOpen() : show); }
-
-          kbdToggle.addEventListener('click', function (event) { event.stopPropagation(); toggleHelp(); });
-          document.addEventListener('click', function (event) { if (helpOpen() && !kbdBubble.contains(event.target)) setHelp(false); });'''
-          new = '''  function setHelp(open, instant) {
+          """
+          new = """  function setHelp(open, instant) {
             if (instant) kbdBubble.classList.add('instant');
             kbdBubble.classList.toggle('open', open);
             kbdToggle.setAttribute('aria-expanded', String(open));
@@ -47,20 +44,39 @@ jobs:
           }
           function helpOpen() { return kbdBubble.classList.contains('open'); }
           function toggleHelp(show, instant) { setHelp(show === undefined ? !helpOpen() : show, instant); }
-
-          kbdToggle.addEventListener('click', function (event) { event.stopPropagation(); toggleHelp(); });
-          document.addEventListener('click', function (event) { if (helpOpen() && !kbdBubble.contains(event.target)) setHelp(false); });'''
+          """
           if old not in text:
-              raise SystemExit('fetcher-main.js: help-controller marker missing')
+              raise SystemExit('help function block not found')
           text = text.replace(old, new, 1)
-          text = text.replace('      toggleHelp();\n      return;\n    }\n\n    if (event.key === \'Escape\') {', '      toggleHelp(undefined, true);\n      return;\n    }\n\n    if (event.key === \'Escape\') {', 1)
-          text = text.replace("      if (helpOpen()) { setHelp(false); return; }", "      if (helpOpen()) { setHelp(false, true); return; }", 1)
+
+          old_key = """    if (event.key === '?' && !typing) {
+            event.preventDefault();
+            toggleHelp();
+            return;
+          }
+          """
+          new_key = """    if (event.key === '?' && !typing) {
+            event.preventDefault();
+            toggleHelp(undefined, true);
+            return;
+          }
+          """
+          if old_key not in text:
+              raise SystemExit('question-mark shortcut block not found')
+          text = text.replace(old_key, new_key, 1)
+
+          old_escape = "      if (helpOpen()) { setHelp(false); return; }"
+          if old_escape not in text:
+              raise SystemExit('Escape help-close line not found')
+          text = text.replace(old_escape, "      if (helpOpen()) { setHelp(false, true); return; }", 1)
           js.write_text(text, encoding='utf-8')
 
           css = Path('fetcher-main.css')
           style = css.read_text(encoding='utf-8')
           marker = '/* Keyboard invocation deliberately bypasses panel motion. */'
-          block = '''
+          if marker not in style:
+              style = style.rstrip() + '''
+
           /* Keyboard invocation deliberately bypasses panel motion. Pointer clicks
              still use the selected Full/Reserved motion language. */
           .kbd-bubble.instant,
@@ -70,8 +86,7 @@ jobs:
             animation:none!important;
           }
           '''
-          if marker not in style:
-              css.write_text(style.rstrip() + '\n\n' + block.strip() + '\n', encoding='utf-8')
+              css.write_text(style, encoding='utf-8')
 
       - name: Validate
         shell: bash
