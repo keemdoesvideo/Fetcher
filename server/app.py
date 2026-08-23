@@ -52,6 +52,7 @@ ALLOWED_ASSETS: dict[str, str] = {
     "fetcher-shell.css": "text/css; charset=utf-8",
     "fetcher-main.css": "text/css; charset=utf-8",
     "fetcher-settings.css": "text/css; charset=utf-8",
+    "fetcher-soon.css": "text/css; charset=utf-8",
     "fetcher-trimmer.css": "text/css; charset=utf-8",
     "fetcher-prefs.js": "application/javascript; charset=utf-8",
     "fetcher-nav.js": "application/javascript; charset=utf-8",
