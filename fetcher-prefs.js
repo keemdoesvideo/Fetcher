@@ -61,6 +61,7 @@
   function resolveMotion() {
     var pref = get('fetcher.motion');
     if (pref === 'reduced') return 'reduced';
+    if (pref === 'reserved') return 'reserved';
     if (pref === 'full') return 'full';
     return systemPrefersReducedMotion() ? 'reduced' : 'full';
   }
