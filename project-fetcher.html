@@ -2,6 +2,49 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+(function () {
+  'use strict';
+  var SECRET_NAMES = {
+    ailincia:true, vitaviita:true, stonakah:true, suki:true,
+    kaywordley:true, wahibah:true, jackigoe:true, keem:true
+  };
+  var cue = null;
+
+  function secretValue() {
+    var input = document.getElementById('url-input');
+    if (!input) return '';
+    return String(input.value || '').trim().toLowerCase();
+  }
+
+  function playFoundYouCue() {
+    try {
+      if (!cue) {
+        cue = new Audio('found-you.mp3');
+        cue.preload = 'auto';
+        cue.volume = 0.72;
+      }
+      cue.pause();
+      cue.currentTime = 0;
+      var started = cue.play();
+      if (started && started.catch) started.catch(function () {});
+    } catch (e) {}
+  }
+
+  window.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter') return;
+    var input = document.getElementById('url-input');
+    if (!input || document.activeElement !== input) return;
+    if (SECRET_NAMES[secretValue()]) playFoundYouCue();
+  }, true);
+
+  window.addEventListener('click', function (event) {
+    var target = event.target && event.target.closest ? event.target.closest('#fetch-btn') : null;
+    if (!target) return;
+    if (SECRET_NAMES[secretValue()]) playFoundYouCue();
+  }, true);
+})();
+</script>
 <script src="fetcher-prefs.js"></script>
 <script src="fetcher-nav.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -39,7 +82,7 @@
 
     <div class="rail-spacer rail-icons">
       <a class="rail-btn" href="settings.html" title="Settings">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>settings</span>
       </a>
       <a class="rail-btn" href="donate.html" title="Donate">
