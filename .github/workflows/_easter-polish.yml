@@ -1,0 +1,168 @@
+name: One-shot Easter transition polish
+
+on:
+  push:
+    branches: [fix/paw-cursor-readability]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: easter-polish-once
+  cancel-in-progress: false
+
+jobs:
+  polish:
+    if: ${{ !contains(github.event.head_commit.message, '[easter-polish-done]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/paw-cursor-readability
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Patch Easter transition
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('fetcher-nav.js')
+          s = p.read_text()
+
+          old = """    '.fetcher-easter-wash{position:fixed;left:50%;top:50%;width:230vmax;height:170vmax;z-index:10000;pointer-events:none;opacity:1;transform:translate(-50%,-50%) rotate(45deg) translateY(-215vmax);transform-origin:center;transition:opacity 560ms cubic-bezier(.16,1,.3,1);will-change:transform,opacity;}',
+    '.fetcher-easter-wash.is-color{background:var(--easter-wash-bg,#fff);}',
+    '.fetcher-easter-lobe{position:absolute;bottom:-22vmax;width:94vmax;height:44vmax;border-radius:50%;background:var(--easter-wash-bg,#fff);}',
+    '.fetcher-easter-lobe:nth-child(1){left:-3vmax;bottom:-18vmax;width:92vmax;height:39vmax;}',
+    '.fetcher-easter-lobe:nth-child(2){left:67vmax;bottom:-24vmax;width:100vmax;height:48vmax;}',
+    '.fetcher-easter-lobe:nth-child(3){left:143vmax;bottom:-17vmax;width:92vmax;height:38vmax;}',
+    '.fetcher-easter-wash.is-drain,.fetcher-easter-wash.is-drain .fetcher-easter-lobe{background:rgba(128,128,128,.012);-webkit-backdrop-filter:grayscale(1) saturate(0);backdrop-filter:grayscale(1) saturate(0);}',
+    '.fetcher-easter-wash.in{animation:fetcher-easter-spill-full 1900ms cubic-bezier(.18,.82,.22,1) both;}',
+    '@keyframes fetcher-easter-spill-full{0%{transform:translate(-50%,-50%) rotate(45deg) translateY(-215vmax);}70%{transform:translate(-50%,-50%) rotate(45deg) translateY(-24vmax);}87%{transform:translate(-50%,-50%) rotate(45deg) translateY(2.5vmax);}95%{transform:translate(-50%,-50%) rotate(45deg) translateY(-.7vmax);}100%{transform:translate(-50%,-50%) rotate(45deg) translateY(0);}}',
+    '.fetcher-easter-wash.out{opacity:0;}',
+    'html[data-motion=\"reserved\"] .fetcher-easter-wash{transition:opacity 360ms var(--ease);}',
+    'html[data-motion=\"reserved\"] .fetcher-easter-wash.in{animation:fetcher-easter-spill-reserved 1240ms var(--ease) both;}',
+    '@keyframes fetcher-easter-spill-reserved{from{transform:translate(-50%,-50%) rotate(45deg) translateY(-215vmax);}to{transform:translate(-50%,-50%) rotate(45deg) translateY(0);}}',
+    'html[data-motion=\"reduced\"] .fetcher-easter-wash{left:0;top:0;width:100%;height:100%;transform:none!important;opacity:0;transition:opacity 180ms linear;animation:none!important;}',
+    'html[data-motion=\"reduced\"] .fetcher-easter-lobe{display:none;}',
+    'html[data-motion=\"reduced\"] .fetcher-easter-wash.in{opacity:1;}',
+    'html[data-motion=\"reduced\"] .fetcher-easter-wash.out{opacity:0;}'"""
+
+          new = """    '.fetcher-easter-wash{position:fixed;left:50%;top:50%;width:230vmax;height:170vmax;z-index:10000;pointer-events:none;opacity:1;transform:translate(-50%,-50%) rotate(45deg) translateY(-215vmax);transform-origin:center;transition:opacity 980ms cubic-bezier(.16,1,.3,1);will-change:transform,opacity;}',
+    '.fetcher-easter-wash.is-color{background:var(--easter-wash-bg,#fff);}',
+    '.fetcher-easter-lobe{position:absolute;bottom:-22vmax;width:94vmax;height:44vmax;border-radius:50%;background:var(--easter-wash-bg,#fff);}',
+    '.fetcher-easter-lobe:nth-child(1){left:-3vmax;bottom:-18vmax;width:92vmax;height:39vmax;}',
+    '.fetcher-easter-lobe:nth-child(2){left:67vmax;bottom:-24vmax;width:100vmax;height:48vmax;}',
+    '.fetcher-easter-lobe:nth-child(3){left:143vmax;bottom:-17vmax;width:92vmax;height:38vmax;}',
+    '.fetcher-easter-wash.in{animation:fetcher-easter-spill-full 1900ms cubic-bezier(.18,.82,.22,1) both;}',
+    '@keyframes fetcher-easter-spill-full{0%{transform:translate(-50%,-50%) rotate(45deg) translateY(-215vmax);}70%{transform:translate(-50%,-50%) rotate(45deg) translateY(-24vmax);}87%{transform:translate(-50%,-50%) rotate(45deg) translateY(2.5vmax);}95%{transform:translate(-50%,-50%) rotate(45deg) translateY(-.7vmax);}100%{transform:translate(-50%,-50%) rotate(45deg) translateY(0);}}',
+    '.fetcher-easter-wash.out{opacity:0;}',
+    '.fetcher-easter-wash.is-drain{left:0;top:0;width:100%;height:100%;transform:none;opacity:1;background:rgba(128,128,128,.01);-webkit-backdrop-filter:grayscale(1) saturate(0);backdrop-filter:grayscale(1) saturate(0);-webkit-mask-image:linear-gradient(135deg,#000 0 43%,rgba(0,0,0,.96) 47%,rgba(0,0,0,.55) 50%,transparent 55%);mask-image:linear-gradient(135deg,#000 0 43%,rgba(0,0,0,.96) 47%,rgba(0,0,0,.55) 50%,transparent 55%);-webkit-mask-size:260% 260%;mask-size:260% 260%;-webkit-mask-position:100% 0%;mask-position:100% 0%;transition:opacity 820ms cubic-bezier(.16,1,.3,1);will-change:-webkit-mask-position,mask-position,opacity;contain:paint;}',
+    '.fetcher-easter-wash.is-drain .fetcher-easter-lobe{display:none;}',
+    '.fetcher-easter-wash.is-drain.in{animation:fetcher-easter-drain-full 1900ms cubic-bezier(.18,.82,.22,1) both;}',
+    '@keyframes fetcher-easter-drain-full{from{-webkit-mask-position:100% 0%;mask-position:100% 0%;}to{-webkit-mask-position:0% 100%;mask-position:0% 100%;}}',
+    '.fetcher-easter-sparkles{position:fixed;inset:0;z-index:10001;pointer-events:none;overflow:hidden;}',
+    '.fetcher-easter-spark{position:absolute;width:var(--spark-size,7px);height:var(--spark-size,7px);opacity:0;animation:fetcher-easter-sparkle 1380ms cubic-bezier(.16,1,.3,1) var(--spark-delay,0ms) both;}',
+    '.fetcher-easter-spark::before,.fetcher-easter-spark::after{content:\"\";position:absolute;left:50%;top:50%;background:rgba(255,255,255,.92);border-radius:999px;box-shadow:0 0 12px rgba(255,255,255,.38);transform:translate(-50%,-50%);}',
+    '.fetcher-easter-spark::before{width:2px;height:100%;}',
+    '.fetcher-easter-spark::after{width:100%;height:2px;}',
+    '@keyframes fetcher-easter-sparkle{0%{opacity:0;transform:scale(.2) rotate(0deg) translateY(4px);}18%{opacity:.95;}52%{opacity:.78;transform:scale(1.15) rotate(38deg) translateY(-2px);}100%{opacity:0;transform:scale(.55) rotate(82deg) translateY(-10px);}}',
+    'html[data-motion=\"reserved\"] .fetcher-easter-wash{transition:opacity 600ms var(--ease);}',
+    'html[data-motion=\"reserved\"] .fetcher-easter-wash.in{animation:fetcher-easter-spill-reserved 1240ms var(--ease) both;}',
+    'html[data-motion=\"reserved\"] .fetcher-easter-wash.is-drain{transition:opacity 540ms var(--ease);}',
+    'html[data-motion=\"reserved\"] .fetcher-easter-wash.is-drain.in{animation:fetcher-easter-drain-reserved 1240ms var(--ease) both;}',
+    '@keyframes fetcher-easter-spill-reserved{from{transform:translate(-50%,-50%) rotate(45deg) translateY(-215vmax);}to{transform:translate(-50%,-50%) rotate(45deg) translateY(0);}}',
+    '@keyframes fetcher-easter-drain-reserved{from{-webkit-mask-position:100% 0%;mask-position:100% 0%;}to{-webkit-mask-position:0% 100%;mask-position:0% 100%;}}',
+    'html[data-motion=\"reserved\"] .fetcher-easter-spark{animation-duration:900ms;}',
+    'html[data-motion=\"reduced\"] .fetcher-easter-wash{left:0;top:0;width:100%;height:100%;transform:none!important;opacity:0;transition:opacity 220ms linear;animation:none!important;-webkit-mask-image:none!important;mask-image:none!important;}',
+    'html[data-motion=\"reduced\"] .fetcher-easter-lobe,html[data-motion=\"reduced\"] .fetcher-easter-sparkles{display:none;}',
+    'html[data-motion=\"reduced\"] .fetcher-easter-wash.in{opacity:1;}',
+    'html[data-motion=\"reduced\"] .fetcher-easter-wash.out{opacity:0;}'"""
+
+          if 'fetcher-easter-sparkles' not in s:
+              if old not in s:
+                  raise SystemExit('Expected Easter CSS block not found')
+              s = s.replace(old, new, 1)
+
+          old_timing = """    if (motion === 'reduced') return { hold: 300, wash: 180, settle: 180 };
+    if (motion === 'reserved') return { hold: 320, wash: 1240, settle: 360 };
+    return { hold: 620, wash: 1900, settle: 560 };"""
+          new_timing = """    if (motion === 'reduced') return { hold: 300, wash: 220, settle: 240 };
+    if (motion === 'reserved') return { hold: 320, wash: 1240, settle: 620 };
+    return { hold: 620, wash: 1900, settle: 1000 };"""
+          if old_timing in s:
+              s = s.replace(old_timing, new_timing, 1)
+
+          marker = """  function runEasterTransition(name) {"""
+          helper = """  function createEasterSparkles() {
+    var motion = root.getAttribute('data-motion') || 'full';
+    if (motion === 'reduced' || !document.body) return null;
+
+    var layer = document.createElement('div');
+    layer.className = 'fetcher-easter-sparkles';
+    layer.setAttribute('aria-hidden', 'true');
+    var points = motion === 'reserved'
+      ? [[18,24,6,80],[76,18,7,160],[64,64,5,260],[31,71,6,340],[86,52,5,430],[48,36,5,500]]
+      : [[12,20,6,60],[26,37,8,150],[44,16,5,230],[61,31,7,310],[79,17,6,390],[89,42,8,480],[71,58,5,560],[52,69,7,650],[32,62,5,730],[17,78,7,820],[82,77,6,900],[43,48,5,1010]];
+
+    points.forEach(function (point) {
+      var spark = document.createElement('span');
+      spark.className = 'fetcher-easter-spark';
+      spark.style.left = point[0] + '%';
+      spark.style.top = point[1] + '%';
+      spark.style.setProperty('--spark-size', point[2] + 'px');
+      spark.style.setProperty('--spark-delay', point[3] + 'ms');
+      layer.appendChild(spark);
+    });
+    document.body.appendChild(layer);
+    window.setTimeout(function () {
+      if (layer.parentNode) layer.remove();
+    }, motion === 'reserved' ? 1500 : 2450);
+    return layer;
+  }
+
+  function runEasterTransition(name) {"""
+          if 'function createEasterSparkles()' not in s:
+              if marker not in s:
+                  raise SystemExit('Transition marker not found')
+              s = s.replace(marker, helper, 1)
+
+          old_reveal = """        /* Keep the paint fully opaque while the completed palette paints behind it.
+           Two frames later, dissolve the paint so the new page emerges through it. */
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            overlay.classList.add('out');
+            window.setTimeout(function () {
+              if (overlay.parentNode) overlay.remove();
+              resolve();
+            }, timings.settle + 60);
+          });
+        });"""
+          new_reveal = """        /* Keep the travelling layer fully present while the finished page paints
+           underneath. Unlocks get a restrained sparkle field; resets stay quiet. */
+        if (!reset) createEasterSparkles();
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            overlay.classList.add('out');
+            window.setTimeout(function () {
+              if (overlay.parentNode) overlay.remove();
+              resolve();
+            }, timings.settle + 60);
+          });
+        });"""
+          if old_reveal in s:
+              s = s.replace(old_reveal, new_reveal, 1)
+
+          p.write_text(s)
+          PY
+          node --check fetcher-nav.js
+      - name: Commit and self-delete
+        run: |
+          rm -f .github/workflows/_easter-polish.yml .easter-polish-trigger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Polish Easter unlock and reset motion [easter-polish-done]"
+          git push origin HEAD:fix/paw-cursor-readability
