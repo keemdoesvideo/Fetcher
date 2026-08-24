@@ -49,6 +49,7 @@ ALLOWED_ASSETS: dict[str, str] = {
     "fetcher-settings.js": "application/javascript; charset=utf-8",
     "fetcher-trimmer.js": "application/javascript; charset=utf-8",
     "fetcher-launch.js": "application/javascript; charset=utf-8",
+    "fetcher-ailincia.js": "application/javascript; charset=utf-8",
     "fetcher-favicon.svg": "image/svg+xml",
     "apple-touch-icon.png": "image/png",
     "fetcher-social-card.png": "image/png",
@@ -375,6 +376,7 @@ _LAUNCH_HEAD = """
 <meta name="twitter:image" content="https://fetcher.hahkeemi.com/fetcher-social-card.png">
 <link rel="stylesheet" href="/fetcher-launch.css">
 <script defer src="/fetcher-launch.js"></script>
+<script defer src="/fetcher-ailincia.js"></script>
 """.strip()
 
 
