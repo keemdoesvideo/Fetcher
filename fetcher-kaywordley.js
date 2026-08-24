@@ -1,4 +1,4 @@
-/* KayWordley-only palette + ambience: orange-led sunset with telephone wire, perched birds, and occasional flying birds. */
+/* KayWordley-only palette + ambience: orange-led sunset with distant evening aircraft and fading contrails. */
 (function () {
   'use strict';
 
@@ -10,6 +10,7 @@
   var renderTimer = null;
 
   function rand(min, max) { return min + Math.random() * (max - min); }
+  function pick(items) { return items[Math.floor(Math.random() * items.length)]; }
 
   function active() {
     return root.getAttribute('data-easter-palette') === 'kaywordley';
@@ -37,20 +38,20 @@
 
   function sharedState() {
     try {
-      if (!topWindow.FetcherKayWordleySunsetSceneShared) {
-        topWindow.FetcherKayWordleySunsetSceneShared = {
+      if (!topWindow.FetcherKayWordleyAirTrafficShared) {
+        topWindow.FetcherKayWordleyAirTrafficShared = {
           flights: [],
           nextFlightId: 1,
           flightTimer: null,
           running: false
         };
       }
-      return topWindow.FetcherKayWordleySunsetSceneShared;
+      return topWindow.FetcherKayWordleyAirTrafficShared;
     } catch (e) {
-      if (!window.FetcherKayWordleySunsetSceneShared) {
-        window.FetcherKayWordleySunsetSceneShared = { flights: [], nextFlightId: 1, flightTimer: null, running: false };
+      if (!window.FetcherKayWordleyAirTrafficShared) {
+        window.FetcherKayWordleyAirTrafficShared = { flights: [], nextFlightId: 1, flightTimer: null, running: false };
       }
-      return window.FetcherKayWordleySunsetSceneShared;
+      return window.FetcherKayWordleyAirTrafficShared;
     }
   }
 
@@ -64,14 +65,18 @@
       'html[data-easter-palette="kaywordley"] .fetcher-ambient-spark{display:none!important;}',
       '.fetcher-kaywordley-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;}',
       'html[data-easter-palette="kaywordley"] .main>.stage,html[data-easter-palette="kaywordley"] .main>.foot,html[data-easter-palette="kaywordley"] .main>.settings-nav,html[data-easter-palette="kaywordley"] .main>.settings-content,html[data-easter-palette="kaywordley"] .main>.about,html[data-easter-palette="kaywordley"] .main>.donate,html[data-easter-palette="kaywordley"] .main>.updates,html[data-easter-palette="kaywordley"] .main>.soon{position:relative;z-index:1;}',
-      '.fetcher-kaywordley-scene{position:absolute;inset:0;pointer-events:none;opacity:.82;}',
-      '.fetcher-kaywordley-scene svg{width:100%;height:100%;display:block;overflow:visible;}',
-      '.fetcher-kaywordley-flight{position:absolute;left:0;top:0;opacity:0;transform:translate3d(var(--kay-sx),var(--kay-sy),0) rotate(var(--kay-r0));animation:fetcher-kaywordley-flight var(--kay-duration) linear var(--kay-delay) both;will-change:transform,opacity;}',
-      '.fetcher-kaywordley-flight-bird{position:absolute;left:var(--bird-left);top:var(--bird-top);width:var(--bird-size);height:calc(var(--bird-size) * .62);}',
-      '.fetcher-kaywordley-flight-bird svg{width:100%;height:100%;display:block;overflow:visible;}',
-      '.fetcher-kaywordley-flight-bird path{fill:rgba(72,44,34,.42);}',
-      'html[data-theme="dark"][data-easter-palette="kaywordley"] .fetcher-kaywordley-flight-bird path{fill:rgba(236,199,160,.24);}',
-      '@keyframes fetcher-kaywordley-flight{0%{opacity:0;transform:translate3d(var(--kay-sx),var(--kay-sy),0) rotate(var(--kay-r0));}9%{opacity:var(--kay-opacity);}50%{opacity:var(--kay-opacity);transform:translate3d(var(--kay-mx),var(--kay-my),0) rotate(var(--kay-r1));}88%{opacity:var(--kay-opacity);transform:translate3d(var(--kay-ex),var(--kay-ey),0) rotate(var(--kay-r2));}100%{opacity:0;transform:translate3d(var(--kay-ex),var(--kay-ey),0) rotate(var(--kay-r2));}}',
+      '.fetcher-kaywordley-flight{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;transform:translate3d(var(--kay-sx),var(--kay-sy),0);animation:fetcher-kaywordley-flight var(--kay-duration) linear var(--kay-delay) both;will-change:transform,opacity;}',
+      '.fetcher-kaywordley-aircraft{position:absolute;left:0;top:0;width:1px;height:1px;transform:rotate(var(--kay-tilt)) scaleX(var(--kay-facing));transform-origin:0 0;}',
+      '.fetcher-kaywordley-plane{position:absolute;left:0;top:0;width:var(--kay-plane-size);height:var(--kay-plane-height);transform:translate(-50%,-50%);}',
+      '.fetcher-kaywordley-plane svg{width:100%;height:100%;display:block;overflow:visible;}',
+      '.fetcher-kaywordley-plane path{fill:rgba(67,42,34,.58);}',
+      '.fetcher-kaywordley-contrails{position:absolute;right:var(--kay-trail-offset);top:0;width:var(--kay-trail-length);height:10px;transform:translateY(-50%);opacity:var(--kay-trail-opacity);}',
+      '.fetcher-kaywordley-contrail{position:absolute;right:0;width:100%;height:var(--kay-trail-width);border-radius:999px;background:linear-gradient(90deg,transparent 0%,var(--kay-trail-faint) 34%,var(--kay-trail-color) 100%);filter:blur(.25px);}',
+      '.fetcher-kaywordley-contrail:first-child{top:2.5px;}',
+      '.fetcher-kaywordley-contrail:last-child{bottom:2.5px;opacity:.76;}',
+      'html[data-theme="dark"][data-easter-palette="kaywordley"] .fetcher-kaywordley-plane path{fill:rgba(255,225,190,.34);}',
+      'html[data-theme="dark"][data-easter-palette="kaywordley"] .fetcher-kaywordley-contrails{opacity:.38;}',
+      '@keyframes fetcher-kaywordley-flight{0%{opacity:0;transform:translate3d(var(--kay-sx),var(--kay-sy),0);}8%{opacity:var(--kay-opacity);}46%{opacity:var(--kay-opacity);transform:translate3d(var(--kay-mx),var(--kay-my),0);}90%{opacity:var(--kay-opacity);transform:translate3d(var(--kay-ex),var(--kay-ey),0);}100%{opacity:0;transform:translate3d(var(--kay-ex),var(--kay-ey),0);}}',
       'html[data-motion="reduced"] .fetcher-kaywordley-layer{display:none!important;}'
     ].join('\n');
     (document.head || document.documentElement).appendChild(style);
@@ -91,79 +96,59 @@
     return layer;
   }
 
-  function birdPath(size) {
-    var w = size;
-    var h = size * 0.62;
-    var mid = w / 2;
-    return [
-      'M', (mid - w * 0.46).toFixed(1), (h * 0.68).toFixed(1),
-      'Q', (mid - w * 0.24).toFixed(1), (h * 0.16).toFixed(1), mid.toFixed(1), (h * 0.50).toFixed(1),
-      'Q', (mid + w * 0.24).toFixed(1), (h * 0.16).toFixed(1), (mid + w * 0.46).toFixed(1), (h * 0.68).toFixed(1),
-      'Q', mid.toFixed(1), (h * 0.44).toFixed(1), (mid - w * 0.46).toFixed(1), (h * 0.68).toFixed(1),
-      'Z'
-    ].join(' ');
-  }
-
-  function createScene() {
-    var scene = document.createElement('div');
-    scene.className = 'fetcher-kaywordley-scene';
-    scene.setAttribute('data-kaywordley-scene', '1');
-    scene.innerHTML = [
-      '<svg viewBox="0 0 1000 700" preserveAspectRatio="none" aria-hidden="true">',
-      '<g opacity="0.46">',
-      '<line x1="822" y1="148" x2="822" y2="520" stroke="rgba(71,44,34,.34)" stroke-width="4.2" stroke-linecap="round"/>',
-      '<line x1="792" y1="164" x2="854" y2="164" stroke="rgba(71,44,34,.30)" stroke-width="3" stroke-linecap="round"/>',
-      '<path d="M 0 180 C 180 176, 360 186, 540 196 S 860 206, 1000 198" fill="none" stroke="rgba(71,44,34,.22)" stroke-width="2.2" stroke-linecap="round"/>',
-      '<path d="M 0 213 C 190 205, 378 214, 548 224 S 862 235, 1000 228" fill="none" stroke="rgba(71,44,34,.18)" stroke-width="1.8" stroke-linecap="round"/>',
-      '<path d="M 238 177 Q 244 168 252 176 Q 260 169 266 177 Q 257 173 252 182 Q 247 173 238 177 Z" fill="rgba(71,44,34,.40)"/>',
-      '<path d="M 346 185 Q 352 176 360 184 Q 368 177 374 185 Q 365 181 360 190 Q 355 181 346 185 Z" fill="rgba(71,44,34,.38)"/>',
-      '<path d="M 640 194 Q 646 185 654 193 Q 662 186 668 194 Q 659 190 654 199 Q 649 190 640 194 Z" fill="rgba(71,44,34,.40)"/>',
-      '<path d="M 862 197 Q 868 188 876 196 Q 884 189 890 197 Q 881 193 876 202 Q 871 193 862 197 Z" fill="rgba(71,44,34,.38)"/>',
-      '</g>',
-      '</svg>'
-    ].join('');
-    return scene;
-  }
-
-  function buildFlightBirds(count) {
-    var birds = [];
-    for (var i = 0; i < count; i += 1) {
-      birds.push({ size: rand(16, 24), left: i * rand(18, 30), top: i === 0 ? 0 : rand(5, 12) });
-    }
-    return birds;
+  function trailPalette() {
+    return pick([
+      { color: 'rgba(251,145,143,.56)', faint: 'rgba(251,145,143,.10)' },
+      { color: 'rgba(251,165,139,.54)', faint: 'rgba(251,165,139,.09)' },
+      { color: 'rgba(255,212,151,.62)', faint: 'rgba(255,212,151,.10)' }
+    ]);
   }
 
   function makeFlight() {
-    var leftToRight = Math.random() < 0.5;
-    var startX = leftToRight ? rand(-70, -30) : rand(window.innerWidth + 20, window.innerWidth + 70);
-    var endX = leftToRight ? rand(window.innerWidth + 30, window.innerWidth + 90) : rand(-90, -30);
-    var startY = rand(88, Math.max(110, window.innerHeight * 0.36));
-    var endY = startY + rand(-38, 34);
-    var midX = (startX + endX) / 2 + rand(-24, 24);
-    var midY = Math.min(startY, endY) - rand(24, 54);
-    var count = Math.random() < 0.65 ? 1 : 2;
+    var viewportW = Math.max(720, window.innerWidth || 1280);
+    var viewportH = Math.max(520, window.innerHeight || 720);
+    var leftToRight = Math.random() < 0.56;
+    var startX = leftToRight ? rand(-150, -70) : rand(viewportW + 70, viewportW + 150);
+    var endX = leftToRight ? rand(viewportW + 70, viewportW + 170) : rand(-170, -70);
+    var topBand = Math.max(70, viewportH * 0.10);
+    var bottomBand = Math.min(viewportH * 0.52, viewportH - 130);
+    var startY = rand(topBand, Math.max(topBand + 80, bottomBand));
+    var endY = startY + rand(-54, 50);
+    endY = Math.max(58, Math.min(viewportH * 0.58, endY));
+    var midX = (startX + endX) / 2 + rand(-55, 55);
+    var midY = ((startY + endY) / 2) + rand(-30, 22);
+    var planeSize = rand(18, 30);
+    var palette = trailPalette();
+
     return {
       id: sharedState().nextFlightId++,
       bornAt: Date.now(),
-      duration: rand(8200, 10800),
-      opacity: rand(.58, .78),
+      duration: rand(12800, 18800),
+      opacity: rand(.44, .64),
       startX: startX,
       startY: startY,
       midX: midX,
       midY: midY,
       endX: endX,
       endY: endY,
-      r0: leftToRight ? rand(-6, -1) : rand(1, 6),
-      r1: leftToRight ? rand(1, 5) : rand(-5, -1),
-      r2: leftToRight ? rand(4, 8) : rand(-8, -4),
-      birds: buildFlightBirds(count)
+      facing: leftToRight ? 1 : -1,
+      tilt: rand(-2.8, 2.8),
+      planeSize: planeSize,
+      planeHeight: planeSize * .44,
+      hasTrail: Math.random() < 0.66,
+      trailLength: rand(105, 220),
+      trailOffset: planeSize * .34,
+      trailWidth: rand(.7, 1.2),
+      trailOpacity: rand(.44, .68),
+      trailColor: palette.color,
+      trailFaint: palette.faint
     };
   }
 
   function pruneFlights(shared) {
     var now = Date.now();
     shared.flights = shared.flights.filter(function (flight) {
-      return now < flight.bornAt + flight.duration + 200;
+      return now < flight.bornAt + flight.duration + 250;
     });
   }
 
@@ -178,7 +163,7 @@
       pruneFlights(shared);
       if (shared.flights.length < 2) shared.flights.push(makeFlight());
       scheduleFlight();
-    }, rand(6800, 11200));
+    }, rand(5600, 9200));
   }
 
   function startShared() {
@@ -207,6 +192,14 @@
     else stopShared();
   }
 
+  function planeSvg() {
+    return [
+      '<svg viewBox="0 0 64 28" aria-hidden="true" focusable="false">',
+      '<path d="M2 15.2 22.4 12.1 37.4 2.4 43 2.4 37.2 10.8 57.5 8.8 63 12.2 57.4 15.6 37.1 16.3 43 25.7 37.3 25.7 22.3 17.2 2 15.2Z"/>',
+      '</svg>'
+    ].join('');
+  }
+
   function renderFlight(flight) {
     var node = document.createElement('div');
     node.className = 'fetcher-kaywordley-flight';
@@ -217,28 +210,40 @@
     node.style.setProperty('--kay-my', flight.midY + 'px');
     node.style.setProperty('--kay-ex', flight.endX + 'px');
     node.style.setProperty('--kay-ey', flight.endY + 'px');
-    node.style.setProperty('--kay-r0', flight.r0 + 'deg');
-    node.style.setProperty('--kay-r1', flight.r1 + 'deg');
-    node.style.setProperty('--kay-r2', flight.r2 + 'deg');
     node.style.setProperty('--kay-duration', flight.duration + 'ms');
     node.style.setProperty('--kay-delay', (-(Date.now() - flight.bornAt)) + 'ms');
     node.style.setProperty('--kay-opacity', String(flight.opacity));
+    node.style.setProperty('--kay-facing', String(flight.facing));
+    node.style.setProperty('--kay-tilt', flight.tilt + 'deg');
+    node.style.setProperty('--kay-plane-size', flight.planeSize + 'px');
+    node.style.setProperty('--kay-plane-height', flight.planeHeight + 'px');
+    node.style.setProperty('--kay-trail-length', flight.trailLength + 'px');
+    node.style.setProperty('--kay-trail-offset', flight.trailOffset + 'px');
+    node.style.setProperty('--kay-trail-width', flight.trailWidth + 'px');
+    node.style.setProperty('--kay-trail-opacity', String(flight.trailOpacity));
+    node.style.setProperty('--kay-trail-color', flight.trailColor);
+    node.style.setProperty('--kay-trail-faint', flight.trailFaint);
 
-    flight.birds.forEach(function (bird) {
-      var birdNode = document.createElement('span');
-      birdNode.className = 'fetcher-kaywordley-flight-bird';
-      birdNode.style.setProperty('--bird-left', bird.left + 'px');
-      birdNode.style.setProperty('--bird-top', bird.top + 'px');
-      birdNode.style.setProperty('--bird-size', bird.size + 'px');
-      var ns = 'http://www.w3.org/2000/svg';
-      var svg = document.createElementNS(ns, 'svg');
-      svg.setAttribute('viewBox', '0 0 ' + bird.size + ' ' + (bird.size * 0.62));
-      var path = document.createElementNS(ns, 'path');
-      path.setAttribute('d', birdPath(bird.size));
-      svg.appendChild(path);
-      birdNode.appendChild(svg);
-      node.appendChild(birdNode);
-    });
+    var aircraft = document.createElement('div');
+    aircraft.className = 'fetcher-kaywordley-aircraft';
+
+    if (flight.hasTrail) {
+      var trails = document.createElement('span');
+      trails.className = 'fetcher-kaywordley-contrails';
+      var trailA = document.createElement('span');
+      var trailB = document.createElement('span');
+      trailA.className = 'fetcher-kaywordley-contrail';
+      trailB.className = 'fetcher-kaywordley-contrail';
+      trails.appendChild(trailA);
+      trails.appendChild(trailB);
+      aircraft.appendChild(trails);
+    }
+
+    var plane = document.createElement('span');
+    plane.className = 'fetcher-kaywordley-plane';
+    plane.innerHTML = planeSvg();
+    aircraft.appendChild(plane);
+    node.appendChild(aircraft);
     return node;
   }
 
@@ -254,7 +259,6 @@
     syncBrowserColor();
     var target = ensureLayer();
     if (!target) return;
-    if (!target.querySelector('[data-kaywordley-scene="1"]')) target.appendChild(createScene());
 
     var shared = sharedState();
     pruneFlights(shared);
