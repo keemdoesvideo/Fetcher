@@ -154,8 +154,8 @@
   });
 
   // The persistent shell and page content live in separate same-origin browsing
-  // contexts. localStorage/sessionStorage are shared, so storage events keep the
-  // parent rail and currently embedded page visually in sync.
+  // contexts. localStorage and sessionStorage are shared within the tab, and
+  // storage events keep parent/embedded presentation in sync.
   global.addEventListener('storage', function (e) {
     if (!e || !e.key) return;
     if (e.key === 'fetcher.theme') applyTheme();
