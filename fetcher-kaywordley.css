@@ -1,0 +1,33 @@
+/* KayWordley palette: exact colours sampled from the supplied reference strip. */
+html[data-theme="light"][data-easter-palette="kaywordley"]{
+  --bg:#FFF9C9;
+  --surface:#FDF29A;
+  --rail:#FFD497;
+  --ink:#3B2B29;
+  --ink-strong:#241817;
+  --ink-soft:#6B4A47;
+  --ink-faint:#835E58;
+  --border:#FBA58B;
+  --border-strong:#FB918F;
+  --accent:#FB918F;
+  --accent-ink:#7B3435;
+  --accent-tint:#FFD497;
+  --on-accent:#3B2B29;
+  --audio:#FBA58B;
+  --audio-tint:#FFD497;
+  --mute:#FB918F;
+  --mute-tint:#FDF29A;
+  --danger:#FB918F;
+  --danger-tint:#FFD497;
+  --success:#FBA58B;
+  --success-tint:#FDF29A;
+  --shiba:#FB918F;
+  --shiba-deep:#FBA58B;
+  --shiba-cream:#FFF9C9;
+}
+
+/* Keep secondary chrome within the same five-colour family. */
+html[data-theme="light"][data-easter-palette="kaywordley"] .rail-btn:not(.active),
+html[data-theme="light"][data-easter-palette="kaywordley"] .rail-toggle{
+  color:var(--ink-soft);
+}
