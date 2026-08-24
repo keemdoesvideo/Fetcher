@@ -238,11 +238,16 @@ html[data-motion="reduced"] .fetcher-good-dog{animation:none;opacity:1;transform
 html[data-motion="reduced"].fetcher-404-leaving .main{transition:opacity 100ms linear!important;}
 html[data-motion="reduced"].fetcher-return-from-404.fetcher-return-from-404-reveal body{transition:opacity 100ms linear!important;}
 
-/* Safety hold for Stonakah while we rebuild the groove as its own pass.
-   Never make Fetcher's page surfaces transparent just to reveal the canvas. */
-html.fetcher-stonakah-carve-active .app,
-html.fetcher-stonakah-carve-active .main,
-html.fetcher-stonakah-carve-active .fetcher-content-host,
-html.fetcher-stonakah-carve-active .fetcher-page-frame{
+/* Hard safety kill-switch for Stonakah until its groove is rebuilt on its own.
+   The injected groove styles load later, so these selectors intentionally have
+   higher specificity than those rules. */
+html.fetcher-stonakah-carve-active body .app.app,
+html.fetcher-stonakah-carve-active body .main.main,
+html.fetcher-stonakah-carve-active body .fetcher-content-host.fetcher-content-host,
+html.fetcher-stonakah-carve-active body .fetcher-page-frame.fetcher-page-frame{
+  background:var(--bg)!important;
   background-color:var(--bg)!important;
+}
+html.fetcher-stonakah-carve-active body .fetcher-stonakah-groove.fetcher-stonakah-groove{
+  display:none!important;
 }
