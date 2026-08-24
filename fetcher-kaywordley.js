@@ -131,7 +131,7 @@
       midY: midY,
       endX: endX,
       endY: endY,
-      facing: leftToRight ? 1 : -1,
+      facing: leftToRight ? -1 : 1,
       tilt: rand(-2.8, 2.8),
       planeSize: planeSize,
       planeHeight: planeSize * .44,
