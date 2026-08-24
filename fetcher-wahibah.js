@@ -97,9 +97,9 @@
     var leftToRight = Math.random() < .74;
     var startX = leftToRight ? rand(4, 67) : rand(33, 94);
     var startY = rand(6, 58);
-    var dx = leftToRight ? rand(145, 245) : rand(-245, -145);
-    var dy = rand(62, 125);
-    var duration = rand(1350, 1950);
+    var dx = leftToRight ? rand(190, 310) : rand(-310, -190);
+    var dy = rand(82, 155);
+    var duration = rand(1850, 2650);
 
     return {
       id: shared.nextShotId++,
@@ -180,9 +180,9 @@
       '.fetcher-wahibah-shot{position:absolute;left:var(--wah-shot-x);top:var(--wah-shot-y);width:var(--wah-shot-length);height:10px;opacity:0;transform-origin:left center;transform:translate3d(0,0,0) rotate(var(--wah-shot-angle));animation:fetcher-wahibah-shot-flight var(--wah-shot-duration) linear var(--wah-shot-delay) both;will-change:transform,opacity;}',
       '.fetcher-wahibah-shot::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;border-radius:999px;transform:translateY(-50%);background:linear-gradient(90deg,rgba(255,244,241,0) 0%,rgba(255,232,224,.08) 14%,rgba(255,231,222,.28) 42%,rgba(255,242,236,.64) 74%,rgba(255,252,250,.98) 100%);filter:drop-shadow(0 0 5px rgba(255,225,216,.38));clip-path:inset(0 0 0 0 round 999px);animation:fetcher-wahibah-shot-tail var(--wah-shot-duration) linear var(--wah-shot-delay) both;will-change:clip-path,opacity;}',
       '.fetcher-wahibah-shot::after{content:"";position:absolute;right:-2px;top:50%;width:4px;height:4px;border-radius:50%;background:rgba(255,252,250,.99);box-shadow:0 0 8px rgba(255,230,222,.76);transform:translateY(-50%);animation:fetcher-wahibah-shot-head var(--wah-shot-duration) linear var(--wah-shot-delay) both;will-change:opacity;}',
-      '@keyframes fetcher-wahibah-shot-flight{0%{opacity:0;transform:translate3d(0,0,0) rotate(var(--wah-shot-angle));}7%{opacity:var(--wah-shot-opacity);}82%{opacity:var(--wah-shot-opacity);transform:translate3d(var(--wah-shot-dx),var(--wah-shot-dy),0) rotate(var(--wah-shot-angle));}100%{opacity:1;transform:translate3d(var(--wah-shot-dx),var(--wah-shot-dy),0) rotate(var(--wah-shot-angle));}}',
-      '@keyframes fetcher-wahibah-shot-tail{0%{opacity:0;clip-path:inset(0 0 0 100% round 999px);}8%{opacity:.92;clip-path:inset(0 0 0 0 round 999px);}76%{opacity:.92;clip-path:inset(0 0 0 0 round 999px);}100%{opacity:0;clip-path:inset(0 0 0 100% round 999px);}}',
-      '@keyframes fetcher-wahibah-shot-head{0%,6%{opacity:0;}10%,82%{opacity:1;}100%{opacity:0;}}',
+      '@keyframes fetcher-wahibah-shot-flight{0%{opacity:0;transform:translate3d(0,0,0) rotate(var(--wah-shot-angle));}8%{opacity:var(--wah-shot-opacity);}70%{opacity:var(--wah-shot-opacity);}100%{opacity:0;transform:translate3d(var(--wah-shot-dx),var(--wah-shot-dy),0) rotate(var(--wah-shot-angle));}}',
+      '@keyframes fetcher-wahibah-shot-tail{0%{opacity:0;clip-path:inset(0 0 0 100% round 999px);}8%{opacity:.92;clip-path:inset(0 0 0 0 round 999px);}70%{opacity:.92;clip-path:inset(0 0 0 0 round 999px);}100%{opacity:0;clip-path:inset(0 0 0 100% round 999px);}}',
+      '@keyframes fetcher-wahibah-shot-head{0%,6%{opacity:0;}10%,70%{opacity:1;}100%{opacity:0;}}',
       'html[data-motion="reduced"] .fetcher-wahibah-star{animation:none!important;opacity:.42!important;transform:translate(-50%,-50%) scale(1)!important;}',
       'html[data-motion="reduced"] .fetcher-wahibah-shot{display:none!important;}'
     ].join('\n');
