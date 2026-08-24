@@ -1,0 +1,85 @@
+/*
+ * Launch-only finishing layer.
+ * Keep this file for production polish that belongs across pages: phone-width
+ * hardening and tiny milestone delight. Page design still lives with each page.
+ */
+
+/* Never let a long URL, filename, or fixed utility bubble widen the viewport. */
+html,body,.app,.main,.fetcher-content-host,.fetcher-page-frame{min-width:0;max-width:100%;}
+
+.fetcher-milestone-note{
+  display:inline-flex;align-items:center;gap:8px;margin-top:12px;
+  font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--accent-ink);background:var(--accent-tint);border:1px solid var(--border);
+  border-radius:999px;padding:7px 11px;opacity:0;transform:translateY(5px) scale(.98);
+  animation:fetcher-milestone-note-in 320ms var(--ease-bounce) 120ms forwards;
+}
+.fetcher-milestone-note::before{
+  content:"";width:13px;height:13px;display:block;
+  background:var(--mark-paw) center/contain no-repeat;
+}
+@keyframes fetcher-milestone-note-in{to{opacity:1;transform:translateY(0) scale(1);}}
+
+.fetcher-milestone-paws{position:fixed;inset:0;z-index:10010;pointer-events:none;overflow:hidden;}
+.fetcher-milestone-paw{
+  position:absolute;left:50%;top:50%;width:var(--milestone-size);height:var(--milestone-size);
+  background:var(--mark-paw) center/contain no-repeat;opacity:0;
+  animation:fetcher-milestone-paw-out 1500ms cubic-bezier(.16,1,.3,1) var(--milestone-delay) both;
+}
+@keyframes fetcher-milestone-paw-out{
+  0%{opacity:0;transform:translate(-50%,-50%) translate(0,0) rotate(var(--milestone-rot)) scale(.55);}
+  18%{opacity:.7;}
+  70%{opacity:.42;}
+  100%{opacity:0;transform:translate(-50%,-50%) translate(var(--milestone-x),var(--milestone-y)) rotate(calc(var(--milestone-rot) + 16deg)) scale(1.08);}
+}
+
+@media (max-width:760px){
+  /* The rail stays visible on phones but the content beside it must be allowed
+     to shrink instead of creating horizontal page scroll. */
+  .app{width:100vw;overflow:hidden;}
+  .main,.fetcher-content-host{min-width:0!important;}
+
+  /* Main fetch page */
+  .stage{padding-left:18px!important;padding-right:18px!important;}
+  .stage-inner{width:100%!important;max-width:100%!important;min-width:0!important;}
+  .input-row{width:100%!important;min-width:0!important;}
+  #url-input{min-width:0!important;font-size:16px!important;}
+  .controls-row{max-width:100%!important;flex-wrap:wrap!important;row-gap:10px!important;}
+  .segmented{max-width:100%!important;}
+  .foot{padding-left:18px!important;padding-right:18px!important;}
+  .chips{max-width:100%!important;}
+
+  /* Floating utility sheets must stay inside the viewport even when the rail
+     takes part of the available width. */
+  .dl-bubble,.kbd-bubble{max-width:calc(100vw - 84px)!important;}
+  .dl-bubble-list,.kbd-bubble-list{max-width:calc(100vw - 84px)!important;}
+
+  /* Coming-soon pages */
+  .soon{max-width:100%!important;}
+  .soon-actions{width:100%;}
+  .soon-btn{min-height:44px;}
+
+  /* Settings' long quality segmented controls are intentionally horizontally
+     scrollable on narrow phones rather than crushing six labels together. */
+  .settings-content{min-width:0!important;}
+  .settings-content-inner{width:100%;max-width:100%;}
+  .settings-seg{max-width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;}
+  .settings-seg::-webkit-scrollbar{display:none;}
+  .settings-seg-btn{min-width:68px;flex:1 0 auto;}
+
+  /* Long words/URLs in About, Updates and Donate should wrap gracefully. */
+  .about,.updates,.donate{overflow-wrap:anywhere;}
+}
+
+@media (max-width:520px){
+  .stage{padding-left:14px!important;padding-right:14px!important;}
+  .foot{padding-left:14px!important;padding-right:14px!important;}
+  .dl-bubble,.kbd-bubble,.dl-bubble-list,.kbd-bubble-list{max-width:calc(100vw - 76px)!important;}
+}
+
+@media (hover:none),(pointer:coarse){
+  button,a,.rail-btn,.settings-nav-item,.settings-seg-btn,.soon-btn,.about-btn{touch-action:manipulation;}
+}
+
+html[data-motion="reduced"] .fetcher-milestone-note{animation:none;opacity:1;transform:none;}
+html[data-motion="reduced"] .fetcher-milestone-paws{display:none;}
