@@ -183,14 +183,14 @@ html[data-motion="reserved"][data-rail-collapsed="true"] .rail-btn span{
     transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;
 }
 
-/* Keem's black wipe needs to reveal the monochrome interface gradually. The
-   generic unlock curve is intentionally quick at the start; on an almost-black
-   target that reads like a blink, so Keem gets a slower symmetric opacity ramp
-   with a tiny fully-covered beat before the page begins to emerge. */
-html[data-easter-palette="keem"][data-motion="full"] .fetcher-easter-v2-paint.reveal{
+/* Every active Easter palette now uses the slower symmetric reveal approved on
+   Keem: a tiny fully-covered beat, then a long opacity dissolve into the themed
+   interface. Base Fetcher has no data-easter-palette attribute, so its reset
+   wipe keeps the existing separate timing. */
+html[data-easter-palette][data-motion="full"] .fetcher-easter-v2-paint.reveal{
   transition:opacity 2200ms cubic-bezier(.45,0,.55,1) 120ms!important;
 }
-html[data-easter-palette="keem"][data-motion="reserved"] .fetcher-easter-v2-paint.reveal{
+html[data-easter-palette][data-motion="reserved"] .fetcher-easter-v2-paint.reveal{
   transition:opacity 1500ms cubic-bezier(.45,0,.55,1) 80ms!important;
 }
 
