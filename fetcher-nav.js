@@ -3,6 +3,8 @@
  * Persistent Fetcher shell: rail state, page-content routing/fades and history.
  * Preference resolution lives in fetcher-prefs.js; presentation/motion lives in
  * fetcher-shell.css; page-specific controllers own their own UI.
+ * Secret-name palettes use a deliberate top-right -> bottom-left paint spill,
+ * with a short pre-reveal hold so the hidden confirmation is actually readable.
  */
 (function () {
   'use strict';
