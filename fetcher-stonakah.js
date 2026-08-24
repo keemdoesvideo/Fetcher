@@ -1,10 +1,11 @@
-/* Stonakah-only ambience: sparse brown woodgrain waves beneath the UI. */
+/* Stonakah-only ambience: occasional kraft-paper planes gliding behind the UI. */
 (function () {
   'use strict';
 
   var root = document.documentElement;
   var topWindow = window;
   try { if (window.top) topWindow = window.top; } catch (e) { topWindow = window; }
+  var isMaster = topWindow === window;
   var layer = null;
   var renderTimer = null;
 
@@ -18,22 +19,36 @@
     return root.getAttribute('data-motion') === 'reduced';
   }
 
+  function masterActive() {
+    try {
+      return topWindow.document.documentElement.getAttribute('data-easter-palette') === 'stonakah';
+    } catch (e) { return active(); }
+  }
+
+  function masterReducedMotion() {
+    try {
+      return topWindow.document.documentElement.getAttribute('data-motion') === 'reduced';
+    } catch (e) { return reducedMotion(); }
+  }
+
   function sharedState() {
     try {
-      if (!topWindow.FetcherStonakahShared) {
-        topWindow.FetcherStonakahShared = {
-          waves: [],
+      if (!topWindow.FetcherStonakahPlanesShared) {
+        topWindow.FetcherStonakahPlanesShared = {
+          planes: [],
           nextId: 1,
           spawnTimer: null,
           running: false
         };
       }
-      return topWindow.FetcherStonakahShared;
+      return topWindow.FetcherStonakahPlanesShared;
     } catch (e) {
-      if (!window.FetcherStonakahShared) {
-        window.FetcherStonakahShared = { waves: [], nextId: 1, spawnTimer: null, running: false };
+      if (!window.FetcherStonakahPlanesShared) {
+        window.FetcherStonakahPlanesShared = {
+          planes: [], nextId: 1, spawnTimer: null, running: false
+        };
       }
-      return window.FetcherStonakahShared;
+      return window.FetcherStonakahPlanesShared;
     }
   }
 
@@ -46,18 +61,28 @@
       'html[data-easter-palette="stonakah"] .fetcher-ember-trail,html[data-easter-palette="stonakah"] .fetcher-ember-dot{display:none!important;}',
       '.fetcher-stonakah-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;}',
       'html[data-easter-palette="stonakah"] .main>.stage,html[data-easter-palette="stonakah"] .main>.foot,html[data-easter-palette="stonakah"] .main>.settings-nav,html[data-easter-palette="stonakah"] .main>.settings-content,html[data-easter-palette="stonakah"] .main>.about,html[data-easter-palette="stonakah"] .main>.donate,html[data-easter-palette="stonakah"] .main>.updates,html[data-easter-palette="stonakah"] .main>.soon{position:relative;z-index:1;}',
-      '.fetcher-stonakah-wave{position:absolute;left:var(--stone-x);top:var(--stone-y);width:var(--stone-w);height:var(--stone-h);opacity:0;transform:translate(-50%,-50%) rotate(var(--stone-rotate));animation:fetcher-stonakah-wave-life var(--stone-duration) ease-in-out var(--stone-delay) forwards;will-change:transform,opacity,filter;}',
-      '.fetcher-stonakah-svg{width:100%;height:100%;overflow:visible;}',
-      '.fetcher-stonakah-path{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;stroke:rgba(91,58,38,.14);stroke-width:2.1;}',
-      '.fetcher-stonakah-path.path-2{stroke:rgba(81,50,33,.10);stroke-width:1.55;}',
-      '.fetcher-stonakah-path.path-3{stroke:rgba(106,70,46,.08);stroke-width:1.15;}',
-      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-path{stroke:rgba(201,162,126,.08);}',
-      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-path.path-2{stroke:rgba(184,145,112,.06);}',
-      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-path.path-3{stroke:rgba(220,186,150,.045);}',
-      '@keyframes fetcher-stonakah-wave-life{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--stone-rotate)) translate3d(0,0,0) scale(.985);filter:blur(6px);}16%{opacity:var(--stone-opacity);filter:blur(1.2px);}58%{opacity:var(--stone-opacity);transform:translate(-50%,-50%) rotate(calc(var(--stone-rotate) + .8deg)) translate3d(var(--stone-drift-x),var(--stone-drift-y),0) scale(1);}82%{opacity:calc(var(--stone-opacity) * .76);filter:blur(1.8px);}100%{opacity:0;transform:translate(-50%,-50%) rotate(calc(var(--stone-rotate) + 1.3deg)) translate3d(calc(var(--stone-drift-x) * 1.2),calc(var(--stone-drift-y) * 1.12),0) scale(1.01);filter:blur(7px);}}',
+      '.fetcher-stonakah-plane{position:absolute;left:var(--stone-start-x);top:var(--stone-start-y);width:var(--stone-plane-w);height:auto;opacity:0;transform-origin:52% 48%;animation:fetcher-stonakah-plane-flight var(--stone-duration) linear var(--stone-delay) both;will-change:transform,opacity;}',
+      '.fetcher-stonakah-plane svg{display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 3px 5px rgba(79,48,30,.10));}',
+      '.fetcher-stonakah-plane-body{fill:#C89F78;stroke:rgba(96,60,38,.28);stroke-width:.8;stroke-linejoin:round;}',
+      '.fetcher-stonakah-plane-wing{fill:#D7B28D;stroke:rgba(96,60,38,.19);stroke-width:.65;stroke-linejoin:round;}',
+      '.fetcher-stonakah-plane-fold{fill:none;stroke:rgba(103,67,43,.28);stroke-width:.7;stroke-linecap:round;}',
+      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-plane{opacity:0;}',
+      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-plane-body{fill:#9A7558;stroke:rgba(226,194,163,.17);}',
+      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-plane-wing{fill:#B08968;stroke:rgba(226,194,163,.12);}',
+      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-plane-fold{stroke:rgba(235,209,183,.17);}',
+      '@keyframes fetcher-stonakah-plane-flight{',
+      '0%{opacity:0;transform:translate3d(0,0,0) rotate(var(--stone-r0)) scale(.96);}',
+      '7%{opacity:var(--stone-opacity);}',
+      '24%{opacity:var(--stone-opacity);transform:translate3d(var(--stone-x1),var(--stone-y1),0) rotate(var(--stone-r1)) scale(1);}',
+      '51%{opacity:var(--stone-opacity);transform:translate3d(var(--stone-x2),var(--stone-y2),0) rotate(var(--stone-r2)) scale(1);}',
+      '77%{opacity:var(--stone-opacity);transform:translate3d(var(--stone-x3),var(--stone-y3),0) rotate(var(--stone-r3)) scale(1);}',
+      '92%{opacity:calc(var(--stone-opacity) * .54);}',
+      '100%{opacity:0;transform:translate3d(var(--stone-x4),var(--stone-y4),0) rotate(var(--stone-r4)) scale(.985);}',
+      '}',
       'html[data-motion="reduced"] .fetcher-stonakah-layer{display:none!important;}',
-      '@media(max-width:760px){.fetcher-stonakah-wave{width:calc(var(--stone-w) * 1.18);height:calc(var(--stone-h) * 1.12);}}'
+      '@media(max-width:760px){.fetcher-stonakah-plane{width:calc(var(--stone-plane-w) * .9);}}'
     ].join('\n');
+
     (document.head || document.documentElement).appendChild(style);
   }
 
@@ -68,6 +93,7 @@
     if (!parent) return null;
     if (layer && layer.isConnected && layer.parentNode === parent) return layer;
     if (layer && layer.parentNode) layer.remove();
+
     layer = document.createElement('div');
     layer.className = 'fetcher-stonakah-layer';
     layer.setAttribute('aria-hidden', 'true');
@@ -77,124 +103,137 @@
 
   function prune(shared) {
     var now = Date.now();
-    shared.waves = shared.waves.filter(function (item) {
-      return now < item.bornAt + item.duration + 240;
+    shared.planes = shared.planes.filter(function (item) {
+      return now < item.bornAt + item.duration + 220;
     });
   }
 
-  function makeWave(delay) {
+  function makePlane(delay) {
     var shared = sharedState();
+    var leftToRight = Math.random() < .5;
     return {
       id: shared.nextId++,
       bornAt: Date.now() + (delay || 0),
-      duration: rand(8200, 11200),
-      x: rand(10, 90),
-      y: rand(12, 88),
-      w: rand(30, 50) + 'vw',
-      h: rand(14, 24) + 'vh',
-      rotate: rand(-20, 20),
-      opacity: rand(.52, .82),
-      driftX: rand(-18, 18) + 'px',
-      driftY: rand(-8, 8) + 'px',
-      paths: buildPaths()
+      duration: rand(8400, 11200),
+      leftToRight: leftToRight,
+      y: rand(16, 80),
+      width: rand(34, 48),
+      curveA: rand(-34, 34),
+      curveB: rand(-58, 58),
+      curveC: rand(-34, 34),
+      endY: rand(-20, 20),
+      tilt: rand(-4.5, 4.5),
+      opacity: rand(.42, .62)
     };
   }
 
-  function buildPaths() {
-    var baseY = rand(38, 62);
-    var points = [];
-    for (var i = 0; i < 7; i += 1) {
-      points.push({
-        x: 4 + i * 15 + rand(-2.5, 2.5),
-        y: baseY + Math.sin(i * .78 + rand(-.2, .2)) * rand(10, 18) + rand(-4, 4)
-      });
-    }
-    function pathFrom(offsetY, jiggle, tighten) {
-      var d = 'M ' + points[0].x.toFixed(1) + ' ' + (points[0].y + offsetY).toFixed(1);
-      for (var i = 1; i < points.length; i += 1) {
-        var prev = points[i - 1];
-        var curr = points[i];
-        var cx1 = prev.x + 6 + rand(-jiggle, jiggle);
-        var cy1 = prev.y + offsetY + rand(-tighten, tighten);
-        var cx2 = curr.x - 6 + rand(-jiggle, jiggle);
-        var cy2 = curr.y + offsetY + rand(-tighten, tighten);
-        d += ' C ' + cx1.toFixed(1) + ' ' + cy1.toFixed(1) + ', ' + cx2.toFixed(1) + ' ' + cy2.toFixed(1) + ', ' + curr.x.toFixed(1) + ' ' + (curr.y + offsetY).toFixed(1);
-      }
-      return d;
-    }
-    return [
-      pathFrom(0, 2.8, 3.2),
-      pathFrom(rand(6, 10), 2.4, 2.8),
-      pathFrom(rand(-10, -6), 2.0, 2.6)
-    ];
-  }
-
-  function addWave(delay) {
+  function addPlane(delay) {
+    if (!isMaster || !masterActive() || masterReducedMotion()) return null;
     var shared = sharedState();
     prune(shared);
-    if (shared.waves.length >= 2) return null;
-    var model = makeWave(delay || 0);
-    shared.waves.push(model);
+    if (shared.planes.length) return null;
+    var model = makePlane(delay || 0);
+    shared.planes.push(model);
     return model;
   }
 
   function scheduleNext() {
+    if (!isMaster) return;
     var shared = sharedState();
     window.clearTimeout(shared.spawnTimer);
-    if (!shared.running || !active() || reducedMotion()) return;
-    var wait = rand(3800, 6200);
+    shared.spawnTimer = null;
+    if (!shared.running || !masterActive() || masterReducedMotion()) return;
+
     shared.spawnTimer = window.setTimeout(function () {
-      if (!shared.running || !active() || reducedMotion()) return;
-      addWave(0);
+      if (!shared.running || !masterActive() || masterReducedMotion()) return;
+      prune(shared);
+      if (!shared.planes.length) addPlane(0);
       scheduleNext();
-    }, wait);
+    }, rand(10500, 17500));
   }
 
   function startShared() {
+    if (!isMaster) return;
     var shared = sharedState();
     if (shared.running) return;
     shared.running = true;
-    if (!shared.waves.length) addWave(300);
+    shared.planes = [];
+    addPlane(2600);
     scheduleNext();
   }
 
   function stopShared() {
+    if (!isMaster) return;
     var shared = sharedState();
     window.clearTimeout(shared.spawnTimer);
     shared.spawnTimer = null;
     shared.running = false;
-    shared.waves = [];
+    shared.planes = [];
   }
 
-  function renderWave(model) {
-    var node = document.createElement('div');
-    node.className = 'fetcher-stonakah-wave';
-    node.setAttribute('data-stonakah-wave-id', String(model.id));
-    node.style.setProperty('--stone-x', model.x + '%');
-    node.style.setProperty('--stone-y', model.y + '%');
-    node.style.setProperty('--stone-w', model.w);
-    node.style.setProperty('--stone-h', model.h);
-    node.style.setProperty('--stone-rotate', model.rotate + 'deg');
-    node.style.setProperty('--stone-opacity', model.opacity);
-    node.style.setProperty('--stone-duration', model.duration + 'ms');
-    node.style.setProperty('--stone-drift-x', model.driftX);
-    node.style.setProperty('--stone-drift-y', model.driftY);
-    node.style.setProperty('--stone-delay', (-(Date.now() - model.bornAt)) + 'ms');
+  function syncMasterActivity() {
+    if (!isMaster) return;
+    if (masterActive() && !masterReducedMotion()) startShared();
+    else stopShared();
+  }
 
+  function makeSvg() {
     var ns = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', '0 0 100 100');
-    svg.setAttribute('preserveAspectRatio', 'none');
-    svg.setAttribute('class', 'fetcher-stonakah-svg');
+    svg.setAttribute('viewBox', '0 0 64 40');
+    svg.setAttribute('aria-hidden', 'true');
 
-    model.paths.forEach(function (d, index) {
-      var p = document.createElementNS(ns, 'path');
-      p.setAttribute('d', d);
-      p.setAttribute('class', 'fetcher-stonakah-path path-' + (index + 1));
-      svg.appendChild(p);
-    });
+    var body = document.createElementNS(ns, 'polygon');
+    body.setAttribute('class', 'fetcher-stonakah-plane-body');
+    body.setAttribute('points', '3,20 59,4 38,35 27,24');
+    svg.appendChild(body);
 
-    node.appendChild(svg);
+    var wing = document.createElementNS(ns, 'polygon');
+    wing.setAttribute('class', 'fetcher-stonakah-plane-wing');
+    wing.setAttribute('points', '3,20 59,4 27,24 17,35');
+    svg.appendChild(wing);
+
+    var fold = document.createElementNS(ns, 'path');
+    fold.setAttribute('class', 'fetcher-stonakah-plane-fold');
+    fold.setAttribute('d', 'M3 20 L27 24 L59 4 M27 24 L38 35');
+    svg.appendChild(fold);
+
+    return svg;
+  }
+
+  function renderPlane(model, target) {
+    var node = document.createElement('div');
+    node.className = 'fetcher-stonakah-plane';
+    node.setAttribute('data-stonakah-plane-id', String(model.id));
+
+    var distance = Math.max(420, (target.clientWidth || window.innerWidth || 900) + 150);
+    var dir = model.leftToRight ? 1 : -1;
+    var startX = model.leftToRight ? '-72px' : 'calc(100% + 72px)';
+    var baseRot = model.leftToRight ? model.tilt : 180 - model.tilt;
+
+    node.style.setProperty('--stone-start-x', startX);
+    node.style.setProperty('--stone-start-y', model.y + '%');
+    node.style.setProperty('--stone-plane-w', model.width + 'px');
+    node.style.setProperty('--stone-duration', model.duration + 'ms');
+    node.style.setProperty('--stone-opacity', model.opacity);
+    node.style.setProperty('--stone-delay', (-(Date.now() - model.bornAt)) + 'ms');
+
+    node.style.setProperty('--stone-x1', (distance * .24 * dir) + 'px');
+    node.style.setProperty('--stone-x2', (distance * .51 * dir) + 'px');
+    node.style.setProperty('--stone-x3', (distance * .77 * dir) + 'px');
+    node.style.setProperty('--stone-x4', (distance * dir) + 'px');
+    node.style.setProperty('--stone-y1', model.curveA + 'px');
+    node.style.setProperty('--stone-y2', model.curveB + 'px');
+    node.style.setProperty('--stone-y3', model.curveC + 'px');
+    node.style.setProperty('--stone-y4', model.endY + 'px');
+
+    node.style.setProperty('--stone-r0', (baseRot - 2.5) + 'deg');
+    node.style.setProperty('--stone-r1', (baseRot + 1.5) + 'deg');
+    node.style.setProperty('--stone-r2', (baseRot - 1.2) + 'deg');
+    node.style.setProperty('--stone-r3', (baseRot + 1.8) + 'deg');
+    node.style.setProperty('--stone-r4', (baseRot - .5) + 'deg');
+
+    node.appendChild(makeSvg());
     return node;
   }
 
@@ -215,15 +254,15 @@
     prune(shared);
     var live = {};
 
-    shared.waves.forEach(function (model) {
+    shared.planes.forEach(function (model) {
       live[String(model.id)] = true;
-      if (!target.querySelector('[data-stonakah-wave-id="' + model.id + '"]')) {
-        target.appendChild(renderWave(model));
+      if (!target.querySelector('[data-stonakah-plane-id="' + model.id + '"]')) {
+        target.appendChild(renderPlane(model, target));
       }
     });
 
-    Array.prototype.forEach.call(target.querySelectorAll('.fetcher-stonakah-wave'), function (node) {
-      if (!live[node.getAttribute('data-stonakah-wave-id')]) node.remove();
+    Array.prototype.forEach.call(target.querySelectorAll('.fetcher-stonakah-plane'), function (node) {
+      if (!live[node.getAttribute('data-stonakah-plane-id')]) node.remove();
     });
 
     renderTimer = window.setTimeout(syncRendered, 220);
@@ -240,27 +279,29 @@
     if (!active() || reducedMotion()) return;
     ensureStyles();
     ensureLayer();
-    startShared();
+    syncMasterActivity();
     syncRendered();
   }
 
   document.addEventListener('fetcher:easter-change', function () {
+    syncMasterActivity();
     if (active() && !reducedMotion()) startRenderer();
-    else { stopShared(); stopRenderer(); }
+    else stopRenderer();
   });
 
   document.addEventListener('fetcher:pref-change', function (event) {
     if (!event || !event.detail || event.detail.key !== 'fetcher.motion') return;
+    syncMasterActivity();
     if (active() && !reducedMotion()) startRenderer();
-    else { stopShared(); stopRenderer(); }
+    else stopRenderer();
   });
 
   if (window.MutationObserver) {
     new MutationObserver(function () {
+      syncMasterActivity();
       if (active() && !reducedMotion()) {
         if (!renderTimer) startRenderer();
       } else {
-        stopShared();
         stopRenderer();
       }
     }).observe(root, { attributes:true, attributeFilter:['data-easter-palette','data-motion','data-theme'] });
@@ -268,6 +309,7 @@
 
   function init() {
     ensureStyles();
+    syncMasterActivity();
     if (active() && !reducedMotion()) startRenderer();
   }
 
