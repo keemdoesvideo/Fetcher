@@ -35,6 +35,11 @@ html[data-theme="light"]{
 html[data-theme="dark"]{
   --cursor-main:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABHNCSVQICAgIfAhkiAAAAK5JREFUSInd1VENwjAUheHTBAFIQAJSkFAJONkcDCfMAZsC6mA4+HlZE0gWttv1vnAEnK9tenOlvwxwBTrg6AXkPFwQvvMEzp4AwFQVWQAyEj2BnP3ICgDQeAMAnTcAcKfkGxsAKJkVIwDWWSkAwDIrhUBGLp4AQP/Zddj8busZJSVJt73AKGmYy3pJKYSQTA0/rt8WHGgzEKuULwAvHPfBAJyqls9ABFq8dnLNvAFD43/2SZf3ogAAAABJRU5ErkJgggAAAAAAAAAAAA==") 5 2;
 }
+/* Keem is intentionally dark even when Appearance is set to Light, so keep the
+   white arrow used by normal Dark mode instead of switching to the black one. */
+html[data-easter-palette="keem"]{
+  --cursor-main:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABHNCSVQICAgIfAhkiAAAAK5JREFUSInd1VENwjAUheHTBAFIQAJSkFAJONkcDCfMAZsC6mA4+HlZE0gWttv1vnAEnK9tenOlvwxwBTrg6AXkPFwQvvMEzp4AwFQVWQAyEj2BnP3ICgDQeAMAnTcAcKfkGxsAKJkVIwDWWSkAwDIrhUBGLp4AQP/Zddj8busZJSVJt73AKGmYy3pJKYSQTA0/rt8WHGgzEKuULwAvHPfBAJyqls9ABFq8dnLNvAFD43/2SZf3ogAAAABJRU5ErkJgggAAAAAAAAAAAA==") 5 2!important;
+}
 html[data-theme]{cursor:var(--cursor-main),auto!important;}
 html[data-theme] body,
 html[data-theme] .app,
@@ -80,6 +85,8 @@ html[data-theme] .trim-handle{cursor:ew-resize!important;}
    on the dark tile and dark mode uses the black paw on the light tile. */
 html[data-theme="light"]{--mark-paw:url("paw-cursor-dark.svg");}
 html[data-theme="dark"]{--mark-paw:url("paw-cursor-light.svg");}
+/* Keem always keeps the normal Dark-mode logo treatment: white tile, black paw. */
+html[data-easter-palette="keem"]{--mark-paw:url("paw-cursor-light.svg")!important;}
 .mark{
   width:30px;height:30px;border-radius:8px;background:var(--ink);color:var(--bg);
   display:flex;align-items:center;justify-content:center;margin-bottom:12px;flex:0 0 auto;
@@ -174,6 +181,17 @@ html[data-motion="reserved"][data-rail-collapsed="true"] .rail-btn span{
     opacity 80ms var(--ease),
     max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
     transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;
+}
+
+/* Keem's black wipe needs to reveal the monochrome interface gradually. The
+   generic unlock curve is intentionally quick at the start; on an almost-black
+   target that reads like a blink, so Keem gets a slower symmetric opacity ramp
+   with a tiny fully-covered beat before the page begins to emerge. */
+html[data-easter-palette="keem"][data-motion="full"] .fetcher-easter-v2-paint.reveal{
+  transition:opacity 2200ms cubic-bezier(.45,0,.55,1) 120ms!important;
+}
+html[data-easter-palette="keem"][data-motion="reserved"] .fetcher-easter-v2-paint.reveal{
+  transition:opacity 1500ms cubic-bezier(.45,0,.55,1) 80ms!important;
 }
 
 /* ---------- Persistent content pane ---------- */
