@@ -7,6 +7,20 @@
 /* Never let a long URL, filename, or fixed utility bubble widen the viewport. */
 html,body,.app,.main,.fetcher-content-host,.fetcher-page-frame{min-width:0;max-width:100%;}
 
+/* Branded 404 return: fade the lost page away, then reveal Fetcher with the
+   same long symmetric dissolve used by the approved Easter palette handoff. */
+html.fetcher-404-leaving .main{
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 650ms cubic-bezier(.45,0,.55,1)!important;
+}
+html.fetcher-return-from-404{background:var(--bg);}
+html.fetcher-return-from-404 body{opacity:0;}
+html.fetcher-return-from-404.fetcher-return-from-404-reveal body{
+  opacity:1;
+  transition:opacity 2200ms cubic-bezier(.45,0,.55,1) 120ms!important;
+}
+
 .fetcher-milestone-note{
   display:inline-flex;align-items:center;gap:8px;margin-top:12px;
   font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
@@ -131,3 +145,9 @@ html[data-motion="reduced"] .mark.fetcher-paw-pet,
 html[data-motion="reduced"] .mark.fetcher-paw-happy{animation:none;}
 html[data-motion="reduced"] .fetcher-pet-trail{display:none;}
 html[data-motion="reduced"] .fetcher-good-dog{animation:none;opacity:1;transform:translateX(-50%);}
+html[data-motion="reduced"].fetcher-404-leaving .main{
+  transition:opacity 100ms linear!important;
+}
+html[data-motion="reduced"].fetcher-return-from-404.fetcher-return-from-404-reveal body{
+  transition:opacity 100ms linear!important;
+}
