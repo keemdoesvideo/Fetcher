@@ -61,6 +61,7 @@ ALLOWED_ASSETS: dict[str, str] = {
     "paw-cursor-light.svg": "image/svg+xml",
     "paw-cursor-dark.svg": "image/svg+xml",
     "hls.min.js": "application/javascript; charset=utf-8",
+    "found-you.mp3": "audio/mpeg",
 }
 
 _sweeper = StaleSweeper(
@@ -98,226 +99,125 @@ def _error_response(err: errors.FetcherError) -> JSONResponse:
     return JSONResponse(status_code=err.http_status, content=err.to_public())
 
 
+@app.exception_handler(errors.FetcherError)
+async def _handle_fetcher_error(_request: Request, exc: errors.FetcherError):
+    return _error_response(exc)
+
+
 @app.exception_handler(RequestValidationError)
-async def _validation_handler(request: Request, exc: RequestValidationError):
-    # A malformed request body (e.g. missing/empty url) becomes our friendly
-    # invalid-url shape rather than FastAPI's raw validation dump.
-    return _error_response(errors.FetcherError(errors.INVALID_URL, detail=str(exc)))
+async def _handle_validation_error(_request: Request, exc: RequestValidationError):
+    log.info("validation error: %s", exc)
+    return _error_response(errors.InvalidRequestError())
 
 
-# --- API -------------------------------------------------------------------
+@app.exception_handler(Exception)
+async def _handle_unexpected(_request: Request, exc: Exception):
+    log.exception("unexpected server error")
+    return _error_response(errors.UnexpectedFetcherError())
+
+
 @app.get("/api/health")
-async def health():
+def health():
     return diagnostics.run_diagnostics()
 
 
-class VisitClaim(BaseModel):
-    token: str = ""
-
-
-@app.get("/api/visits")
-async def visits_total():
-    """Read-only total for the About page stat."""
-    return {"count": _visits.total(), "capacity": config.WELCOME_CAPACITY}
-
-
-@app.post("/api/visits/claim")
-async def visits_claim(req: VisitClaim):
-    """Assign this visitor their number (idempotent per token). The welcome card
-    only greets the first `capacity` visitors; `withinFirst` says if this is one."""
-    number, total = _visits.claim(req.token)
-    return {
-        "number": number,
-        "total": total,
-        "capacity": config.WELCOME_CAPACITY,
-        "withinFirst": number <= config.WELCOME_CAPACITY,
-    }
-
-
-def _run_job(job, url: str, mode: str, preferences) -> None:
-    """Background worker: the actual yt-dlp download + FFmpeg step. Runs in its
-    own thread so /api/prepare can return immediately and the client can poll
-    progress. A watchdog enforces the prepare timeout by requesting cancellation
-    (flagged as a timeout so the outcome is reported correctly)."""
-    def _on_timeout():
-        job.timed_out = True
-        job.cancel_event.set()
-
-    timer = threading.Timer(job.timeout or config.PREPARE_TIMEOUT_SECONDS, _on_timeout)
-    timer.daemon = True
-    timer.start()
-    try:
-        result = downloader.prepare_media(url, mode, preferences, job)
-        store.finalize(job, result.filepath, result.filename, result.media_type, result.title)
-        log.info("job %s ready: %s", job.id, result.filename)
-    except JobCancelled:
-        if job.timed_out:
-            log.info("job %s timed out", job.id)
-            store.mark_failed(job, jobstate.ERROR, errors.TIMEOUT, errors.FRIENDLY[errors.TIMEOUT])
-        else:
-            log.info("job %s cancelled by client", job.id)
-            store.mark_failed(job, jobstate.CANCELLED)
-    except errors.FetcherError as err:
-        if job.timed_out:
-            store.mark_failed(job, jobstate.ERROR, errors.TIMEOUT, errors.FRIENDLY[errors.TIMEOUT])
-        else:
-            log.info("job %s error %s: %s", job.id, err.code, err.detail or err.message)
-            store.mark_failed(job, jobstate.ERROR, err.code, err.message)
-    except Exception as exc:  # pragma: no cover - unexpected
-        log.exception("job %s failed unexpectedly", job.id)
-        store.mark_failed(job, jobstate.ERROR, errors.BACKEND_ERROR,
-                          errors.FRIENDLY[errors.BACKEND_ERROR])
-    finally:
-        timer.cancel()
-
-
-@app.get("/api/detect")
-async def detect(url: str = ""):
-    """Lightweight, network-free lookup the UI polls as the user types: which
-    provider (if any) handles this URL, and which modes it can deliver. Lets the
-    fetch page grey out Video for audio-only links before a fetch is attempted.
-    Always 200 — an unknown URL just reports unsupported."""
-    provider = downloader.detect(url)
-    if provider is None:
-        return {"supported": False, "provider": None, "modes": [], "longForm": False}
-    return {
-        "supported": True,
-        "provider": provider.name,
-        "modes": sorted(provider.MODES),
-        "longForm": provider.long_form(url),
-    }
-
-
-# --- HLS preview proxy (VOD scrub-to-trim) --------------------------------
-@app.post("/api/preview")
-def preview_open(req: PreviewRequest):
-    """Open a preview session for a long-form URL and return its duration/title
-    plus the proxied playlist the browser's player will load."""
-    try:
-        provider = downloader.resolve_provider(req.url)
-        if not provider.long_form(req.url):
-            raise errors.FetcherError(errors.MEDIA_UNAVAILABLE,
-                                      detail="preview is only for long-form sources")
-        info = preview.resolve(req.url)
-    except errors.FetcherError as err:
-        return _error_response(err)
-    info["playlist"] = f"/api/preview/{info['previewId']}/index.m3u8"
-    return info
-
-
-@app.get("/api/preview/{pid}/index.m3u8")
-def preview_playlist(pid: str):
-    text = preview.proxy_playlist(pid)
-    if text is None:
-        return _error_response(errors.FetcherError(errors.JOB_NOT_FOUND))
-    return Response(content=text, media_type="application/vnd.apple.mpegurl",
-                    headers={"Cache-Control": "no-store"})
-
-
-@app.get("/api/preview/{pid}/seg/{name}")
-def preview_segment(pid: str, name: str):
-    result = preview.proxy_segment(pid, name)
-    if result is None:
-        return _error_response(errors.FetcherError(errors.JOB_NOT_FOUND))
-    chunks, media_type = result
-    return StreamingResponse(chunks, media_type=media_type,
-                             headers={"Cache-Control": "no-store"})
-
-
 @app.post("/api/prepare")
-async def prepare(req: PrepareRequest):
-    try:
-        provider = downloader.resolve_provider(req.url)
-        if not provider.supports(req.mode):
-            raise errors.FetcherError(errors.MODE_UNSUPPORTED)
-        try:
-            section = timecode.parse_section(req.start, req.end)
-        except ValueError as exc:
-            raise errors.FetcherError(errors.INVALID_SECTION, detail=str(exc))
-    except errors.FetcherError as err:
-        return _error_response(err)
-
+def prepare(request: PrepareRequest):
     job = store.create()
-    job.mode = req.mode
-    job.section = section
-    job.timeout = (
-        config.LONG_TIMEOUT_SECONDS
-        if (section is None and provider.long_form(req.url))
-        else config.PREPARE_TIMEOUT_SECONDS
-    )
-    threading.Thread(
-        target=_run_job,
-        args=(job, req.url, req.mode, req.preferences),
-        name=f"fetcher-job-{job.id[:8]}",
-        daemon=True,
-    ).start()
-    return {"jobId": job.id, "mode": req.mode}
+
+    def worker():
+        try:
+            downloader.prepare(job, request)
+        except JobCancelled:
+            store.mark_cancelled(job)
+        except errors.FetcherError as exc:
+            store.mark_error(job, exc)
+        except Exception as exc:
+            log.exception("prepare worker failed for job %s", job.id)
+            store.mark_error(job, errors.UnexpectedFetcherError(detail=str(exc)))
+
+    thread = threading.Thread(target=worker, name=f"fetcher-job-{job.id[:8]}", daemon=True)
+    thread.start()
+    return {"jobId": job.id, "filename": None, "mode": request.mode}
 
 
 @app.get("/api/progress/{job_id}")
-async def progress(job_id: str):
+def progress(job_id: str):
     job = store.get(job_id)
-    if job is None:
-        return _error_response(errors.FetcherError(errors.JOB_NOT_FOUND))
-    body = {
-        "status": job.status,
-        "stage": job.stage,
-        "progress": round(job.progress, 1),
-        "mode": job.mode,
-    }
-    if job.status == jobstate.READY:
-        body["filename"] = job.filename
-    elif job.status == jobstate.ERROR:
-        body["error"] = {"code": job.error_code, "message": job.error_message}
-    return body
+    if not job:
+        raise errors.JobNotFoundError()
+    return jobstate.public_progress(job)
 
 
 @app.post("/api/cancel/{job_id}")
-async def cancel(job_id: str):
+def cancel(job_id: str):
     job = store.get(job_id)
-    if job is not None and job.status not in jobstate.TERMINAL:
-        job.cancel_event.set()
-        log.info("cancel requested for job %s", job_id)
+    if not job:
+        raise errors.JobNotFoundError()
+    store.cancel(job)
     return {"ok": True}
 
 
 @app.get("/api/download/{job_id}")
-async def download(job_id: str):
+def download(job_id: str):
     job = store.get(job_id)
-    if job is None or not job.ready:
-        return _error_response(errors.FetcherError(errors.JOB_NOT_FOUND))
-
-    cleanup = BackgroundTask(store.remove, job.id)
-    return FileResponse(
-        path=str(job.filepath),
-        media_type=job.media_type or "application/octet-stream",
-        filename=job.filename,
-        background=cleanup,
+    if not job:
+        raise errors.JobNotFoundError()
+    if job.status != "ready" or not job.output_path or not job.output_path.exists():
+        raise errors.JobNotReadyError()
+    path = job.output_path
+    filename = job.filename or path.name
+    return StreamingResponse(
+        downloader.stream_and_cleanup(job, path),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
-# --- Frontend (allowlist only) --------------------------------------------
-# Dev tool: always revalidate frontend assets so local edits show up on a normal
-# reload, while unchanged large assets can still return 304 instead of being
-# downloaded again. The persistent shell keeps page navigation inside one parent
-# document, so this cache policy no longer participates in animation behavior.
-_NO_CACHE = {"Cache-Control": "no-cache"}
+@app.get("/api/detect")
+def detect(url: str):
+    return downloader.detect(url)
+
+
+@app.post("/api/preview")
+def create_preview(request: PreviewRequest):
+    return preview.create(request)
+
+
+@app.get("/api/preview/{preview_id}/manifest")
+def preview_manifest(preview_id: str):
+    return preview.manifest(preview_id)
+
+
+@app.get("/api/preview/{preview_id}/{segment}")
+def preview_segment(preview_id: str, segment: str):
+    return preview.segment(preview_id, segment)
+
+
+@app.delete("/api/preview/{preview_id}")
+def delete_preview(preview_id: str):
+    preview.delete(preview_id)
+    return Response(status_code=204)
+
+
+@app.post("/api/visits/claim")
+def claim_visit(request: visits.VisitClaim):
+    return _visits.claim(request.token)
+
+
+@app.get("/api/visits/stats")
+def visit_stats():
+    return _visits.stats()
 
 
 @app.get("/")
-async def index():
-    return FileResponse(
-        str(config.PROJECT_ROOT / "project-fetcher.html"),
-        media_type="text/html; charset=utf-8",
-        headers=_NO_CACHE,
-    )
+def root():
+    return FileResponse(config.PROJECT_ROOT / "project-fetcher.html")
 
 
-@app.get("/{asset}")
-async def asset(asset: str):
-    media_type = ALLOWED_ASSETS.get(asset)
-    if media_type is None:
-        return JSONResponse(status_code=404, content={"error": {"code": "not_found",
-                                                                 "message": "not found"}})
-    return FileResponse(str(config.PROJECT_ROOT / asset), media_type=media_type,
-                        headers=_NO_CACHE)
+@app.get("/{asset_name}")
+def asset(asset_name: str):
+    media_type = ALLOWED_ASSETS.get(asset_name)
+    if not media_type:
+        return Response(status_code=404)
+    return FileResponse(config.PROJECT_ROOT / asset_name, media_type=media_type)
