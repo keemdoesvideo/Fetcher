@@ -3,8 +3,12 @@
   'use strict';
 
   var root = document.documentElement;
+  var topWindow = window;
+  try { if (window.top) topWindow = window.top; } catch (e) { topWindow = window; }
+  var isMaster = topWindow === window;
+
   var layer = null;
-  var spawnTimer = null;
+  var renderTimer = null;
   var pointerFrame = null;
   var lastPointer = null;
   var MAX_BUBBLES = 6;
@@ -13,6 +17,113 @@
   function active() {
     return root.getAttribute('data-easter-palette') === 'ailincia' &&
       root.getAttribute('data-motion') !== 'reduced';
+  }
+
+  function masterActive() {
+    try {
+      var masterRoot = topWindow.document.documentElement;
+      return masterRoot.getAttribute('data-easter-palette') === 'ailincia' &&
+        masterRoot.getAttribute('data-motion') !== 'reduced';
+    } catch (e) {
+      return active();
+    }
+  }
+
+  function sharedState() {
+    try {
+      if (!topWindow.FetcherAilinciaShared) {
+        topWindow.FetcherAilinciaShared = {
+          bubbles: [],
+          nextId: 1,
+          spawnTimer: null,
+          running: false
+        };
+      }
+      return topWindow.FetcherAilinciaShared;
+    } catch (e) {
+      if (!window.FetcherAilinciaShared) {
+        window.FetcherAilinciaShared = {
+          bubbles: [],
+          nextId: 1,
+          spawnTimer: null,
+          running: false
+        };
+      }
+      return window.FetcherAilinciaShared;
+    }
+  }
+
+  function pruneShared() {
+    var shared = sharedState();
+    var now = Date.now();
+    shared.bubbles = shared.bubbles.filter(function (bubble) {
+      return !bubble.popped && now < bubble.bornAt + bubble.duration + 650;
+    });
+  }
+
+  function makeBubbleModel(delay) {
+    var pink = Math.random() < .52;
+    var drift = rand(-82, 82);
+    return {
+      id: sharedState().nextId++,
+      bornAt: Date.now() + (delay || 0),
+      duration: rand(11500, 17500),
+      pink: pink,
+      size: rand(28, 68),
+      opacity: rand(.58, .74),
+      left: rand(7, 93),
+      drift: drift,
+      swayA: drift + rand(-38, 38),
+      swayB: drift + rand(-48, 48),
+      popped: false
+    };
+  }
+
+  function addSharedBubble(delay) {
+    if (!isMaster || !masterActive()) return;
+    var shared = sharedState();
+    pruneShared();
+    if (shared.bubbles.length >= MAX_BUBBLES) return;
+    shared.bubbles.push(makeBubbleModel(delay || 0));
+  }
+
+  function scheduleSharedSpawn() {
+    if (!isMaster) return;
+    var shared = sharedState();
+    window.clearTimeout(shared.spawnTimer);
+    if (!shared.running || !masterActive()) return;
+    shared.spawnTimer = window.setTimeout(function tick() {
+      if (!shared.running || !masterActive()) return;
+      addSharedBubble(0);
+      scheduleSharedSpawn();
+    }, rand(1500, 2600));
+  }
+
+  function startShared() {
+    if (!isMaster) return;
+    var shared = sharedState();
+    if (shared.running) return;
+    shared.running = true;
+    shared.bubbles = [];
+    addSharedBubble(0);
+    addSharedBubble(650);
+    addSharedBubble(1350);
+    scheduleSharedSpawn();
+  }
+
+  function stopShared() {
+    if (!isMaster) return;
+    var shared = sharedState();
+    window.clearTimeout(shared.spawnTimer);
+    shared.spawnTimer = null;
+    shared.running = false;
+    shared.bubbles = [];
+  }
+
+  function syncMasterActivity() {
+    if (!isMaster) return;
+    if (masterActive()) startShared();
+    else stopShared();
   }
 
   function ensureStyles() {
@@ -57,6 +168,36 @@
     if (bubble && bubble.parentNode) bubble.remove();
   }
 
+  function applyBubbleTone(node, pink) {
+    if (pink) {
+      node.style.setProperty('--bubble-fill-a', 'rgba(255,137,171,.82)');
+      node.style.setProperty('--bubble-fill-b', 'rgba(255,205,218,.62)');
+      node.style.setProperty('--bubble-edge', 'rgba(184,68,105,.72)');
+    } else {
+      node.style.setProperty('--bubble-fill-a', 'rgba(255,179,126,.84)');
+      node.style.setProperty('--bubble-fill-b', 'rgba(255,223,190,.64)');
+      node.style.setProperty('--bubble-edge', 'rgba(191,112,60,.68)');
+    }
+  }
+
+  function createBubbleNode(model) {
+    var node = document.createElement('span');
+    node.className = 'fetcher-ailincia-bubble';
+    node.setAttribute('data-bubble-id', String(model.id));
+    node.setAttribute('data-bubble-tone', model.pink ? 'pink' : 'peach');
+    node.style.setProperty('--bubble-left', model.left + '%');
+    node.style.setProperty('--bubble-size', model.size + 'px');
+    node.style.setProperty('--bubble-opacity', model.opacity.toFixed(2));
+    node.style.setProperty('--bubble-drift', model.drift + 'px');
+    node.style.setProperty('--bubble-sway-a', model.swayA + 'px');
+    node.style.setProperty('--bubble-sway-b', model.swayB + 'px');
+    node.style.setProperty('--bubble-duration', model.duration + 'ms');
+    var elapsed = Date.now() - model.bornAt;
+    node.style.setProperty('--bubble-delay', (-elapsed) + 'ms');
+    applyBubbleTone(node, model.pink);
+    return node;
+  }
+
   function spawnPopFx(bubble) {
     if (!layer || !bubble) return;
     var rect = bubble.getBoundingClientRect();
@@ -94,75 +235,60 @@
   function popBubble(bubble) {
     if (!bubble || bubble.dataset.popping === 'true') return;
     bubble.dataset.popping = 'true';
+    var id = Number(bubble.getAttribute('data-bubble-id'));
+    var shared = sharedState();
+    shared.bubbles.forEach(function (model) {
+      if (model.id === id) model.popped = true;
+    });
     spawnPopFx(bubble);
     removeBubble(bubble);
   }
 
-  function spawnBubble(delay) {
-    if (!active()) return;
-    var host = ensureLayer();
-    if (!host) return;
-    if (host.querySelectorAll('.fetcher-ailincia-bubble').length >= MAX_BUBBLES) return;
+  function syncRenderedBubbles() {
+    window.clearTimeout(renderTimer);
+    renderTimer = null;
 
-    var bubble = document.createElement('span');
-    bubble.className = 'fetcher-ailincia-bubble';
-
-    var pink = Math.random() < .52;
-    var size = rand(28, 68);
-    var opacity = rand(.58, .74);
-    var drift = rand(-82, 82);
-    var swayA = drift + rand(-38, 38);
-    var swayB = drift + rand(-48, 48);
-    var duration = rand(11500, 17500);
-
-    bubble.setAttribute('data-bubble-tone', pink ? 'pink' : 'peach');
-    bubble.style.setProperty('--bubble-left', rand(7, 93) + '%');
-    bubble.style.setProperty('--bubble-size', size + 'px');
-    bubble.style.setProperty('--bubble-opacity', opacity.toFixed(2));
-    bubble.style.setProperty('--bubble-drift', drift + 'px');
-    bubble.style.setProperty('--bubble-sway-a', swayA + 'px');
-    bubble.style.setProperty('--bubble-sway-b', swayB + 'px');
-    bubble.style.setProperty('--bubble-duration', duration + 'ms');
-    bubble.style.setProperty('--bubble-delay', (delay || 0) + 'ms');
-
-    if (pink) {
-      bubble.style.setProperty('--bubble-fill-a', 'rgba(255,137,171,.82)');
-      bubble.style.setProperty('--bubble-fill-b', 'rgba(255,205,218,.62)');
-      bubble.style.setProperty('--bubble-edge', 'rgba(184,68,105,.72)');
-    } else {
-      bubble.style.setProperty('--bubble-fill-a', 'rgba(255,179,126,.84)');
-      bubble.style.setProperty('--bubble-fill-b', 'rgba(255,223,190,.64)');
-      bubble.style.setProperty('--bubble-edge', 'rgba(191,112,60,.68)');
+    if (!active()) {
+      if (layer) layer.replaceChildren();
+      return;
     }
 
-    host.appendChild(bubble);
-    window.setTimeout(function () { removeBubble(bubble); }, duration + (delay || 0) + 600);
+    ensureStyles();
+    var host = ensureLayer();
+    if (!host) return;
+    pruneShared();
+
+    var shared = sharedState();
+    var liveIds = {};
+    var now = Date.now();
+
+    shared.bubbles.forEach(function (model) {
+      if (model.popped || now >= model.bornAt + model.duration + 500) return;
+      liveIds[String(model.id)] = true;
+      if (!host.querySelector('[data-bubble-id="' + model.id + '"]')) {
+        host.appendChild(createBubbleNode(model));
+      }
+    });
+
+    Array.prototype.forEach.call(host.querySelectorAll('.fetcher-ailincia-bubble'), function (node) {
+      if (!liveIds[node.getAttribute('data-bubble-id')]) node.remove();
+    });
+
+    renderTimer = window.setTimeout(syncRenderedBubbles, 160);
   }
 
-  function scheduleNext() {
-    window.clearTimeout(spawnTimer);
-    if (!active()) return;
-    spawnTimer = window.setTimeout(function () {
-      spawnBubble(0);
-      scheduleNext();
-    }, rand(1500, 2600));
-  }
-
-  function stop() {
-    window.clearTimeout(spawnTimer);
-    spawnTimer = null;
+  function stopRenderer() {
+    window.clearTimeout(renderTimer);
+    renderTimer = null;
     if (layer) layer.replaceChildren();
   }
 
-  function start() {
-    stop();
+  function startRenderer() {
+    stopRenderer();
     if (!active()) return;
     ensureStyles();
     ensureLayer();
-    spawnBubble(0);
-    spawnBubble(650);
-    spawnBubble(1350);
-    scheduleNext();
+    syncRenderedBubbles();
   }
 
   function bubbleAt(x, y) {
@@ -202,29 +328,33 @@
   }, true);
 
   document.addEventListener('fetcher:easter-change', function () {
-    if (root.getAttribute('data-easter-palette') === 'ailincia') start();
-    else stop();
+    syncMasterActivity();
+    if (active()) startRenderer();
+    else stopRenderer();
   });
 
   document.addEventListener('fetcher:pref-change', function (event) {
     if (!event || !event.detail || event.detail.key !== 'fetcher.motion') return;
-    if (active()) start();
-    else stop();
+    syncMasterActivity();
+    if (active()) startRenderer();
+    else stopRenderer();
   });
 
   if (window.MutationObserver) {
     new MutationObserver(function () {
-      if (root.getAttribute('data-easter-palette') === 'ailincia') {
-        if (!spawnTimer && active()) start();
+      syncMasterActivity();
+      if (active()) {
+        if (!renderTimer) startRenderer();
       } else {
-        stop();
+        stopRenderer();
       }
     }).observe(root, { attributes: true, attributeFilter: ['data-easter-palette', 'data-motion'] });
   }
 
   function init() {
     ensureStyles();
-    if (active()) start();
+    syncMasterActivity();
+    if (active()) startRenderer();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
