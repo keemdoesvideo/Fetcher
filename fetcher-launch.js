@@ -37,7 +37,9 @@
   };
 
   var signatureTimer = null;
+  var signatureStartTimer = null;
   var titleTimer = null;
+  var titleRestore = document.title;
 
   function syncThemeColor() {
     var meta = document.querySelector('meta[name="theme-color"]');
@@ -62,17 +64,20 @@
   }
 
   function foundYouTitle() {
-    var original = document.title;
+    if (document.title !== 'found you.') titleRestore = document.title;
     window.clearTimeout(titleTimer);
     document.title = 'found you.';
     var delay = motionMode() === 'reduced' ? 650 : (motionMode() === 'reserved' ? 1500 : 2200);
     titleTimer = window.setTimeout(function () {
-      if (document.title === 'found you.') document.title = original;
+      if (document.title === 'found you.') document.title = titleRestore;
     }, delay);
   }
 
   function clearSignature() {
+    window.clearTimeout(signatureStartTimer);
     window.clearTimeout(signatureTimer);
+    signatureStartTimer = null;
+    signatureTimer = null;
     var old = document.querySelector('.fetcher-name-signature');
     if (old) old.remove();
   }
@@ -114,6 +119,7 @@
     document.body.appendChild(layer);
     signatureTimer = window.setTimeout(function () {
       if (layer.parentNode) layer.remove();
+      signatureTimer = null;
     }, config.kind === 'halo' ? 2600 : 2800);
   }
 
@@ -122,8 +128,12 @@
       clearSignature();
       return;
     }
+    window.clearTimeout(signatureStartTimer);
     var delay = motionMode() === 'reserved' ? 170 : 260;
-    window.setTimeout(function () { showSignature(palette); }, delay);
+    signatureStartTimer = window.setTimeout(function () {
+      signatureStartTimer = null;
+      showSignature(palette);
+    }, delay);
   }
 
   document.addEventListener('fetcher:easter-change', function (event) {
