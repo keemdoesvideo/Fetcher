@@ -33,27 +33,27 @@
   var EASTER_WASHES = {
     ailincia: 'linear-gradient(135deg,#FFB6C1 0%,#FFDAB9 28%,#FFE4E1 52%,#FFF0F5 76%,#FAEBD7 100%)',
     vitaviita: 'linear-gradient(135deg,#F4FAFF 0%,#DBEDFF 24%,#ACCBFF 50%,#93ACFF 74%,#8993FF 100%)',
-    stonakah: 'linear-gradient(135deg,#111114 0%,#6E1F34 34%,#6B4A3A 66%,#18243B 100%)'
+    stonakah: 'linear-gradient(135deg,#7F5539 0%,#9C6644 24%,#B08968 48%,#DDB892 68%,#E6CCB2 84%,#EDE0D4 100%)'
   };
 
   var easterStyle = document.createElement('style');
   easterStyle.id = 'fetcher-easter-styles';
   easterStyle.textContent = [
-    'html[data-theme="light"][data-easter-palette="ailincia"]{--bg:#FFB6C1;--surface:#FFF0F5;--rail:#FAEBD7;--ink:#2B2024;--ink-strong:#140D10;--ink-soft:#725A62;--ink-faint:#946F7A;--border:#FFDAB9;--border-strong:#EFA6B3;--accent:#D96F8C;--accent-ink:#733047;--accent-tint:#FFE4E1;--on-accent:#FFFFFF;--audio:#C98A55;--audio-tint:#FFDAB9;}',
+    'html[data-theme="light"][data-easter-palette="ailincia"]{--bg:#FFB6C1;--surface:#FFF0F5;--rail:#FFDAB9;--ink:#2B2024;--ink-strong:#140D10;--ink-soft:#725A62;--ink-faint:#946F7A;--border:#EFA6B3;--border-strong:#D9879B;--accent:#D96F8C;--accent-ink:#733047;--accent-tint:#FFE4E1;--on-accent:#FFFFFF;--audio:#C98A55;--audio-tint:#FFDAB9;--mute:#C96F84;--mute-tint:#FFE4E1;--shiba:#D96F8C;--shiba-deep:#B95873;--shiba-cream:#FFDAB9;}',
     'html[data-theme="dark"][data-easter-palette="ailincia"]{--bg:#4A2733;--surface:#2A1920;--rail:#351F28;--ink:#FFF0F5;--ink-strong:#FFFFFF;--ink-soft:#E8C7D0;--ink-faint:#B68B96;--border:#6A3B49;--border-strong:#8D4E60;--accent:#FFB6C1;--accent-ink:#FFDCE3;--accent-tint:rgba(255,182,193,.20);--on-accent:#2B2024;--audio:#FFDAB9;--audio-tint:rgba(255,218,185,.20);}',
-    'html[data-theme="light"][data-easter-palette="vitaviita"]{--bg:#8993FF;--surface:#F4FAFF;--rail:#DBEDFF;--ink:#18213E;--ink-strong:#0B1024;--ink-soft:#4F5C7D;--ink-faint:#7482A5;--border:#C3D9FF;--border-strong:#ACCBFF;--accent:#5368DF;--accent-ink:#273694;--accent-tint:#DBEDFF;--on-accent:#FFFFFF;--audio:#6E89E8;--audio-tint:#DCE7FF;}',
+    'html[data-theme="light"][data-easter-palette="vitaviita"]{--bg:#8993FF;--surface:#F4FAFF;--rail:#ACCBFF;--ink:#18213E;--ink-strong:#0B1024;--ink-soft:#4F5C7D;--ink-faint:#7482A5;--border:#93ACFF;--border-strong:#7186E8;--accent:#5368DF;--accent-ink:#273694;--accent-tint:#DBEDFF;--on-accent:#FFFFFF;--audio:#6E89E8;--audio-tint:#DBEDFF;--mute:#7186E8;--mute-tint:#DBEDFF;--shiba:#8993FF;--shiba-deep:#5368DF;--shiba-cream:#DBEDFF;}',
     'html[data-theme="dark"][data-easter-palette="vitaviita"]{--bg:#26346A;--surface:#151D3B;--rail:#1C274F;--ink:#F4FAFF;--ink-strong:#FFFFFF;--ink-soft:#CFDCF6;--ink-faint:#91A3CC;--border:#405487;--border-strong:#586FA8;--accent:#8993FF;--accent-ink:#D5DEFF;--accent-tint:rgba(137,147,255,.22);--on-accent:#101634;--audio:#ACCBFF;--audio-tint:rgba(172,203,255,.20);}',
-    'html[data-theme="light"][data-easter-palette="stonakah"]{--bg:#A87861;--surface:#F4ECE7;--rail:#DDCEC4;--ink:#171316;--ink-strong:#050506;--ink-soft:#574642;--ink-faint:#79625C;--border:#C8AEA0;--border-strong:#AF8B79;--accent:#6E1F34;--accent-ink:#501426;--accent-tint:#E7D0D7;--on-accent:#FFFFFF;--audio:#18243B;--audio-tint:#D5DBE4;--mute:#6B4A3A;--mute-tint:#E2D2C9;}',
+    'html[data-theme="light"][data-easter-palette="stonakah"]{--bg:#DDB892;--surface:#EDE0D4;--rail:#B08968;--ink:#3B261A;--ink-strong:#24140D;--ink-soft:#6D4A37;--ink-faint:#8B6852;--border:#9C6644;--border-strong:#7F5539;--accent:#9C6644;--accent-ink:#6B402A;--accent-tint:#E6CCB2;--on-accent:#FFF9F3;--audio:#7F5539;--audio-tint:#DDB892;--mute:#B08968;--mute-tint:#E6CCB2;--danger:#9C6644;--danger-tint:#E6CCB2;--success:#7F5539;--success-tint:#E6CCB2;--shiba:#B08968;--shiba-deep:#7F5539;--shiba-cream:#E6CCB2;}',
     'html[data-theme="dark"][data-easter-palette="stonakah"]{--bg:#111114;--surface:#1C171A;--rail:#18243B;--ink:#F4EEE9;--ink-strong:#FFFFFF;--ink-soft:#C6B7B0;--ink-faint:#877771;--border:#3A2B31;--border-strong:#563942;--accent:#8D2947;--accent-ink:#F0A6B9;--accent-tint:rgba(141,41,71,.24);--on-accent:#FFFFFF;--audio:#35527F;--audio-tint:rgba(53,82,127,.30);--mute:#8A604A;--mute-tint:rgba(138,96,74,.24);}',
-    '.fetcher-easter-wash{position:fixed;inset:0;z-index:10000;pointer-events:none;opacity:1;clip-path:circle(0 at var(--easter-x,50%) var(--easter-y,50%));transition:opacity 420ms var(--ease);will-change:clip-path,opacity;}',
+    '.fetcher-easter-wash{position:fixed;inset:0;z-index:10000;pointer-events:none;opacity:1;clip-path:polygon(100% 0,100% 0,100% 0,100% 0,100% 0,100% 0);transition:opacity 420ms var(--ease);will-change:clip-path,opacity;}',
     '.fetcher-easter-wash.is-color{background:var(--easter-wash-bg,#fff);}',
     '.fetcher-easter-wash.is-drain{background:rgba(128,128,128,.025);-webkit-backdrop-filter:grayscale(1) saturate(0);backdrop-filter:grayscale(1) saturate(0);}',
-    '.fetcher-easter-wash.in{animation:fetcher-easter-wave-full 1320ms cubic-bezier(.16,.84,.44,1) both;}',
-    '@keyframes fetcher-easter-wave-full{0%{clip-path:circle(0 at var(--easter-x,50%) var(--easter-y,50%));}56%{clip-path:circle(76vmax at var(--easter-x,50%) var(--easter-y,50%));}68%{clip-path:circle(70vmax at var(--easter-x,50%) var(--easter-y,50%));}84%{clip-path:circle(108vmax at var(--easter-x,50%) var(--easter-y,50%));}100%{clip-path:circle(150vmax at var(--easter-x,50%) var(--easter-y,50%));}}',
+    '.fetcher-easter-wash.in{animation:fetcher-easter-spill-full 1450ms cubic-bezier(.16,.84,.44,1) both;}',
+    '@keyframes fetcher-easter-spill-full{0%{clip-path:polygon(100% 0,100% 0,100% 0,100% 0,100% 0,100% 0);}18%{clip-path:polygon(78% 0,100% 0,100% 24%,95% 20%,88% 14%,84% 10%);}42%{clip-path:polygon(42% 0,100% 0,100% 60%,90% 53%,78% 43%,64% 35%);}68%{clip-path:polygon(8% 0,100% 0,100% 94%,88% 86%,70% 72%,48% 61%);}84%{clip-path:polygon(0 0,100% 0,100% 100%,58% 100%,36% 87%,14% 80%);}91%{clip-path:polygon(0 0,100% 0,100% 100%,64% 100%,42% 91%,18% 84%);}100%{clip-path:polygon(0 0,100% 0,100% 100%,0 100%,0 100%,0 100%);}}',
     '.fetcher-easter-wash.out{opacity:0;}',
     'html[data-motion="reserved"] .fetcher-easter-wash{transition:opacity 260ms var(--ease);}',
-    'html[data-motion="reserved"] .fetcher-easter-wash.in{animation:fetcher-easter-wave-reserved 850ms var(--ease) both;}',
-    '@keyframes fetcher-easter-wave-reserved{from{clip-path:circle(0 at var(--easter-x,50%) var(--easter-y,50%));}to{clip-path:circle(150vmax at var(--easter-x,50%) var(--easter-y,50%));}}',
+    'html[data-motion="reserved"] .fetcher-easter-wash.in{animation:fetcher-easter-spill-reserved 950ms var(--ease) both;}',
+    '@keyframes fetcher-easter-spill-reserved{0%{clip-path:polygon(100% 0,100% 0,100% 0,100% 0,100% 0,100% 0);}50%{clip-path:polygon(38% 0,100% 0,100% 64%,88% 55%,72% 44%,58% 36%);}100%{clip-path:polygon(0 0,100% 0,100% 100%,0 100%,0 100%,0 100%);}}',
     'html[data-motion="reduced"] .fetcher-easter-wash{clip-path:none!important;opacity:0;transition:opacity 160ms linear;animation:none!important;}',
     'html[data-motion="reduced"] .fetcher-easter-wash.in{opacity:1;}',
     'html[data-motion="reduced"] .fetcher-easter-wash.out{opacity:0;}'
@@ -68,9 +68,9 @@
 
   function easterTimings() {
     var motion = root.getAttribute('data-motion') || 'full';
-    if (motion === 'reduced') return { wash: 160, settle: 120 };
-    if (motion === 'reserved') return { wash: 850, settle: 260 };
-    return { wash: 1320, settle: 420 };
+    if (motion === 'reduced') return { hold: 0, wash: 160, settle: 120 };
+    if (motion === 'reserved') return { hold: 220, wash: 950, settle: 260 };
+    return { hold: 360, wash: 1450, settle: 420 };
   }
 
   function runEasterTransition(name, origin) {
@@ -152,11 +152,15 @@
       if (window.parent && window.parent !== window && window.parent.FetcherEaster) host = window.parent;
     } catch (e) {}
     var controller = host.FetcherEaster || window.FetcherEaster;
-    var transition = controller && controller.transitionTo
-      ? controller.transitionTo(secret.palette, secretOrigin(input))
-      : Promise.resolve().then(function () {
-          if (window.FetcherPrefs && FetcherPrefs.setEasterPalette) FetcherPrefs.setEasterPalette(secret.palette);
-        });
+    var motion = root.getAttribute('data-motion') || 'full';
+    var hold = motion === 'reduced' ? 0 : (motion === 'reserved' ? 220 : 360);
+    var transition = new Promise(function (resolve) { window.setTimeout(resolve, hold); }).then(function () {
+      return controller && controller.transitionTo
+        ? controller.transitionTo(secret.palette, secretOrigin(input))
+        : Promise.resolve().then(function () {
+            if (window.FetcherPrefs && FetcherPrefs.setEasterPalette) FetcherPrefs.setEasterPalette(secret.palette);
+          });
+    });
 
     Promise.resolve(transition).catch(function () {
       if (window.FetcherPrefs && FetcherPrefs.setEasterPalette) FetcherPrefs.setEasterPalette(secret.palette);
