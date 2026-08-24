@@ -48,12 +48,12 @@
     '.fetcher-easter-wash{position:fixed;inset:0;z-index:10000;pointer-events:none;opacity:1;clip-path:circle(0 at var(--easter-x,50%) var(--easter-y,50%));transition:opacity 420ms var(--ease);will-change:clip-path,opacity;}',
     '.fetcher-easter-wash.is-color{background:var(--easter-wash-bg,#fff);}',
     '.fetcher-easter-wash.is-drain{background:rgba(128,128,128,.025);-webkit-backdrop-filter:grayscale(1) saturate(0);backdrop-filter:grayscale(1) saturate(0);}',
-    '.fetcher-easter-wash.in{animation:fetcher-easter-wave-full 1320ms cubic-bezier(.16,.84,.44,1) both;}
-@keyframes fetcher-easter-wave-full{0%{clip-path:circle(0 at var(--easter-x,50%) var(--easter-y,50%));}56%{clip-path:circle(76vmax at var(--easter-x,50%) var(--easter-y,50%));}68%{clip-path:circle(70vmax at var(--easter-x,50%) var(--easter-y,50%));}84%{clip-path:circle(108vmax at var(--easter-x,50%) var(--easter-y,50%));}100%{clip-path:circle(150vmax at var(--easter-x,50%) var(--easter-y,50%));}}',
+    '.fetcher-easter-wash.in{animation:fetcher-easter-wave-full 1320ms cubic-bezier(.16,.84,.44,1) both;}',
+    '@keyframes fetcher-easter-wave-full{0%{clip-path:circle(0 at var(--easter-x,50%) var(--easter-y,50%));}56%{clip-path:circle(76vmax at var(--easter-x,50%) var(--easter-y,50%));}68%{clip-path:circle(70vmax at var(--easter-x,50%) var(--easter-y,50%));}84%{clip-path:circle(108vmax at var(--easter-x,50%) var(--easter-y,50%));}100%{clip-path:circle(150vmax at var(--easter-x,50%) var(--easter-y,50%));}}',
     '.fetcher-easter-wash.out{opacity:0;}',
-    'html[data-motion="reserved"] .fetcher-easter-wash{transition:opacity 260ms var(--ease);}
-html[data-motion="reserved"] .fetcher-easter-wash.in{animation:fetcher-easter-wave-reserved 850ms var(--ease) both;}
-@keyframes fetcher-easter-wave-reserved{from{clip-path:circle(0 at var(--easter-x,50%) var(--easter-y,50%));}to{clip-path:circle(150vmax at var(--easter-x,50%) var(--easter-y,50%));}}',
+    'html[data-motion="reserved"] .fetcher-easter-wash{transition:opacity 260ms var(--ease);}',
+    'html[data-motion="reserved"] .fetcher-easter-wash.in{animation:fetcher-easter-wave-reserved 850ms var(--ease) both;}',
+    '@keyframes fetcher-easter-wave-reserved{from{clip-path:circle(0 at var(--easter-x,50%) var(--easter-y,50%));}to{clip-path:circle(150vmax at var(--easter-x,50%) var(--easter-y,50%));}}',
     'html[data-motion="reduced"] .fetcher-easter-wash{clip-path:none!important;opacity:0;transition:opacity 160ms linear;animation:none!important;}',
     'html[data-motion="reduced"] .fetcher-easter-wash.in{opacity:1;}',
     'html[data-motion="reduced"] .fetcher-easter-wash.out{opacity:0;}'
