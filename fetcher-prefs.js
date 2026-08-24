@@ -70,7 +70,7 @@
     style.id = 'fetcher-keem-snow-styles';
     style.textContent = [
       '.fetcher-keem-snow{position:fixed;inset:0;z-index:9990;pointer-events:none;overflow:hidden;contain:strict;}',
-      '.fetcher-keem-snowflake{position:absolute;top:-12vh;left:var(--snow-x);width:var(--snow-size);height:var(--snow-size);border-radius:999px;background:#fff;opacity:var(--snow-opacity);box-shadow:0 0 5px rgba(255,255,255,.24);animation:fetcher-keem-fall var(--snow-duration) linear var(--snow-delay) infinite;will-change:transform;}',
+      '.fetcher-keem-snowflake{position:absolute;top:-12vh;left:var(--snow-x);width:var(--snow-size);height:var(--snow-size);border-radius:999px;background:rgba(255,255,255,.94);opacity:var(--snow-opacity);box-shadow:0 0 6px rgba(255,255,255,.30),0 0 14px rgba(255,255,255,.18),0 0 24px rgba(255,255,255,.10);filter:blur(.35px);animation:fetcher-keem-fall var(--snow-duration) linear var(--snow-delay) infinite;will-change:transform;}',
       '@keyframes fetcher-keem-fall{from{transform:translate3d(0,-12vh,0) rotate(0deg);}to{transform:translate3d(var(--snow-drift),116vh,0) rotate(360deg);}}',
       'html[data-motion="reserved"] .fetcher-keem-snowflake{animation-timing-function:linear;}',
       'html[data-motion="reduced"] .fetcher-keem-snow{display:none;}'
@@ -103,11 +103,11 @@
 
     ensureSnowStyles();
     var flakes = [
-      [4,3,.52,20,-4,-18],[10,4,.76,17,-11,24],[17,2,.48,25,-17,12],[23,3,.68,19,-7,-28],
-      [30,5,.62,23,-18,22],[37,3,.42,16,-9,-14],[44,4,.72,21,-15,32],[51,2,.56,18,-3,-22],
-      [58,3,.66,24,-20,18],[64,5,.50,20,-13,-30],[70,2,.60,15,-8,14],[76,4,.74,26,-22,28],
-      [82,3,.46,19,-5,-18],[88,5,.64,22,-16,24],[94,2,.58,17,-12,-12],[7,2,.44,27,-23,30],
-      [34,2,.54,18,-14,16],[55,4,.70,25,-6,-24],[73,3,.48,21,-19,20],[97,3,.62,24,-10,-28]
+      [4,3,.46,32,-4,-18],[10,4,.62,36,-11,24],[17,2,.42,41,-17,12],[23,3,.56,33,-7,-28],
+      [30,5,.52,39,-18,22],[37,3,.38,29,-9,-14],[44,4,.60,37,-15,32],[51,2,.48,31,-3,-22],
+      [58,3,.58,42,-20,18],[64,5,.44,35,-13,-30],[70,2,.50,28,-8,14],[76,4,.64,44,-22,28],
+      [82,3,.40,32,-5,-18],[88,5,.54,38,-16,24],[94,2,.46,30,-12,-12],[7,2,.36,43,-23,30],
+      [34,2,.44,33,-14,16],[55,4,.60,42,-6,-24],[73,3,.42,36,-19,20],[97,3,.52,40,-10,-28]
     ];
     var layer = document.createElement('div');
     layer.id = 'fetcher-keem-snow';
@@ -211,7 +211,7 @@
       if (get('fetcher.motion') === 'system') applyMotion();
     };
     if (mqMotion.addEventListener) mqMotion.addEventListener('change', onMotionChange);
-    else if (mqMotion.addListener) mqMotion.addListener('change', onMotionChange);
+    else if (mqMotion.addListener) mqMotion.addListener(onMotionChange);
   }
 
   document.addEventListener('fetcher:pref-change', function (e) {
@@ -281,11 +281,11 @@
     return root.getAttribute('data-motion') || 'full';
   }
 
-  function timings(reset) {
+  function timings(reset, name) {
     var motion = motionMode();
-    if (motion === 'reduced') return { wash: 220, reveal: 260 };
-    if (motion === 'reserved') return { wash: 1240, reveal: reset ? 620 : 720 };
-    return { wash: 1900, reveal: reset ? 900 : 1080 };
+    if (motion === 'reduced') return { wash: 220, reveal: name === 'keem' ? 360 : 260 };
+    if (motion === 'reserved') return { wash: 1240, reveal: name === 'keem' ? 1120 : (reset ? 620 : 720) };
+    return { wash: 1900, reveal: name === 'keem' ? 1650 : (reset ? 900 : 1080) };
   }
 
   function washColor(name) {
@@ -372,7 +372,7 @@
   function transitionTo(name) {
     name = WASH_COLORS.light[name] ? name : '';
     var reset = !name;
-    var t = timings(reset);
+    var t = timings(reset, name);
 
     return new Promise(function (resolve) {
       if (!document.body || !window.FetcherPrefs || !FetcherPrefs.setEasterPalette) {
