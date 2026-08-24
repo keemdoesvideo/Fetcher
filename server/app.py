@@ -53,6 +53,7 @@ ALLOWED_ASSETS: dict[str, str] = {
     "fetcher-vitaviita.js": "application/javascript; charset=utf-8",
     "fetcher-suki.js": "application/javascript; charset=utf-8",
     "fetcher-wahibah.js": "application/javascript; charset=utf-8",
+    "fetcher-stonakah.js": "application/javascript; charset=utf-8",
     "fetcher-favicon.svg": "image/svg+xml",
     "apple-touch-icon.png": "image/png",
     "fetcher-social-card.png": "image/png",
@@ -383,6 +384,7 @@ _LAUNCH_HEAD = """
 <script defer src="/fetcher-vitaviita.js"></script>
 <script defer src="/fetcher-suki.js"></script>
 <script defer src="/fetcher-wahibah.js"></script>
+<script defer src="/fetcher-stonakah.js"></script>
 """.strip()
 
 
