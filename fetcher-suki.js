@@ -80,6 +80,8 @@
     }
 
     var shared = sharedState();
+    var rotate = rand(-8, 8);
+    var starSide = Math.random() < .5 ? -1 : 1;
     return {
       id: shared.nextId++,
       bornAt: Date.now() + (delay || 0),
@@ -90,9 +92,10 @@
       opacity: rand(.58, .78),
       driftX: rand(-15, 15),
       driftY: rand(-11, 11),
-      rotate: rand(-8, 8),
+      rotate: rotate,
+      endRotate: -rotate,
       hasStar: Math.random() < .52,
-      starSide: Math.random() < .5 ? -1 : 1
+      starX: starSide * rand(10, 17)
     };
   }
 
@@ -152,7 +155,7 @@
       'html[data-easter-palette="suki"] .main>.stage,html[data-easter-palette="suki"] .main>.foot,html[data-easter-palette="suki"] .main>.settings-nav,html[data-easter-palette="suki"] .main>.settings-content,html[data-easter-palette="suki"] .main>.about,html[data-easter-palette="suki"] .main>.donate,html[data-easter-palette="suki"] .main>.updates,html[data-easter-palette="suki"] .main>.soon{position:relative;z-index:1;}',
       '.fetcher-suki-moon{position:absolute;left:var(--moon-left);top:var(--moon-top);font-family:Georgia,"Times New Roman",serif;font-size:var(--moon-size);line-height:1;color:rgba(231,218,246,.94);opacity:0;text-shadow:0 0 12px rgba(224,204,248,.28),0 0 24px rgba(178,144,211,.16);transform-origin:center;animation:fetcher-suki-moon var(--moon-duration) cubic-bezier(.45,0,.55,1) var(--moon-delay) both;}',
       '.fetcher-suki-star{position:absolute;left:calc(50% + var(--star-x));top:-5px;font-family:Georgia,"Times New Roman",serif;font-size:9px;line-height:1;color:rgba(243,234,255,.92);text-shadow:0 0 9px rgba(230,212,255,.42);opacity:0;animation:fetcher-suki-star var(--moon-duration) ease-in-out var(--moon-delay) both;}',
-      '@keyframes fetcher-suki-moon{0%{opacity:0;transform:translate(0,0) rotate(var(--moon-rotate)) scale(.9);}15%{opacity:var(--moon-opacity);}48%{opacity:var(--moon-opacity);transform:translate(var(--moon-drift-x),var(--moon-drift-y)) rotate(0deg) scale(1.02);}82%{opacity:.48;}100%{opacity:0;transform:translate(0,0) rotate(calc(var(--moon-rotate) * -1)) scale(.96);}}',
+      '@keyframes fetcher-suki-moon{0%{opacity:0;transform:translate(0,0) rotate(var(--moon-rotate)) scale(.9);}15%{opacity:var(--moon-opacity);}48%{opacity:var(--moon-opacity);transform:translate(var(--moon-drift-x),var(--moon-drift-y)) rotate(0deg) scale(1.02);}82%{opacity:.48;}100%{opacity:0;transform:translate(0,0) rotate(var(--moon-end-rotate)) scale(.96);}}',
       '@keyframes fetcher-suki-star{0%,18%{opacity:0;transform:scale(.5) rotate(0deg);}30%{opacity:.9;transform:scale(1.08) rotate(12deg);}56%{opacity:.55;transform:scale(.92) rotate(24deg);}76%,100%{opacity:0;transform:scale(.6) rotate(36deg);}}',
       'html[data-motion="reduced"] .fetcher-suki-moons{display:none!important;}'
     ].join('\n');
@@ -187,6 +190,7 @@
     node.style.setProperty('--moon-drift-x', model.driftX + 'px');
     node.style.setProperty('--moon-drift-y', model.driftY + 'px');
     node.style.setProperty('--moon-rotate', model.rotate + 'deg');
+    node.style.setProperty('--moon-end-rotate', model.endRotate + 'deg');
     node.style.setProperty('--moon-duration', model.duration + 'ms');
     node.style.setProperty('--moon-delay', (-(Date.now() - model.bornAt)) + 'ms');
 
@@ -194,7 +198,7 @@
       var star = document.createElement('span');
       star.className = 'fetcher-suki-star';
       star.textContent = '✦';
-      star.style.setProperty('--star-x', (model.starSide * rand(10, 17)) + 'px');
+      star.style.setProperty('--star-x', model.starX + 'px');
       node.appendChild(star);
     }
 
