@@ -128,7 +128,7 @@ html.fetcher-return-from-404.fetcher-return-from-404-reveal body{
   100%{opacity:0;transform:rotate(var(--amb-angle)) translateX(var(--amb-distance)) rotate(calc(var(--amb-rot) + 80deg)) scale(1);}
 }
 
-/* Stonakah: thin warm ember line trailing the pointer for ~0.6s. */
+/* Stonakah: old ember selectors retained but no longer driven by the launch JS. */
 .fetcher-ember-trail{
   position:fixed;z-index:9998;pointer-events:none;height:1.5px;transform-origin:0 50%;opacity:.7;
   background:linear-gradient(90deg,rgba(255,174,82,.88),rgba(176,137,104,.48),rgba(176,137,104,0));
@@ -238,16 +238,27 @@ html[data-motion="reduced"] .fetcher-good-dog{animation:none;opacity:1;transform
 html[data-motion="reduced"].fetcher-404-leaving .main{transition:opacity 100ms linear!important;}
 html[data-motion="reduced"].fetcher-return-from-404.fetcher-return-from-404-reveal body{transition:opacity 100ms linear!important;}
 
-/* Hard safety kill-switch for Stonakah until its groove is rebuilt on its own.
-   The injected groove styles load later, so these selectors intentionally have
-   higher specificity than those rules. */
-html.fetcher-stonakah-carve-active body .app.app,
-html.fetcher-stonakah-carve-active body .main.main,
-html.fetcher-stonakah-carve-active body .fetcher-content-host.fetcher-content-host,
-html.fetcher-stonakah-carve-active body .fetcher-page-frame.fetcher-page-frame{
+/* HARD KILL-SWITCH: Stonakah's experimental groove is completely disabled.
+   The launch script injects its own carve CSS after this stylesheet, so these
+   selectors deliberately carry much higher specificity and reset every property
+   that changed Fetcher's shell stacking/surfaces. */
+html.fetcher-stonakah-carve-active.fetcher-stonakah-carve-active body > .app.app.app{
+  position:static!important;
+  z-index:auto!important;
   background:var(--bg)!important;
   background-color:var(--bg)!important;
 }
-html.fetcher-stonakah-carve-active body .fetcher-stonakah-groove.fetcher-stonakah-groove{
+html.fetcher-stonakah-carve-active.fetcher-stonakah-carve-active body .main.main.main{
+  background:var(--bg)!important;
+  background-color:var(--bg)!important;
+}
+html.fetcher-stonakah-carve-active.fetcher-stonakah-carve-active body .fetcher-content-host.fetcher-content-host.fetcher-content-host,
+html.fetcher-stonakah-carve-active.fetcher-stonakah-carve-active body .fetcher-page-frame.fetcher-page-frame.fetcher-page-frame{
+  background:var(--bg)!important;
+  background-color:var(--bg)!important;
+}
+html.fetcher-stonakah-carve-active.fetcher-stonakah-carve-active body .fetcher-stonakah-groove.fetcher-stonakah-groove.fetcher-stonakah-groove{
   display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
 }
