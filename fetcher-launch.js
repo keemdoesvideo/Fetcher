@@ -1,4 +1,4 @@
-/* Launch-wide browser polish: dynamic browser chrome + milestone delight. */
+/* Launch-wide browser polish: dynamic browser chrome, milestones and tiny user delight. */
 (function () {
   'use strict';
 
@@ -88,9 +88,89 @@
     addMilestonePaws();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', maybeCelebrateMilestone, { once: true });
-  } else {
+  function restartClass(el, className) {
+    if (!el) return;
+    el.classList.remove(className);
+    void el.offsetWidth;
+    el.classList.add(className);
+  }
+
+  function petPawDone() {
+    try { return sessionStorage.getItem('fetcher.petPawDone') === '1'; }
+    catch (e) { return false; }
+  }
+
+  function rememberPetPaw() {
+    try { sessionStorage.setItem('fetcher.petPawDone', '1'); } catch (e) {}
+  }
+
+  function showGoodDog() {
+    if (!document.body) return;
+
+    var old = document.querySelector('.fetcher-good-dog');
+    if (old) old.remove();
+
+    var note = document.createElement('div');
+    note.className = 'fetcher-good-dog';
+    note.setAttribute('role', 'status');
+    note.textContent = 'good dog.';
+    document.body.appendChild(note);
+
+    if (root.getAttribute('data-motion') !== 'reduced') {
+      var trail = document.createElement('div');
+      trail.className = 'fetcher-pet-trail';
+      trail.setAttribute('aria-hidden', 'true');
+      for (var i = 0; i < 9; i += 1) {
+        var paw = document.createElement('span');
+        paw.className = 'fetcher-pet-print';
+        paw.style.setProperty('--pet-left', (-5 + i * 13.5) + '%');
+        paw.style.setProperty('--pet-bottom', (18 + (i % 3) * 13) + 'px');
+        paw.style.setProperty('--pet-rot', ((i % 2 ? 1 : -1) * (7 + (i % 3) * 4)) + 'deg');
+        paw.style.setProperty('--pet-delay', (i * 95) + 'ms');
+        trail.appendChild(paw);
+      }
+      document.body.appendChild(trail);
+      window.setTimeout(function () { if (trail.parentNode) trail.remove(); }, 2200);
+    }
+
+    window.setTimeout(function () { if (note.parentNode) note.remove(); }, 2100);
+  }
+
+  function installPetThePaw() {
+    var mark = document.querySelector('.rail .mark');
+    if (!mark || mark.dataset.fetcherPetInstalled === 'true') return;
+    mark.dataset.fetcherPetInstalled = 'true';
+
+    var taps = 0;
+    var resetTimer = null;
+
+    mark.addEventListener('click', function () {
+      restartClass(mark, 'fetcher-paw-pet');
+      window.setTimeout(function () { mark.classList.remove('fetcher-paw-pet'); }, 260);
+
+      if (petPawDone()) return;
+      taps += 1;
+      window.clearTimeout(resetTimer);
+      resetTimer = window.setTimeout(function () { taps = 0; }, 1900);
+
+      if (taps < 5) return;
+      taps = 0;
+      window.clearTimeout(resetTimer);
+      rememberPetPaw();
+      restartClass(mark, 'fetcher-paw-happy');
+      window.setTimeout(function () { mark.classList.remove('fetcher-paw-happy'); }, 650);
+      showGoodDog();
+    });
+  }
+
+  function initLaunchPolish() {
     maybeCelebrateMilestone();
+    installPetThePaw();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLaunchPolish, { once: true });
+  } else {
+    initLaunchPolish();
   }
 })();
