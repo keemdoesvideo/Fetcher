@@ -1,16 +1,14 @@
-/* Stonakah-only ambience: soft latte swirls blooming through the coffee-brown background. */
+/* Stonakah-only ambience: sparse brown woodgrain waves beneath the UI. */
 (function () {
   'use strict';
 
   var root = document.documentElement;
   var topWindow = window;
   try { if (window.top) topWindow = window.top; } catch (e) { topWindow = window; }
-  var isMaster = topWindow === window;
   var layer = null;
   var renderTimer = null;
 
   function rand(min, max) { return min + Math.random() * (max - min); }
-  function pick(items) { return items[Math.floor(Math.random() * items.length)]; }
 
   function active() {
     return root.getAttribute('data-easter-palette') === 'stonakah';
@@ -20,137 +18,23 @@
     return root.getAttribute('data-motion') === 'reduced';
   }
 
-  function masterActive() {
-    try {
-      return topWindow.document.documentElement.getAttribute('data-easter-palette') === 'stonakah';
-    } catch (e) { return active(); }
-  }
-
-  function masterReducedMotion() {
-    try {
-      return topWindow.document.documentElement.getAttribute('data-motion') === 'reduced';
-    } catch (e) { return reducedMotion(); }
-  }
-
   function sharedState() {
     try {
-      if (!topWindow.FetcherStonakahLatteShared) {
-        topWindow.FetcherStonakahLatteShared = {
-          swirls: [],
+      if (!topWindow.FetcherStonakahShared) {
+        topWindow.FetcherStonakahShared = {
+          waves: [],
           nextId: 1,
           spawnTimer: null,
           running: false
         };
       }
-      return topWindow.FetcherStonakahLatteShared;
+      return topWindow.FetcherStonakahShared;
     } catch (e) {
-      if (!window.FetcherStonakahLatteShared) {
-        window.FetcherStonakahLatteShared = {
-          swirls: [],
-          nextId: 1,
-          spawnTimer: null,
-          running: false
-        };
+      if (!window.FetcherStonakahShared) {
+        window.FetcherStonakahShared = { waves: [], nextId: 1, spawnTimer: null, running: false };
       }
-      return window.FetcherStonakahLatteShared;
+      return window.FetcherStonakahShared;
     }
-  }
-
-  var PATHS = [
-    {
-      outer: 'M34 128 C48 63 130 26 220 48 C302 68 318 132 278 178 C235 226 137 221 77 180 C35 151 48 107 92 84 C142 58 219 70 246 111 C270 148 227 178 174 176 C126 174 101 151 116 124 C132 96 180 92 201 113 C221 133 194 149 167 145',
-      inner: 'M84 151 C109 193 192 205 247 169 C289 142 277 101 237 83 C194 64 133 72 108 102 C86 127 104 153 139 160 C174 168 211 155 218 132 C225 111 197 99 171 104'
-    },
-    {
-      outer: 'M46 104 C78 45 167 28 245 59 C313 86 314 146 264 185 C210 227 116 212 67 166 C31 132 55 92 106 77 C163 60 228 78 250 116 C269 149 228 171 181 165 C137 159 117 136 132 113 C149 88 192 89 209 111 C223 130 202 143 178 140',
-      inner: 'M70 158 C101 205 184 219 249 179 C299 149 294 105 253 82 C211 59 145 63 114 91 C86 117 99 149 136 161 C174 174 220 161 229 134 C237 110 207 95 178 101'
-    },
-    {
-      outer: 'M33 141 C52 78 126 40 207 46 C291 52 326 111 295 164 C264 217 172 233 101 201 C45 176 37 133 77 100 C118 66 192 62 232 91 C270 119 249 157 205 170 C163 183 119 168 112 139 C106 113 134 94 166 96 C197 97 218 113 211 132',
-      inner: 'M84 178 C122 212 193 214 245 179 C287 150 285 111 251 88 C215 63 155 61 119 84 C84 107 82 141 112 160 C143 181 193 181 219 157 C241 137 230 113 202 104'
-    }
-  ];
-
-  function pruneShared() {
-    var shared = sharedState();
-    var now = Date.now();
-    shared.swirls = shared.swirls.filter(function (item) {
-      return now < item.bornAt + item.duration + 240;
-    });
-  }
-
-  function makeModel(delay) {
-    var shared = sharedState();
-    var pos = {
-      x: rand(12, 88),
-      y: rand(14, 86)
-    };
-
-    return {
-      id: shared.nextId++,
-      bornAt: Date.now() + (delay || 0),
-      duration: rand(7600, 10400),
-      x: pos.x,
-      y: pos.y,
-      width: rand(28, 44),
-      rotate: rand(-24, 24),
-      driftX: rand(-18, 18),
-      driftY: rand(-12, 12),
-      flip: Math.random() < .5 ? -1 : 1,
-      opacity: rand(.74, .94),
-      variant: Math.floor(rand(0, PATHS.length))
-    };
-  }
-
-  function addShared(delay) {
-    if (!isMaster || !masterActive() || masterReducedMotion()) return null;
-    var shared = sharedState();
-    pruneShared();
-    if (shared.swirls.length >= 2) return null;
-    var model = makeModel(delay || 0);
-    shared.swirls.push(model);
-    return model;
-  }
-
-  function scheduleNext() {
-    if (!isMaster) return;
-    var shared = sharedState();
-    window.clearTimeout(shared.spawnTimer);
-    shared.spawnTimer = null;
-
-    if (!shared.running || !masterActive() || masterReducedMotion()) return;
-
-    shared.spawnTimer = window.setTimeout(function spawn() {
-      if (!shared.running || !masterActive() || masterReducedMotion()) return;
-      pruneShared();
-      if (shared.swirls.length < 2) addShared(0);
-      scheduleNext();
-    }, rand(5200, 8200));
-  }
-
-  function startShared() {
-    if (!isMaster) return;
-    var shared = sharedState();
-    if (shared.running) return;
-    shared.running = true;
-    shared.swirls = [];
-    addShared(650);
-    scheduleNext();
-  }
-
-  function stopShared() {
-    if (!isMaster) return;
-    var shared = sharedState();
-    window.clearTimeout(shared.spawnTimer);
-    shared.spawnTimer = null;
-    shared.running = false;
-    shared.swirls = [];
-  }
-
-  function syncMasterActivity() {
-    if (!isMaster) return;
-    if (masterActive() && !masterReducedMotion()) startShared();
-    else stopShared();
   }
 
   function ensureStyles() {
@@ -162,40 +46,28 @@
       'html[data-easter-palette="stonakah"] .fetcher-ember-trail,html[data-easter-palette="stonakah"] .fetcher-ember-dot{display:none!important;}',
       '.fetcher-stonakah-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;}',
       'html[data-easter-palette="stonakah"] .main>.stage,html[data-easter-palette="stonakah"] .main>.foot,html[data-easter-palette="stonakah"] .main>.settings-nav,html[data-easter-palette="stonakah"] .main>.settings-content,html[data-easter-palette="stonakah"] .main>.about,html[data-easter-palette="stonakah"] .main>.donate,html[data-easter-palette="stonakah"] .main>.updates,html[data-easter-palette="stonakah"] .main>.soon{position:relative;z-index:1;}',
-      '.fetcher-stonakah-swirl{position:absolute;left:var(--stone-x);top:var(--stone-y);width:var(--stone-width);max-width:620px;min-width:250px;aspect-ratio:1.45/1;opacity:0;transform:translate(-50%,-50%) rotate(var(--stone-rotate)) scale(.82);animation:fetcher-stonakah-latte-life var(--stone-duration) cubic-bezier(.45,0,.55,1) var(--stone-delay) both;will-change:transform,opacity,filter;}',
-      '.fetcher-stonakah-pool{position:absolute;inset:10% 7%;border-radius:48% 52% 56% 44% / 54% 42% 58% 46%;background:radial-gradient(ellipse at 52% 49%,rgba(255,238,215,.28) 0%,rgba(247,222,190,.16) 34%,rgba(240,208,170,.06) 57%,rgba(240,208,170,0) 76%);filter:blur(16px);opacity:.72;animation:fetcher-stonakah-pool var(--stone-duration) ease-in-out var(--stone-delay) both;}',
-      '.fetcher-stonakah-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;transform:scaleX(var(--stone-flip));transform-origin:center;}',
-      '.fetcher-stonakah-stream{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;}',
-      '.fetcher-stonakah-stream.outer-soft{stroke:rgba(255,237,213,.16);stroke-width:18;filter:blur(8px);}',
-      '.fetcher-stonakah-stream.outer{stroke:rgba(255,240,219,.25);stroke-width:7.5;filter:blur(2.2px);}',
-      '.fetcher-stonakah-stream.inner-soft{stroke:rgba(248,222,191,.13);stroke-width:13;filter:blur(6px);}',
-      '.fetcher-stonakah-stream.inner{stroke:rgba(255,235,209,.22);stroke-width:5;filter:blur(1.6px);}',
-      '.fetcher-stonakah-stream.fine{stroke:rgba(255,247,232,.19);stroke-width:1.35;filter:blur(.15px);}',
-      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-pool{opacity:.48;background:radial-gradient(ellipse at 52% 49%,rgba(221,184,146,.19) 0%,rgba(176,137,104,.10) 38%,rgba(176,137,104,0) 76%);}',
-      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-stream.outer-soft{stroke:rgba(221,184,146,.10);}',
-      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-stream.outer{stroke:rgba(230,201,171,.17);}',
-      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-stream.inner-soft{stroke:rgba(196,157,122,.09);}',
-      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-stream.inner{stroke:rgba(226,193,158,.15);}',
-      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-stream.fine{stroke:rgba(239,213,187,.14);}',
-      '@keyframes fetcher-stonakah-latte-life{0%{opacity:0;transform:translate(-50%,-50%) translate3d(0,0,0) rotate(var(--stone-rotate)) scale(.78);filter:blur(4px);}16%{opacity:calc(var(--stone-opacity) * .56);filter:blur(1.8px);}38%{opacity:var(--stone-opacity);filter:blur(0);}64%{opacity:calc(var(--stone-opacity) * .82);}100%{opacity:0;transform:translate(-50%,-50%) translate3d(var(--stone-drift-x),var(--stone-drift-y),0) rotate(calc(var(--stone-rotate) + 7deg)) scale(1.09);filter:blur(5px);}}',
-      '@keyframes fetcher-stonakah-pool{0%{opacity:0;transform:scale(.72) rotate(-4deg);}22%{opacity:.72;}52%{opacity:.58;transform:scale(1) rotate(1deg);}100%{opacity:0;transform:scale(1.13) rotate(6deg);}}',
+      '.fetcher-stonakah-wave{position:absolute;left:var(--stone-x);top:var(--stone-y);width:var(--stone-w);height:var(--stone-h);opacity:0;transform:translate(-50%,-50%) rotate(var(--stone-rotate));animation:fetcher-stonakah-wave-life var(--stone-duration) ease-in-out var(--stone-delay) forwards;will-change:transform,opacity,filter;}',
+      '.fetcher-stonakah-svg{width:100%;height:100%;overflow:visible;}',
+      '.fetcher-stonakah-path{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;stroke:rgba(91,58,38,.14);stroke-width:2.1;}',
+      '.fetcher-stonakah-path.path-2{stroke:rgba(81,50,33,.10);stroke-width:1.55;}',
+      '.fetcher-stonakah-path.path-3{stroke:rgba(106,70,46,.08);stroke-width:1.15;}',
+      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-path{stroke:rgba(201,162,126,.08);}',
+      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-path.path-2{stroke:rgba(184,145,112,.06);}',
+      'html[data-theme="dark"][data-easter-palette="stonakah"] .fetcher-stonakah-path.path-3{stroke:rgba(220,186,150,.045);}',
+      '@keyframes fetcher-stonakah-wave-life{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--stone-rotate)) translate3d(0,0,0) scale(.985);filter:blur(6px);}16%{opacity:var(--stone-opacity);filter:blur(1.2px);}58%{opacity:var(--stone-opacity);transform:translate(-50%,-50%) rotate(calc(var(--stone-rotate) + .8deg)) translate3d(var(--stone-drift-x),var(--stone-drift-y),0) scale(1);}82%{opacity:calc(var(--stone-opacity) * .76);filter:blur(1.8px);}100%{opacity:0;transform:translate(-50%,-50%) rotate(calc(var(--stone-rotate) + 1.3deg)) translate3d(calc(var(--stone-drift-x) * 1.2),calc(var(--stone-drift-y) * 1.12),0) scale(1.01);filter:blur(7px);}}',
       'html[data-motion="reduced"] .fetcher-stonakah-layer{display:none!important;}',
-      '@media(max-width:760px){.fetcher-stonakah-swirl{width:62vw;min-width:220px;}}'
+      '@media(max-width:760px){.fetcher-stonakah-wave{width:calc(var(--stone-w) * 1.18);height:calc(var(--stone-h) * 1.12);}}'
     ].join('\n');
-
     (document.head || document.documentElement).appendChild(style);
   }
 
-  function host() {
-    return document.querySelector('.main') || document.body;
-  }
+  function host() { return document.querySelector('.main') || document.body; }
 
   function ensureLayer() {
     var parent = host();
     if (!parent) return null;
     if (layer && layer.isConnected && layer.parentNode === parent) return layer;
     if (layer && layer.parentNode) layer.remove();
-
     layer = document.createElement('div');
     layer.className = 'fetcher-stonakah-layer';
     layer.setAttribute('aria-hidden', 'true');
@@ -203,47 +75,126 @@
     return layer;
   }
 
-  function makePath(svg, className, d) {
-    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('class', 'fetcher-stonakah-stream ' + className);
-    path.setAttribute('d', d);
-    return path;
+  function prune(shared) {
+    var now = Date.now();
+    shared.waves = shared.waves.filter(function (item) {
+      return now < item.bornAt + item.duration + 240;
+    });
   }
 
-  function renderSwirl(model) {
-    var age = Date.now() - model.bornAt;
-    var shape = PATHS[model.variant] || PATHS[0];
+  function makeWave(delay) {
+    var shared = sharedState();
+    return {
+      id: shared.nextId++,
+      bornAt: Date.now() + (delay || 0),
+      duration: rand(8200, 11200),
+      x: rand(10, 90),
+      y: rand(12, 88),
+      w: rand(30, 50) + 'vw',
+      h: rand(14, 24) + 'vh',
+      rotate: rand(-20, 20),
+      opacity: rand(.52, .82),
+      driftX: rand(-18, 18) + 'px',
+      driftY: rand(-8, 8) + 'px',
+      paths: buildPaths()
+    };
+  }
+
+  function buildPaths() {
+    var baseY = rand(38, 62);
+    var points = [];
+    for (var i = 0; i < 7; i += 1) {
+      points.push({
+        x: 4 + i * 15 + rand(-2.5, 2.5),
+        y: baseY + Math.sin(i * .78 + rand(-.2, .2)) * rand(10, 18) + rand(-4, 4)
+      });
+    }
+    function pathFrom(offsetY, jiggle, tighten) {
+      var d = 'M ' + points[0].x.toFixed(1) + ' ' + (points[0].y + offsetY).toFixed(1);
+      for (var i = 1; i < points.length; i += 1) {
+        var prev = points[i - 1];
+        var curr = points[i];
+        var cx1 = prev.x + 6 + rand(-jiggle, jiggle);
+        var cy1 = prev.y + offsetY + rand(-tighten, tighten);
+        var cx2 = curr.x - 6 + rand(-jiggle, jiggle);
+        var cy2 = curr.y + offsetY + rand(-tighten, tighten);
+        d += ' C ' + cx1.toFixed(1) + ' ' + cy1.toFixed(1) + ', ' + cx2.toFixed(1) + ' ' + cy2.toFixed(1) + ', ' + curr.x.toFixed(1) + ' ' + (curr.y + offsetY).toFixed(1);
+      }
+      return d;
+    }
+    return [
+      pathFrom(0, 2.8, 3.2),
+      pathFrom(rand(6, 10), 2.4, 2.8),
+      pathFrom(rand(-10, -6), 2.0, 2.6)
+    ];
+  }
+
+  function addWave(delay) {
+    var shared = sharedState();
+    prune(shared);
+    if (shared.waves.length >= 2) return null;
+    var model = makeWave(delay || 0);
+    shared.waves.push(model);
+    return model;
+  }
+
+  function scheduleNext() {
+    var shared = sharedState();
+    window.clearTimeout(shared.spawnTimer);
+    if (!shared.running || !active() || reducedMotion()) return;
+    var wait = rand(3800, 6200);
+    shared.spawnTimer = window.setTimeout(function () {
+      if (!shared.running || !active() || reducedMotion()) return;
+      addWave(0);
+      scheduleNext();
+    }, wait);
+  }
+
+  function startShared() {
+    var shared = sharedState();
+    if (shared.running) return;
+    shared.running = true;
+    if (!shared.waves.length) addWave(300);
+    scheduleNext();
+  }
+
+  function stopShared() {
+    var shared = sharedState();
+    window.clearTimeout(shared.spawnTimer);
+    shared.spawnTimer = null;
+    shared.running = false;
+    shared.waves = [];
+  }
+
+  function renderWave(model) {
     var node = document.createElement('div');
-    node.className = 'fetcher-stonakah-swirl';
-    node.setAttribute('data-stonakah-swirl-id', String(model.id));
+    node.className = 'fetcher-stonakah-wave';
+    node.setAttribute('data-stonakah-wave-id', String(model.id));
     node.style.setProperty('--stone-x', model.x + '%');
     node.style.setProperty('--stone-y', model.y + '%');
-    node.style.setProperty('--stone-width', model.width + 'vw');
+    node.style.setProperty('--stone-w', model.w);
+    node.style.setProperty('--stone-h', model.h);
     node.style.setProperty('--stone-rotate', model.rotate + 'deg');
-    node.style.setProperty('--stone-drift-x', model.driftX + 'px');
-    node.style.setProperty('--stone-drift-y', model.driftY + 'px');
-    node.style.setProperty('--stone-duration', model.duration + 'ms');
     node.style.setProperty('--stone-opacity', model.opacity);
-    node.style.setProperty('--stone-flip', model.flip);
-    node.style.setProperty('--stone-delay', (-age) + 'ms');
+    node.style.setProperty('--stone-duration', model.duration + 'ms');
+    node.style.setProperty('--stone-drift-x', model.driftX);
+    node.style.setProperty('--stone-drift-y', model.driftY);
+    node.style.setProperty('--stone-delay', (-(Date.now() - model.bornAt)) + 'ms');
 
-    var pool = document.createElement('span');
-    pool.className = 'fetcher-stonakah-pool';
-    node.appendChild(pool);
-
-    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('preserveAspectRatio', 'none');
     svg.setAttribute('class', 'fetcher-stonakah-svg');
-    svg.setAttribute('viewBox', '0 0 340 240');
-    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-    svg.appendChild(makePath(svg, 'outer-soft', shape.outer));
-    svg.appendChild(makePath(svg, 'outer', shape.outer));
-    svg.appendChild(makePath(svg, 'inner-soft', shape.inner));
-    svg.appendChild(makePath(svg, 'inner', shape.inner));
-    svg.appendChild(makePath(svg, 'fine', shape.outer));
-    svg.appendChild(makePath(svg, 'fine', shape.inner));
+    model.paths.forEach(function (d, index) {
+      var p = document.createElementNS(ns, 'path');
+      p.setAttribute('d', d);
+      p.setAttribute('class', 'fetcher-stonakah-path path-' + (index + 1));
+      svg.appendChild(p);
+    });
+
     node.appendChild(svg);
-
     return node;
   }
 
@@ -261,21 +212,21 @@
     if (!target) return;
 
     var shared = sharedState();
-    pruneShared();
-
+    prune(shared);
     var live = {};
-    shared.swirls.forEach(function (model) {
+
+    shared.waves.forEach(function (model) {
       live[String(model.id)] = true;
-      if (!target.querySelector('[data-stonakah-swirl-id="' + model.id + '"]')) {
-        target.appendChild(renderSwirl(model));
+      if (!target.querySelector('[data-stonakah-wave-id="' + model.id + '"]')) {
+        target.appendChild(renderWave(model));
       }
     });
 
-    Array.prototype.forEach.call(target.querySelectorAll('.fetcher-stonakah-swirl'), function (node) {
-      if (!live[node.getAttribute('data-stonakah-swirl-id')]) node.remove();
+    Array.prototype.forEach.call(target.querySelectorAll('.fetcher-stonakah-wave'), function (node) {
+      if (!live[node.getAttribute('data-stonakah-wave-id')]) node.remove();
     });
 
-    renderTimer = window.setTimeout(syncRendered, 240);
+    renderTimer = window.setTimeout(syncRendered, 220);
   }
 
   function stopRenderer() {
@@ -289,45 +240,37 @@
     if (!active() || reducedMotion()) return;
     ensureStyles();
     ensureLayer();
+    startShared();
     syncRendered();
   }
 
   document.addEventListener('fetcher:easter-change', function () {
-    syncMasterActivity();
-    if (active()) startRenderer();
-    else stopRenderer();
+    if (active() && !reducedMotion()) startRenderer();
+    else { stopShared(); stopRenderer(); }
   });
 
   document.addEventListener('fetcher:pref-change', function (event) {
     if (!event || !event.detail || event.detail.key !== 'fetcher.motion') return;
-    syncMasterActivity();
-    if (active()) startRenderer();
-    else stopRenderer();
+    if (active() && !reducedMotion()) startRenderer();
+    else { stopShared(); stopRenderer(); }
   });
 
   if (window.MutationObserver) {
     new MutationObserver(function () {
-      syncMasterActivity();
-      if (active()) {
+      if (active() && !reducedMotion()) {
         if (!renderTimer) startRenderer();
       } else {
+        stopShared();
         stopRenderer();
       }
-    }).observe(root, {
-      attributes: true,
-      attributeFilter: ['data-easter-palette', 'data-motion', 'data-theme']
-    });
+    }).observe(root, { attributes:true, attributeFilter:['data-easter-palette','data-motion','data-theme'] });
   }
 
   function init() {
     ensureStyles();
-    syncMasterActivity();
-    if (active()) startRenderer();
+    if (active() && !reducedMotion()) startRenderer();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once:true });
-  } else {
-    init();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });
+  else init();
 })();
