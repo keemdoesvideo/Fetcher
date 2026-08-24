@@ -40,7 +40,25 @@
     try {
       foundYouPreload = new Audio('found-you.mp3');
       foundYouPreload.preload = 'auto';
+      foundYouPreload.volume = 0.72;
       foundYouPreload.load();
+    } catch (e) {}
+  }
+
+  function playFoundYouCue() {
+    preloadFoundYouCue();
+    var cue = foundYouPreload;
+    if (!cue) return;
+    try {
+      cue.volume = 0.72;
+      /* Seeking before metadata exists can throw and prevent play() entirely.
+         Only restart from zero once the media element is actually seekable. */
+      if (cue.readyState > 0) {
+        cue.pause();
+        try { cue.currentTime = 0; } catch (e) {}
+      }
+      var started = cue.play();
+      if (started && started.catch) started.catch(function () {});
     } catch (e) {}
   }
 
@@ -252,7 +270,8 @@
     applyChrome: applyChrome,
     getEasterPalette: getEasterPalette,
     setEasterPalette: setEasterPalette,
-    applyEasterPalette: applyEasterPalette
+    applyEasterPalette: applyEasterPalette,
+    playFoundYouCue: playFoundYouCue
   };
 })(window);
 
@@ -295,11 +314,11 @@
     return root.getAttribute('data-motion') || 'full';
   }
 
-  function timings(reset, name) {
+  function timings() {
     var motion = motionMode();
-    if (motion === 'reduced') return { wash: 220, reveal: name === 'keem' ? 360 : 260 };
-    if (motion === 'reserved') return { wash: 1240, reveal: name === 'keem' ? 1120 : (reset ? 620 : 720) };
-    return { wash: 1900, reveal: name === 'keem' ? 1650 : (reset ? 900 : 1080) };
+    if (motion === 'reduced') return { wash: 220, cover: 0, reveal: 260 };
+    if (motion === 'reserved') return { wash: 1240, cover: 80, reveal: 1500 };
+    return { wash: 1900, cover: 120, reveal: 2200 };
   }
 
   function washColor(name) {
@@ -322,13 +341,13 @@
       'html[data-theme="light"][data-easter-palette="jackigoe"]{--bg:#3E9B66;--surface:#FFFFFF;--rail:#CDDB01;--ink:#10291B;--ink-strong:#07180F;--ink-soft:#214E35;--ink-faint:#356B4A;--border:#F3A6D8;--border-strong:#F03A55;--accent:#F3A6D8;--accent-ink:#F03A55;--accent-tint:#FBE3F2;--on-accent:#173624;--audio:#CDDB01;--audio-tint:#F4F7BD;--mute:#3E9B66;--mute-tint:#DDF1E5;--danger:#F03A55;--danger-tint:#FFD6DF;--success:#3E9B66;--success-tint:#DDF1E5;--shiba:#F3A6D8;--shiba-deep:#F03A55;--shiba-cream:#FFFFFF;}',
       'html[data-theme="dark"][data-easter-palette="jackigoe"]{--bg:#14261B;--surface:#1C3425;--rail:#274B34;--ink:#FFF8FC;--ink-strong:#FFFFFF;--ink-soft:#EFC7E2;--ink-faint:#A9C9B5;--border:#356B49;--border-strong:#3E9B66;--accent:#F3A6D8;--accent-ink:#F03A55;--accent-tint:rgba(243,166,216,.20);--on-accent:#14261B;--audio:#CDDB01;--audio-tint:rgba(205,219,1,.16);--mute:#3E9B66;--mute-tint:rgba(62,155,102,.22);--danger:#F03A55;--danger-tint:rgba(240,58,85,.18);--success:#CDDB01;--success-tint:rgba(205,219,1,.14);--shiba:#F3A6D8;--shiba-deep:#F03A55;--shiba-cream:#FFFFFF;}',
       'html[data-theme="light"][data-easter-palette="keem"],html[data-theme="dark"][data-easter-palette="keem"]{--bg:#050506;--surface:#101012;--rail:#0A0A0B;--ink:#F7FBFF;--ink-strong:#FFFFFF;--ink-soft:#DCE4EB;--ink-faint:#AAB6C0;--border:#2B2D31;--border-strong:#454950;--accent:#FFFFFF;--accent-ink:#E6EDF3;--accent-tint:rgba(255,255,255,.11);--on-accent:#050506;--audio:#DCE4EB;--audio-tint:rgba(255,255,255,.10);--mute:#BFC8D0;--mute-tint:rgba(255,255,255,.08);--danger:#FFFFFF;--danger-tint:rgba(255,255,255,.10);--success:#FFFFFF;--success-tint:rgba(255,255,255,.10);--shiba:#FFFFFF;--shiba-deep:#DCE4EB;--shiba-cream:#F7FBFF;}',
-      '.fetcher-easter-v2-paint{position:fixed;left:50%;top:50%;width:230vmax;height:170vmax;z-index:10020;pointer-events:none;opacity:1;background:var(--easter-wash-bg,#fff);transform:translate(-50%,-50%) rotate(45deg) translateY(-215vmax);transform-origin:center;will-change:transform,opacity;}',
+      '.fetcher-easter-v2-paint{position:fixed;left:50%;top:50%;width:230vmax;height:170vmax;z-index:10020;pointer-events:auto;opacity:1;background:var(--easter-wash-bg,#fff);transform:translate(-50%,-50%) rotate(45deg) translateY(-215vmax);transform-origin:center;will-change:transform,opacity;}',
       '.fetcher-easter-v2-lobe{position:absolute;bottom:-22vmax;width:94vmax;height:44vmax;border-radius:50%;background:var(--easter-wash-bg,#fff);}',
       '.fetcher-easter-v2-lobe:nth-child(1){left:-3vmax;bottom:-18vmax;width:92vmax;height:39vmax;}',
       '.fetcher-easter-v2-lobe:nth-child(2){left:67vmax;bottom:-24vmax;width:100vmax;height:48vmax;}',
       '.fetcher-easter-v2-lobe:nth-child(3){left:143vmax;bottom:-17vmax;width:92vmax;height:38vmax;}',
       '.fetcher-easter-v2-paint.in{animation:fetcher-easter-v2-spill-full 1900ms cubic-bezier(.18,.82,.22,1) both;}',
-      '.fetcher-easter-v2-paint.reveal{opacity:0;transition:opacity var(--easter-reveal,1080ms) cubic-bezier(.16,1,.3,1);}',
+      '.fetcher-easter-v2-paint.reveal{opacity:0;transition:opacity var(--easter-reveal,2200ms) cubic-bezier(.45,0,.55,1);}',
       '@keyframes fetcher-easter-v2-spill-full{0%{transform:translate(-50%,-50%) rotate(45deg) translateY(-215vmax);}70%{transform:translate(-50%,-50%) rotate(45deg) translateY(-24vmax);}87%{transform:translate(-50%,-50%) rotate(45deg) translateY(2.5vmax);}95%{transform:translate(-50%,-50%) rotate(45deg) translateY(-.7vmax);}100%{transform:translate(-50%,-50%) rotate(45deg) translateY(0);}}',
       '.fetcher-easter-v2-sparkles{position:fixed;inset:0;z-index:10030;pointer-events:none;overflow:hidden;}',
       '.fetcher-easter-v2-spark{position:absolute;width:var(--spark-size,7px);height:var(--spark-size,7px);opacity:0;animation:fetcher-easter-v2-sparkle 1500ms cubic-bezier(.16,1,.3,1) var(--spark-delay,0ms) both;}',
@@ -385,19 +404,32 @@
     return paint;
   }
 
-  function clearConfirmationUnderPaint() {
+  function settleUiUnderPaint() {
     var input = document.getElementById('url-input');
-    if (!input || !input.classList.contains('fetcher-easter-confirmation')) return;
-    input.value = '';
-    input.classList.remove('fetcher-easter-confirmation');
+    var fetchBtn = document.getElementById('fetch-btn');
+    var pasteBtn = document.getElementById('paste-btn');
     var fetchWrap = document.getElementById('fetch-wrap');
+
+    if (input) {
+      input.value = '';
+      input.readOnly = false;
+      input.classList.remove('fetcher-easter-confirmation');
+    }
+    if (fetchBtn) fetchBtn.disabled = false;
+    if (pasteBtn) pasteBtn.disabled = false;
+    Array.prototype.forEach.call(document.querySelectorAll('.seg-btn'), function (btn) { btn.disabled = false; });
     if (fetchWrap) fetchWrap.classList.remove('show');
+
+    if (input) {
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
+    }
   }
 
   function transitionTo(name) {
     name = WASH_COLORS.light[name] ? name : '';
     var reset = !name;
-    var t = timings(reset, name);
+    var t = timings();
 
     return new Promise(function (resolve) {
       if (!document.body || !window.FetcherPrefs || !FetcherPrefs.setEasterPalette) {
@@ -415,18 +447,34 @@
       });
 
       window.setTimeout(function () {
-        clearConfirmationUnderPaint();
+        /* Everything the user will see after the reveal is finalized while the
+           screen is still fully covered, so the dissolve has no end-frame snap. */
+        settleUiUnderPaint();
         FetcherPrefs.setEasterPalette(name);
-        requestAnimationFrame(function () {
+
+        window.setTimeout(function () {
+          if (!reset && name !== 'keem') makeSparkles();
+
+          var finished = false;
+          function finishReveal() {
+            if (finished) return;
+            finished = true;
+            if (layer.parentNode) layer.remove();
+            resolve();
+          }
+
+          layer.addEventListener('transitionend', function (event) {
+            if (!event || event.propertyName === 'opacity') finishReveal();
+          }, { once: true });
+
           requestAnimationFrame(function () {
-            if (!reset && name !== 'keem') makeSparkles();
-            layer.classList.add('reveal');
-            window.setTimeout(function () {
-              if (layer.parentNode) layer.remove();
-              resolve();
-            }, t.reveal + 80);
+            requestAnimationFrame(function () { layer.classList.add('reveal'); });
           });
-        });
+
+          /* Fallback only; normal completion is tied to the actual CSS opacity
+             transition so a busy frame cannot remove the paint early. */
+          window.setTimeout(finishReveal, t.reveal + 240);
+        }, t.cover);
       }, t.wash);
     });
   }
