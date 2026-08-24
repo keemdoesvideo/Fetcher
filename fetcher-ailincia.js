@@ -25,6 +25,7 @@
     var style = document.createElement('style');
     style.id = 'fetcher-ailincia-bubble-styles';
     style.textContent = [
+      'html[data-easter-palette="ailincia"] .fetcher-ambient-petal{display:none!important;}',
       '.fetcher-ailincia-bubbles{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden;}',
       '.fetcher-ailincia-bubble{position:absolute;left:var(--bubble-left);bottom:-90px;width:var(--bubble-size);height:var(--bubble-size);border-radius:50%;opacity:0;pointer-events:none;will-change:transform,opacity;animation:fetcher-ailincia-float var(--bubble-duration) cubic-bezier(.32,.04,.38,1) var(--bubble-delay) forwards;}',
       '.fetcher-ailincia-bubble::before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 32% 27%,rgba(255,255,255,.56) 0 7%,rgba(255,255,255,.12) 16%,transparent 29%),linear-gradient(145deg,var(--bubble-fill-a),var(--bubble-fill-b));border:1px solid var(--bubble-edge);box-shadow:inset -7px -10px 18px rgba(255,255,255,.08),0 5px 22px rgba(122,64,84,.08);}',
