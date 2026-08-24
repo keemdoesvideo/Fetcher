@@ -3,6 +3,14 @@
   'use strict';
 
   var root = document.documentElement;
+  var RETURN_404_KEY = 'fetcher.returnFrom404';
+  var returningFrom404 = false;
+
+  try {
+    returningFrom404 = sessionStorage.getItem(RETURN_404_KEY) === '1';
+    if (returningFrom404) root.classList.add('fetcher-return-from-404');
+  } catch (e) {}
+
   var BASE = { light: '#F2F0EA', dark: '#19181C' };
   var EASTER = {
     light: {
@@ -163,9 +171,44 @@
     });
   }
 
+  function install404Return() {
+    var link = document.querySelector('.lost a[href="/"]');
+    if (!link || link.dataset.fetcherReturnInstalled === 'true') return;
+    link.dataset.fetcherReturnInstalled = 'true';
+
+    link.addEventListener('click', function (event) {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+
+      try { sessionStorage.setItem(RETURN_404_KEY, '1'); } catch (e) {}
+      root.classList.add('fetcher-404-leaving');
+
+      var delay = root.getAttribute('data-motion') === 'reduced' ? 100 : 650;
+      window.setTimeout(function () { window.location.assign(link.href); }, delay);
+    });
+  }
+
+  function revealFrom404() {
+    if (!returningFrom404) return;
+
+    window.requestAnimationFrame(function () {
+      window.requestAnimationFrame(function () {
+        root.classList.add('fetcher-return-from-404-reveal');
+      });
+    });
+
+    var reduced = root.getAttribute('data-motion') === 'reduced';
+    window.setTimeout(function () {
+      root.classList.remove('fetcher-return-from-404', 'fetcher-return-from-404-reveal');
+      try { sessionStorage.removeItem(RETURN_404_KEY); } catch (e) {}
+    }, reduced ? 180 : 2420);
+  }
+
   function initLaunchPolish() {
+    revealFrom404();
     maybeCelebrateMilestone();
     installPetThePaw();
+    install404Return();
   }
 
   if (document.readyState === 'loading') {
