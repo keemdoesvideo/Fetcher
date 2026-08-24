@@ -1,7 +1,7 @@
 /*
  * Launch-only finishing layer.
  * Keep this file for production polish that belongs across pages: phone-width
- * hardening and tiny milestone delight. Page design still lives with each page.
+ * hardening and tiny milestone/user delight. Page design still lives with each page.
  */
 
 /* Never let a long URL, filename, or fixed utility bubble widen the viewport. */
@@ -31,6 +31,49 @@ html,body,.app,.main,.fetcher-content-host,.fetcher-page-frame{min-width:0;max-w
   18%{opacity:.7;}
   70%{opacity:.42;}
   100%{opacity:0;transform:translate(-50%,-50%) translate(var(--milestone-x),var(--milestone-y)) rotate(calc(var(--milestone-rot) + 16deg)) scale(1.08);}
+}
+
+/* Pet the Paw: five quick taps on Fetcher's rail mark. */
+.rail .mark{cursor:var(--cursor-main),pointer!important;touch-action:manipulation;user-select:none;}
+.mark.fetcher-paw-pet{animation:fetcher-paw-pet 240ms cubic-bezier(.34,1.45,.64,1);}
+.mark.fetcher-paw-happy{animation:fetcher-paw-happy 600ms cubic-bezier(.34,1.45,.64,1);}
+@keyframes fetcher-paw-pet{
+  0%,100%{transform:rotate(0) scale(1);}
+  38%{transform:rotate(-7deg) scale(.9);}
+  72%{transform:rotate(5deg) scale(1.06);}
+}
+@keyframes fetcher-paw-happy{
+  0%,100%{transform:translateY(0) rotate(0) scale(1);}
+  26%{transform:translateY(-4px) rotate(-9deg) scale(.9);}
+  55%{transform:translateY(1px) rotate(8deg) scale(1.12);}
+  78%{transform:translateY(-2px) rotate(-4deg) scale(1.04);}
+}
+.fetcher-good-dog{
+  position:fixed;left:50%;bottom:68px;z-index:10020;pointer-events:none;
+  transform:translateX(-50%) translateY(9px) scale(.96);opacity:0;
+  background:var(--ink);color:var(--bg);border:1px solid var(--border-strong);
+  border-radius:999px;padding:9px 14px;box-shadow:0 12px 34px -20px rgba(0,0,0,.42);
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:lowercase;
+  animation:fetcher-good-dog 1900ms cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes fetcher-good-dog{
+  0%{opacity:0;transform:translateX(-50%) translateY(9px) scale(.96);}
+  16%,72%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
+  100%{opacity:0;transform:translateX(-50%) translateY(-4px) scale(.98);}
+}
+.fetcher-pet-trail{position:fixed;left:0;right:0;bottom:0;height:106px;z-index:10015;pointer-events:none;overflow:hidden;}
+.fetcher-pet-print{
+  position:absolute;left:var(--pet-left);bottom:var(--pet-bottom);width:24px;height:24px;opacity:0;
+  background:var(--ink);
+  -webkit-mask:var(--mark-paw) center/contain no-repeat;
+  mask:var(--mark-paw) center/contain no-repeat;
+  animation:fetcher-pet-print 900ms cubic-bezier(.16,1,.3,1) var(--pet-delay) both;
+}
+@keyframes fetcher-pet-print{
+  0%{opacity:0;transform:translateY(9px) rotate(var(--pet-rot)) scale(.6);}
+  28%{opacity:.82;transform:translateY(0) rotate(var(--pet-rot)) scale(1);}
+  72%{opacity:.55;}
+  100%{opacity:0;transform:translateY(-5px) rotate(var(--pet-rot)) scale(1.04);}
 }
 
 @media (max-width:760px){
@@ -75,6 +118,7 @@ html,body,.app,.main,.fetcher-content-host,.fetcher-page-frame{min-width:0;max-w
   .stage{padding-left:14px!important;padding-right:14px!important;}
   .foot{padding-left:14px!important;padding-right:14px!important;}
   .dl-bubble,.kbd-bubble,.dl-bubble-list,.kbd-bubble-list{max-width:calc(100vw - 76px)!important;}
+  .fetcher-good-dog{bottom:54px;}
 }
 
 @media (hover:none),(pointer:coarse){
@@ -83,3 +127,7 @@ html,body,.app,.main,.fetcher-content-host,.fetcher-page-frame{min-width:0;max-w
 
 html[data-motion="reduced"] .fetcher-milestone-note{animation:none;opacity:1;transform:none;}
 html[data-motion="reduced"] .fetcher-milestone-paws{display:none;}
+html[data-motion="reduced"] .mark.fetcher-paw-pet,
+html[data-motion="reduced"] .mark.fetcher-paw-happy{animation:none;}
+html[data-motion="reduced"] .fetcher-pet-trail{display:none;}
+html[data-motion="reduced"] .fetcher-good-dog{animation:none;opacity:1;transform:translateX(-50%);}
