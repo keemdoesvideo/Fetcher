@@ -304,15 +304,31 @@ async def download(job_id: str):
 # downloaded again. The persistent shell keeps page navigation inside one parent
 # document, so this cache policy no longer participates in animation behavior.
 _NO_CACHE = {"Cache-Control": "no-cache"}
+_FAVICON_LINK = '<link rel="icon" type="image/svg+xml" href="fetcher-favicon.svg">'
+
+
+def _render_html(filename: str) -> Response:
+    """Serve Fetcher's handwritten pages with tiny launch-wide brand fixes.
+
+    The pages predate the paw becoming Fetcher's final mark, so they still contain
+    the original download-arrow data favicon. Replacing that tag here keeps direct
+    links and persistent-shell navigation consistent without duplicating brand
+    markup across seven pages. The old Ko-fi placeholder only exists on the two
+    coming-soon pages and is corrected here for the same reason.
+    """
+    text = (config.PROJECT_ROOT / filename).read_text(encoding="utf-8")
+    favicon_start = text.find('<link rel="icon"')
+    if favicon_start >= 0:
+        favicon_end = text.find('>', favicon_start)
+        if favicon_end >= 0:
+            text = text[:favicon_start] + _FAVICON_LINK + text[favicon_end + 1:]
+    text = text.replace("https://ko-fi.com/keemdoesvideo", "https://ko-fi.com/hahkeemi")
+    return Response(content=text, media_type="text/html; charset=utf-8", headers=_NO_CACHE)
 
 
 @app.get("/")
 async def index():
-    return FileResponse(
-        str(config.PROJECT_ROOT / "project-fetcher.html"),
-        media_type="text/html; charset=utf-8",
-        headers=_NO_CACHE,
-    )
+    return _render_html("project-fetcher.html")
 
 
 @app.get("/{asset}")
@@ -321,5 +337,7 @@ async def asset(asset: str):
     if media_type is None:
         return JSONResponse(status_code=404, content={"error": {"code": "not_found",
                                                                  "message": "not found"}})
+    if media_type.startswith("text/html"):
+        return _render_html(asset)
     return FileResponse(str(config.PROJECT_ROOT / asset), media_type=media_type,
                         headers=_NO_CACHE)
