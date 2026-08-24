@@ -33,6 +33,16 @@
     keem: true
   };
   var snowReady = false;
+  var foundYouPreload = null;
+
+  function preloadFoundYouCue() {
+    if (foundYouPreload) return;
+    try {
+      foundYouPreload = new Audio('found-you.mp3');
+      foundYouPreload.preload = 'auto';
+      foundYouPreload.load();
+    } catch (e) {}
+  }
 
   function get(key) {
     try {
@@ -194,6 +204,7 @@
       'data-downloads', get('fetcher.showDownloads') === 'off' ? 'off' : 'on');
   }
 
+  preloadFoundYouCue();
   applyTheme();
   applyMotion();
   applyChrome();
@@ -264,7 +275,7 @@
       suki: '#856B9B',
       kaywordley: '#FFA53D',
       wahibah: '#C16499',
-      jackigoe: '#F3A6D8',
+      jackigoe: '#3E9B66',
       keem: '#050506'
     },
     dark: {
@@ -308,8 +319,8 @@
       'html[data-theme="dark"][data-easter-palette="kaywordley"]{--bg:#26030B;--surface:#3A0710;--rail:#520A15;--ink:#FFF3E8;--ink-strong:#FFFFFF;--ink-soft:#FFD0B6;--ink-faint:#FF9A72;--border:#7D1422;--border-strong:#B71930;--accent:#F20039;--accent-ink:#FFBE3D;--accent-tint:rgba(242,0,57,.24);--on-accent:#FFFFFF;--audio:#FF853D;--audio-tint:rgba(255,133,61,.22);--mute:#FF543D;--mute-tint:rgba(255,84,61,.20);--danger:#F20039;--danger-tint:rgba(242,0,57,.20);--success:#FFBE3D;--success-tint:rgba(255,190,61,.16);}',
       'html[data-theme="light"][data-easter-palette="wahibah"]{--bg:#C16499;--surface:#FEC2A8;--rail:#53185A;--ink:#100C1D;--ink-strong:#08050F;--ink-soft:#29153A;--ink-faint:#53185A;--border:#8D3F7A;--border-strong:#53185A;--accent:#53185A;--accent-ink:#29153A;--accent-tint:#E9A7BB;--on-accent:#FFFFFF;--audio:#FEC2A8;--audio-tint:#FBD5C6;--mute:#C16499;--mute-tint:#F0B3C5;--danger:#53185A;--danger-tint:#E7B0C7;--success:#29153A;--success-tint:#E9C3D3;--shiba:#C16499;--shiba-deep:#53185A;--shiba-cream:#FEC2A8;}',
       'html[data-theme="dark"][data-easter-palette="wahibah"]{--bg:#100C1D;--surface:#1A1028;--rail:#29153A;--ink:#FFF1EC;--ink-strong:#FFFFFF;--ink-soft:#FEC2A8;--ink-faint:#C16499;--border:#3B204A;--border-strong:#53185A;--accent:#C16499;--accent-ink:#FEC2A8;--accent-tint:rgba(193,100,153,.22);--on-accent:#100C1D;--audio:#FEC2A8;--audio-tint:rgba(254,194,168,.18);--mute:#53185A;--mute-tint:rgba(83,24,90,.30);--danger:#C16499;--danger-tint:rgba(193,100,153,.18);--success:#FEC2A8;--success-tint:rgba(254,194,168,.14);}',
-      'html[data-theme="light"][data-easter-palette="jackigoe"]{--bg:#F3A6D8;--surface:#FFFFFF;--rail:#CDDB01;--ink:#173624;--ink-strong:#0B2114;--ink-soft:#2C6040;--ink-faint:#47795A;--border:#E66E8A;--border-strong:#F03A55;--accent:#F03A55;--accent-ink:#A91E35;--accent-tint:#FFD8E4;--on-accent:#FFFFFF;--audio:#3E9B66;--audio-tint:#DDF1E5;--mute:#CDDB01;--mute-tint:#F4F7BD;--danger:#F03A55;--danger-tint:#FFD6DF;--success:#3E9B66;--success-tint:#DDF1E5;--shiba:#F03A55;--shiba-deep:#3E9B66;--shiba-cream:#FFFFFF;}',
-      'html[data-theme="dark"][data-easter-palette="jackigoe"]{--bg:#14261B;--surface:#1C3425;--rail:#274B34;--ink:#FFF8FC;--ink-strong:#FFFFFF;--ink-soft:#F3A6D8;--ink-faint:#A9C9B5;--border:#356B49;--border-strong:#3E9B66;--accent:#F03A55;--accent-ink:#F3A6D8;--accent-tint:rgba(240,58,85,.22);--on-accent:#FFFFFF;--audio:#CDDB01;--audio-tint:rgba(205,219,1,.16);--mute:#3E9B66;--mute-tint:rgba(62,155,102,.22);--danger:#F03A55;--danger-tint:rgba(240,58,85,.18);--success:#CDDB01;--success-tint:rgba(205,219,1,.14);--shiba:#F3A6D8;--shiba-deep:#F03A55;--shiba-cream:#FFFFFF;}',
+      'html[data-theme="light"][data-easter-palette="jackigoe"]{--bg:#3E9B66;--surface:#FFFFFF;--rail:#CDDB01;--ink:#10291B;--ink-strong:#07180F;--ink-soft:#214E35;--ink-faint:#356B4A;--border:#F3A6D8;--border-strong:#F03A55;--accent:#F3A6D8;--accent-ink:#F03A55;--accent-tint:#FBE3F2;--on-accent:#173624;--audio:#CDDB01;--audio-tint:#F4F7BD;--mute:#3E9B66;--mute-tint:#DDF1E5;--danger:#F03A55;--danger-tint:#FFD6DF;--success:#3E9B66;--success-tint:#DDF1E5;--shiba:#F3A6D8;--shiba-deep:#F03A55;--shiba-cream:#FFFFFF;}',
+      'html[data-theme="dark"][data-easter-palette="jackigoe"]{--bg:#14261B;--surface:#1C3425;--rail:#274B34;--ink:#FFF8FC;--ink-strong:#FFFFFF;--ink-soft:#EFC7E2;--ink-faint:#A9C9B5;--border:#356B49;--border-strong:#3E9B66;--accent:#F3A6D8;--accent-ink:#F03A55;--accent-tint:rgba(243,166,216,.20);--on-accent:#14261B;--audio:#CDDB01;--audio-tint:rgba(205,219,1,.16);--mute:#3E9B66;--mute-tint:rgba(62,155,102,.22);--danger:#F03A55;--danger-tint:rgba(240,58,85,.18);--success:#CDDB01;--success-tint:rgba(205,219,1,.14);--shiba:#F3A6D8;--shiba-deep:#F03A55;--shiba-cream:#FFFFFF;}',
       'html[data-theme="light"][data-easter-palette="keem"],html[data-theme="dark"][data-easter-palette="keem"]{--bg:#050506;--surface:#101012;--rail:#0A0A0B;--ink:#F7FBFF;--ink-strong:#FFFFFF;--ink-soft:#DCE4EB;--ink-faint:#AAB6C0;--border:#2B2D31;--border-strong:#454950;--accent:#FFFFFF;--accent-ink:#E6EDF3;--accent-tint:rgba(255,255,255,.11);--on-accent:#050506;--audio:#DCE4EB;--audio-tint:rgba(255,255,255,.10);--mute:#BFC8D0;--mute-tint:rgba(255,255,255,.08);--danger:#FFFFFF;--danger-tint:rgba(255,255,255,.10);--success:#FFFFFF;--success-tint:rgba(255,255,255,.10);--shiba:#FFFFFF;--shiba-deep:#DCE4EB;--shiba-cream:#F7FBFF;}',
       '.fetcher-easter-v2-paint{position:fixed;left:50%;top:50%;width:230vmax;height:170vmax;z-index:10020;pointer-events:none;opacity:1;background:var(--easter-wash-bg,#fff);transform:translate(-50%,-50%) rotate(45deg) translateY(-215vmax);transform-origin:center;will-change:transform,opacity;}',
       '.fetcher-easter-v2-lobe{position:absolute;bottom:-22vmax;width:94vmax;height:44vmax;border-radius:50%;background:var(--easter-wash-bg,#fff);}',
@@ -374,6 +385,15 @@
     return paint;
   }
 
+  function clearConfirmationUnderPaint() {
+    var input = document.getElementById('url-input');
+    if (!input || !input.classList.contains('fetcher-easter-confirmation')) return;
+    input.value = '';
+    input.classList.remove('fetcher-easter-confirmation');
+    var fetchWrap = document.getElementById('fetch-wrap');
+    if (fetchWrap) fetchWrap.classList.remove('show');
+  }
+
   function transitionTo(name) {
     name = WASH_COLORS.light[name] ? name : '';
     var reset = !name;
@@ -395,6 +415,7 @@
       });
 
       window.setTimeout(function () {
+        clearConfirmationUnderPaint();
         FetcherPrefs.setEasterPalette(name);
         requestAnimationFrame(function () {
           requestAnimationFrame(function () {
