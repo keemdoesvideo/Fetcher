@@ -58,6 +58,7 @@ ALLOWED_ASSETS: dict[str, str] = {
     "fetcher-main.js": "application/javascript; charset=utf-8",
     "fetcher-settings.js": "application/javascript; charset=utf-8",
     "fetcher-trimmer.js": "application/javascript; charset=utf-8",
+    "fetcher-favicon.svg": "image/svg+xml",
     "paw-cursor-light.svg": "image/svg+xml",
     "paw-cursor-dark.svg": "image/svg+xml",
     "hls.min.js": "application/javascript; charset=utf-8",
