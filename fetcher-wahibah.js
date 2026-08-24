@@ -6,7 +6,6 @@
   var topWindow = window;
   try { if (window.top) topWindow = window.top; } catch (e) { topWindow = window; }
   var isMaster = topWindow === window;
-
   var layer = null;
   var renderTimer = null;
   var VIEW_W = 600;
@@ -18,121 +17,42 @@
   function pick(items) { return items[Math.floor(Math.random() * items.length)]; }
 
   function active() {
-    return root.getAttribute('data-easter-palette') === 'wahibah' &&
-      root.getAttribute('data-motion') !== 'reduced';
+    return root.getAttribute('data-easter-palette') === 'wahibah' && root.getAttribute('data-motion') !== 'reduced';
   }
 
   function masterActive() {
     try {
       var masterRoot = topWindow.document.documentElement;
-      return masterRoot.getAttribute('data-easter-palette') === 'wahibah' &&
-        masterRoot.getAttribute('data-motion') !== 'reduced';
-    } catch (e) {
-      return active();
-    }
+      return masterRoot.getAttribute('data-easter-palette') === 'wahibah' && masterRoot.getAttribute('data-motion') !== 'reduced';
+    } catch (e) { return active(); }
   }
 
-  /* Simplified stick-figure layouts based on familiar real constellations.
-     Traversal may revisit a star so branched constellations can still be drawn
-     by one uninterrupted travelling line. */
+  /* Simplified recognisable stick-figure layouts based on real constellations.
+     Traversal can revisit stars so branched shapes are still drawn as one unbroken path. */
   var REAL_TEMPLATES = [
-    {
-      name: 'big dipper',
-      points: [[70,210],[145,188],[220,196],[292,164],[365,126],[452,142],[526,105]],
-      traversal: [0,1,2,3,4,5,6]
-    },
-    {
-      name: 'cassiopeia',
-      points: [[72,235],[170,118],[278,224],[386,105],[520,208]],
-      traversal: [0,1,2,3,4]
-    },
-    {
-      name: 'orion',
-      points: [[178,78],[418,90],[235,170],[300,183],[365,170],[206,286],[402,292]],
-      traversal: [0,2,3,4,1,4,6,4,3,2,5]
-    },
-    {
-      name: 'aries',
-      points: [[108,214],[218,166],[346,183],[486,126]],
-      traversal: [0,1,2,3]
-    },
-    {
-      name: 'taurus',
-      points: [[86,106],[196,154],[292,214],[390,151],[522,88],[390,151],[472,278]],
-      traversal: [0,1,2,3,4,3,6]
-    },
-    {
-      name: 'gemini',
-      points: [[150,82],[228,128],[246,212],[210,292],[418,86],[360,137],[344,218],[392,294]],
-      traversal: [0,1,2,3,2,1,5,4,5,6,7]
-    },
-    {
-      name: 'cancer',
-      points: [[298,82],[292,160],[292,226],[180,292],[424,286]],
-      traversal: [0,1,2,3,2,4]
-    },
-    {
-      name: 'leo',
-      points: [[120,230],[156,150],[226,105],[286,154],[260,218],[370,244],[488,190],[514,286],[370,244]],
-      traversal: [0,1,2,3,4,5,6,7,6]
-    },
-    {
-      name: 'virgo',
-      points: [[90,120],[182,154],[272,126],[332,205],[424,176],[520,238],[332,205],[260,292]],
-      traversal: [0,1,2,3,4,5,4,3,7]
-    },
-    {
-      name: 'libra',
-      points: [[176,116],[410,104],[472,246],[286,292],[126,238]],
-      traversal: [0,1,2,3,4,0,3]
-    },
-    {
-      name: 'scorpius',
-      points: [[92,104],[150,154],[210,130],[260,188],[310,220],[370,242],[430,226],[482,270],[530,230]],
-      traversal: [0,1,2,3,4,5,6,7,8]
-    },
-    {
-      name: 'sagittarius',
-      points: [[130,220],[208,142],[310,158],[392,110],[468,184],[396,254],[286,270],[208,220],[310,158],[396,254]],
-      traversal: [0,1,2,3,4,5,6,7,1,2,5]
-    },
-    {
-      name: 'capricorn',
-      points: [[92,154],[210,110],[338,150],[500,126],[430,264],[270,286],[92,154]],
-      traversal: [0,1,2,3,4,5,0]
-    },
-    {
-      name: 'aquarius',
-      points: [[80,126],[160,164],[242,118],[318,164],[402,128],[478,184],[522,260],[414,286]],
-      traversal: [0,1,2,3,4,5,6,7]
-    },
-    {
-      name: 'pisces',
-      points: [[92,98],[150,126],[174,188],[130,232],[80,196],[92,98],[174,188],[286,216],[392,240],[510,286]],
-      traversal: [0,1,2,3,4,0,1,2,7,8,9]
-    }
+    { name:'big dipper', points:[[70,210],[145,188],[220,196],[292,164],[365,126],[452,142],[526,105]], traversal:[0,1,2,3,4,5,6] },
+    { name:'cassiopeia', points:[[72,235],[170,118],[278,224],[386,105],[520,208]], traversal:[0,1,2,3,4] },
+    { name:'orion', points:[[178,78],[418,90],[235,170],[300,183],[365,170],[206,286],[402,292]], traversal:[0,2,3,4,1,4,6,4,3,2,5] },
+    { name:'aries', points:[[108,214],[218,166],[346,183],[486,126]], traversal:[0,1,2,3] },
+    { name:'taurus', points:[[86,106],[196,154],[292,214],[390,151],[522,88],[472,278]], traversal:[0,1,2,3,4,3,5] },
+    { name:'gemini', points:[[150,82],[228,128],[246,212],[210,292],[418,86],[360,137],[344,218],[392,294]], traversal:[0,1,2,3,2,1,5,4,5,6,7] },
+    { name:'cancer', points:[[298,82],[292,160],[292,226],[180,292],[424,286]], traversal:[0,1,2,3,2,4] },
+    { name:'leo', points:[[120,230],[156,150],[226,105],[286,154],[260,218],[370,244],[488,190],[514,286]], traversal:[0,1,2,3,4,5,6,7,6] },
+    { name:'virgo', points:[[90,120],[182,154],[272,126],[332,205],[424,176],[520,238],[332,205],[260,292]], traversal:[0,1,2,3,4,5,4,3,7] },
+    { name:'libra', points:[[176,116],[410,104],[472,246],[286,292],[126,238]], traversal:[0,1,2,3,4,0,3] },
+    { name:'scorpius', points:[[92,104],[150,154],[210,130],[260,188],[310,220],[370,242],[430,226],[482,270],[530,230]], traversal:[0,1,2,3,4,5,6,7,8] },
+    { name:'sagittarius', points:[[130,220],[208,142],[310,158],[392,110],[468,184],[396,254],[286,270],[208,220]], traversal:[0,1,2,3,4,5,6,7,1,2,5] },
+    { name:'capricorn', points:[[92,154],[210,110],[338,150],[500,126],[430,264],[270,286]], traversal:[0,1,2,3,4,5,0] },
+    { name:'aquarius', points:[[80,126],[160,164],[242,118],[318,164],[402,128],[478,184],[522,260],[414,286]], traversal:[0,1,2,3,4,5,6,7] },
+    { name:'pisces', points:[[92,98],[150,126],[174,188],[130,232],[80,196],[286,216],[392,240],[510,286]], traversal:[0,1,2,3,4,0,1,2,5,6,7] }
   ];
 
   function sharedState() {
     try {
-      if (!topWindow.FetcherWahibahShared) {
-        topWindow.FetcherWahibahShared = {
-          constellations: [],
-          nextId: 1,
-          spawnTimer: null,
-          running: false
-        };
-      }
+      if (!topWindow.FetcherWahibahShared) topWindow.FetcherWahibahShared = { constellations:[], nextId:1, spawnTimer:null, running:false };
       return topWindow.FetcherWahibahShared;
     } catch (e) {
-      if (!window.FetcherWahibahShared) {
-        window.FetcherWahibahShared = {
-          constellations: [],
-          nextId: 1,
-          spawnTimer: null,
-          running: false
-        };
-      }
+      if (!window.FetcherWahibahShared) window.FetcherWahibahShared = { constellations:[], nextId:1, spawnTimer:null, running:false };
       return window.FetcherWahibahShared;
     }
   }
@@ -140,9 +60,7 @@
   function pruneShared() {
     var shared = sharedState();
     var now = Date.now();
-    shared.constellations = shared.constellations.filter(function (item) {
-      return now < item.bornAt + item.duration + 250;
-    });
+    shared.constellations = shared.constellations.filter(function (item) { return now < item.bornAt + item.duration + 250; });
   }
 
   function cloneTemplate(template, procedural) {
@@ -153,33 +71,19 @@
       return {
         x: 300 + (p[0] - 300) * scaleX + rand(-jitter, jitter),
         y: 180 + (p[1] - 180) * scaleY + rand(-jitter, jitter),
-        r: (index === 0 ? rand(4.8, 5.8) : rand(3.5, 5.2))
+        r: index === 0 ? rand(4.8, 5.8) : rand(3.5, 5.2)
       };
     });
-    return {
-      name: procedural ? template.name + ' variation' : template.name,
-      points: points,
-      traversal: template.traversal.slice(),
-      procedural: procedural
-    };
+    return { name:procedural ? template.name + ' variation' : template.name, points:points, traversal:template.traversal.slice() };
   }
 
   function makeModel(delay) {
     var shared = sharedState();
-    var base = pick(REAL_TEMPLATES);
-    var procedural = Math.random() < .28;
-    var shape = cloneTemplate(base, procedural);
+    var shape = cloneTemplate(pick(REAL_TEMPLATES), Math.random() < .28);
     return {
-      id: shared.nextId++,
-      bornAt: Date.now() + (delay || 0),
-      duration: rand(9000, 10400),
-      left: rand(34, 67),
-      top: rand(31, 69),
-      width: rand(44, 54),
-      rotate: rand(-7, 7),
-      name: shape.name,
-      points: shape.points,
-      traversal: shape.traversal
+      id:shared.nextId++, bornAt:Date.now() + (delay || 0), duration:rand(9000,10400),
+      left:rand(34,67), top:rand(31,69), width:rand(44,54), rotate:rand(-7,7),
+      name:shape.name, points:shape.points, traversal:shape.traversal
     };
   }
 
@@ -187,7 +91,6 @@
     if (!isMaster || !masterActive()) return null;
     var shared = sharedState();
     pruneShared();
-    /* Hard rule: never overlap two constellations. */
     if (shared.constellations.length) return shared.constellations[0];
     var model = makeModel(delay || 0);
     shared.constellations.push(model);
@@ -199,14 +102,11 @@
     var shared = sharedState();
     window.clearTimeout(shared.spawnTimer);
     if (!shared.running || !masterActive() || !model) return;
-    var wait = Math.max(0, model.bornAt + model.duration - Date.now()) + rand(1100, 2100);
+    var wait = Math.max(0, model.bornAt + model.duration - Date.now()) + rand(1100,2100);
     shared.spawnTimer = window.setTimeout(function () {
       if (!shared.running || !masterActive()) return;
       pruneShared();
-      if (shared.constellations.length) {
-        scheduleNextFrom(shared.constellations[0]);
-        return;
-      }
+      if (shared.constellations.length) { scheduleNextFrom(shared.constellations[0]); return; }
       scheduleNextFrom(addShared(0));
     }, wait);
   }
@@ -231,8 +131,7 @@
 
   function syncMasterActivity() {
     if (!isMaster) return;
-    if (masterActive()) startShared();
-    else stopShared();
+    if (masterActive()) startShared(); else stopShared();
   }
 
   function ensureStyles() {
@@ -258,9 +157,7 @@
     (document.head || document.documentElement).appendChild(style);
   }
 
-  function host() {
-    return document.querySelector('.main') || document.body;
-  }
+  function host() { return document.querySelector('.main') || document.body; }
 
   function ensureLayer() {
     var parent = host();
@@ -269,189 +166,129 @@
     if (layer && layer.parentNode) layer.remove();
     layer = document.createElement('div');
     layer.className = 'fetcher-wahibah-layer';
-    layer.setAttribute('aria-hidden', 'true');
-    parent.insertBefore(layer, parent.firstChild);
+    layer.setAttribute('aria-hidden','true');
+    parent.insertBefore(layer,parent.firstChild);
     return layer;
   }
 
-  function distance(a, b) {
-    var dx = b.x - a.x;
-    var dy = b.y - a.y;
-    return Math.sqrt(dx * dx + dy * dy);
+  function distance(a,b) {
+    var dx = b.x-a.x, dy = b.y-a.y;
+    return Math.sqrt(dx*dx + dy*dy);
   }
 
   function pathMetrics(model) {
-    var traversal = model.traversal;
-    var cumulative = [0];
-    var total = 0;
-    for (var i = 1; i < traversal.length; i += 1) {
-      total += distance(model.points[traversal[i - 1]], model.points[traversal[i]]);
+    var cumulative=[0], total=0;
+    for (var i=1;i<model.traversal.length;i+=1) {
+      total += distance(model.points[model.traversal[i-1]],model.points[model.traversal[i]]);
       cumulative.push(total);
     }
-    return { total: Math.max(1, total), cumulative: cumulative };
+    return { total:Math.max(1,total), cumulative:cumulative };
   }
 
-  function firstArrivalDistances(model, metrics) {
-    var arrivals = {};
-    for (var i = 0; i < model.traversal.length; i += 1) {
-      var starIndex = model.traversal[i];
-      if (arrivals[starIndex] === undefined) arrivals[starIndex] = metrics.cumulative[i];
+  function firstArrivalDistances(model,metrics) {
+    var arrivals={};
+    for (var i=0;i<model.traversal.length;i+=1) {
+      var starIndex=model.traversal[i];
+      if (arrivals[starIndex]===undefined) arrivals[starIndex]=metrics.cumulative[i];
     }
     return arrivals;
   }
 
   function pathData(model) {
-    var first = model.points[model.traversal[0]];
-    var d = 'M ' + first.x.toFixed(1) + ' ' + first.y.toFixed(1);
-    for (var i = 1; i < model.traversal.length; i += 1) {
-      var p = model.points[model.traversal[i]];
-      d += ' L ' + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
+    var first=model.points[model.traversal[0]];
+    var d='M '+first.x.toFixed(1)+' '+first.y.toFixed(1);
+    for (var i=1;i<model.traversal.length;i+=1) {
+      var p=model.points[model.traversal[i]];
+      d+=' L '+p.x.toFixed(1)+' '+p.y.toFixed(1);
     }
     return d;
   }
 
   function createSvg(model) {
-    var ns = 'http://www.w3.org/2000/svg';
-    var svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', '0 0 ' + VIEW_W + ' ' + VIEW_H);
+    var ns='http://www.w3.org/2000/svg';
+    var svg=document.createElementNS(ns,'svg');
+    svg.setAttribute('viewBox','0 0 '+VIEW_W+' '+VIEW_H);
     svg.classList.add('fetcher-wahibah-constellation');
-    svg.setAttribute('data-wahibah-id', String(model.id));
-    svg.setAttribute('data-constellation-name', model.name);
-    svg.style.setProperty('--wah-left', model.left + '%');
-    svg.style.setProperty('--wah-top', model.top + '%');
-    svg.style.setProperty('--wah-width', model.width + 'vw');
-    svg.style.setProperty('--wah-rotate', model.rotate + 'deg');
-    svg.style.setProperty('--wah-duration', model.duration + 'ms');
-    svg.style.setProperty('--wah-delay', (-(Date.now() - model.bornAt)) + 'ms');
-    svg.style.setProperty('--wah-draw-start', DRAW_START + 'ms');
-    svg.style.setProperty('--wah-draw-duration', DRAW_DURATION + 'ms');
+    svg.setAttribute('data-wahibah-id',String(model.id));
+    svg.setAttribute('data-constellation-name',model.name);
+    svg.style.setProperty('--wah-left',model.left+'%');
+    svg.style.setProperty('--wah-top',model.top+'%');
+    svg.style.setProperty('--wah-width',model.width+'vw');
+    svg.style.setProperty('--wah-rotate',model.rotate+'deg');
+    svg.style.setProperty('--wah-duration',model.duration+'ms');
+    svg.style.setProperty('--wah-delay',(-(Date.now()-model.bornAt))+'ms');
+    svg.style.setProperty('--wah-draw-start',DRAW_START+'ms');
+    svg.style.setProperty('--wah-draw-duration',DRAW_DURATION+'ms');
 
-    var defs = document.createElementNS(ns, 'defs');
-    var radial = document.createElementNS(ns, 'radialGradient');
-    radial.setAttribute('id', 'wahibahGlow-' + model.id);
-    radial.setAttribute('cx', '50%');
-    radial.setAttribute('cy', '50%');
-    radial.setAttribute('r', '50%');
-    [['0%','#FEC2A8','.30'],['52%','#C16499','.13'],['100%','#C16499','0']].forEach(function (s) {
-      var stop = document.createElementNS(ns, 'stop');
-      stop.setAttribute('offset', s[0]);
-      stop.setAttribute('stop-color', s[1]);
-      stop.setAttribute('stop-opacity', s[2]);
-      radial.appendChild(stop);
+    var defs=document.createElementNS(ns,'defs');
+    var radial=document.createElementNS(ns,'radialGradient');
+    radial.setAttribute('id','wahibahGlow-'+model.id);
+    radial.setAttribute('cx','50%'); radial.setAttribute('cy','50%'); radial.setAttribute('r','50%');
+    [['0%','#FEC2A8','.30'],['52%','#C16499','.13'],['100%','#C16499','0']].forEach(function(s){
+      var stop=document.createElementNS(ns,'stop');
+      stop.setAttribute('offset',s[0]); stop.setAttribute('stop-color',s[1]); stop.setAttribute('stop-opacity',s[2]); radial.appendChild(stop);
     });
-    defs.appendChild(radial);
-    svg.appendChild(defs);
+    defs.appendChild(radial); svg.appendChild(defs);
 
-    var nebula = document.createElementNS(ns, 'ellipse');
-    nebula.setAttribute('cx', '300');
-    nebula.setAttribute('cy', '180');
-    nebula.setAttribute('rx', '250');
-    nebula.setAttribute('ry', '134');
-    nebula.setAttribute('fill', 'url(#wahibahGlow-' + model.id + ')');
-    nebula.setAttribute('class', 'fetcher-wahibah-nebula');
-    svg.appendChild(nebula);
+    var nebula=document.createElementNS(ns,'ellipse');
+    nebula.setAttribute('cx','300'); nebula.setAttribute('cy','180'); nebula.setAttribute('rx','250'); nebula.setAttribute('ry','134');
+    nebula.setAttribute('fill','url(#wahibahGlow-'+model.id+')'); nebula.setAttribute('class','fetcher-wahibah-nebula'); svg.appendChild(nebula);
 
-    var metrics = pathMetrics(model);
-    var arrivals = firstArrivalDistances(model, metrics);
-
-    var path = document.createElementNS(ns, 'path');
-    path.setAttribute('d', pathData(model));
-    path.setAttribute('class', 'fetcher-wahibah-path');
-    path.style.setProperty('--wah-path-length', metrics.total.toFixed(1));
+    var metrics=pathMetrics(model);
+    var arrivals=firstArrivalDistances(model,metrics);
+    var path=document.createElementNS(ns,'path');
+    path.setAttribute('d',pathData(model));
+    path.setAttribute('class','fetcher-wahibah-path');
+    path.style.setProperty('--wah-path-length',metrics.total.toFixed(1));
     svg.appendChild(path);
 
-    model.points.forEach(function (point, index) {
-      var star = document.createElementNS(ns, 'circle');
-      star.setAttribute('cx', point.x);
-      star.setAttribute('cy', point.y);
-      star.setAttribute('r', point.r);
-      star.setAttribute('class', 'fetcher-wahibah-star' + (index % 3 === 1 ? ' alt' : ''));
-      var travelled = arrivals[index] === undefined ? metrics.total : arrivals[index];
-      var arrivalMs = DRAW_START + (travelled / metrics.total) * DRAW_DURATION - 120;
-      star.style.setProperty('--wah-star-arrival', Math.max(180, arrivalMs).toFixed(0) + 'ms');
+    model.points.forEach(function(point,index){
+      if (arrivals[index]===undefined) return;
+      var star=document.createElementNS(ns,'circle');
+      star.setAttribute('cx',point.x); star.setAttribute('cy',point.y); star.setAttribute('r',point.r);
+      star.setAttribute('class','fetcher-wahibah-star'+(index%3===1?' alt':''));
+      var arrivalMs=DRAW_START+(arrivals[index]/metrics.total)*DRAW_DURATION-120;
+      star.style.setProperty('--wah-star-arrival',Math.max(180,arrivalMs).toFixed(0)+'ms');
       svg.appendChild(star);
     });
-
     return svg;
   }
 
   function syncRendered() {
-    window.clearTimeout(renderTimer);
-    renderTimer = null;
-
-    if (!active()) {
-      if (layer) layer.replaceChildren();
-      return;
-    }
-
+    window.clearTimeout(renderTimer); renderTimer=null;
+    if (!active()) { if (layer) layer.replaceChildren(); return; }
     ensureStyles();
-    var target = ensureLayer();
+    var target=ensureLayer();
     if (!target) return;
     pruneShared();
-
-    var shared = sharedState();
-    var live = {};
-    var now = Date.now();
-
-    shared.constellations.forEach(function (model) {
-      if (now >= model.bornAt + model.duration + 180) return;
-      live[String(model.id)] = true;
-      if (!target.querySelector('[data-wahibah-id="' + model.id + '"]')) {
-        target.appendChild(createSvg(model));
-      }
+    var shared=sharedState(), live={}, now=Date.now();
+    shared.constellations.forEach(function(model){
+      if (now>=model.bornAt+model.duration+180) return;
+      live[String(model.id)]=true;
+      if (!target.querySelector('[data-wahibah-id="'+model.id+'"]')) target.appendChild(createSvg(model));
     });
-
-    Array.prototype.forEach.call(target.querySelectorAll('.fetcher-wahibah-constellation'), function (node) {
+    Array.prototype.forEach.call(target.querySelectorAll('.fetcher-wahibah-constellation'),function(node){
       if (!live[node.getAttribute('data-wahibah-id')]) node.remove();
     });
-
-    renderTimer = window.setTimeout(syncRendered, 180);
+    renderTimer=window.setTimeout(syncRendered,180);
   }
 
-  function stopRenderer() {
-    window.clearTimeout(renderTimer);
-    renderTimer = null;
-    if (layer) layer.replaceChildren();
-  }
+  function stopRenderer() { window.clearTimeout(renderTimer); renderTimer=null; if (layer) layer.replaceChildren(); }
+  function startRenderer() { stopRenderer(); if (!active()) return; ensureStyles(); ensureLayer(); syncRendered(); }
 
-  function startRenderer() {
-    stopRenderer();
-    if (!active()) return;
-    ensureStyles();
-    ensureLayer();
-    syncRendered();
-  }
-
-  document.addEventListener('fetcher:easter-change', function () {
-    syncMasterActivity();
-    if (active()) startRenderer();
-    else stopRenderer();
-  });
-
-  document.addEventListener('fetcher:pref-change', function (event) {
-    if (!event || !event.detail || event.detail.key !== 'fetcher.motion') return;
-    syncMasterActivity();
-    if (active()) startRenderer();
-    else stopRenderer();
+  document.addEventListener('fetcher:easter-change',function(){ syncMasterActivity(); if(active()) startRenderer(); else stopRenderer(); });
+  document.addEventListener('fetcher:pref-change',function(event){
+    if(!event||!event.detail||event.detail.key!=='fetcher.motion') return;
+    syncMasterActivity(); if(active()) startRenderer(); else stopRenderer();
   });
 
   if (window.MutationObserver) {
-    new MutationObserver(function () {
+    new MutationObserver(function(){
       syncMasterActivity();
-      if (active()) {
-        if (!renderTimer) startRenderer();
-      } else {
-        stopRenderer();
-      }
-    }).observe(root, { attributes: true, attributeFilter: ['data-easter-palette', 'data-motion'] });
+      if(active()){ if(!renderTimer) startRenderer(); } else stopRenderer();
+    }).observe(root,{attributes:true,attributeFilter:['data-easter-palette','data-motion']});
   }
 
-  function init() {
-    ensureStyles();
-    syncMasterActivity();
-    if (active()) startRenderer();
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
-  else init();
+  function init(){ ensureStyles(); syncMasterActivity(); if(active()) startRenderer(); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
 })();
