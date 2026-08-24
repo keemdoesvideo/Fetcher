@@ -94,8 +94,13 @@
 .trim-handle{
   position:absolute;top:50%;width:13px;height:24px;margin-left:-6.5px;transform:translateY(-50%);
   background:var(--bg);border:1.5px solid var(--ink);border-radius:5px;
-  cursor:ew-resize;touch-action:none;box-shadow:var(--shadow-sm);
+  cursor:ew-resize;touch-action:none;box-shadow:var(--shadow-sm);z-index:2;
   transition:border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+/* Keep the visible handle compact, but make it forgiving to grab. The transparent
+   pseudo-element participates in pointer hit-testing without changing layout. */
+.trim-handle::before{
+  content:"";position:absolute;inset:-8px;background:transparent;
 }
 .trim-handle::after{
   content:"";position:absolute;left:50%;top:50%;width:2px;height:10px;

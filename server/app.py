@@ -7,7 +7,7 @@ reachable over HTTP.
 
 Endpoints:
   GET  /                      -> the Fetch page (project-fetcher.html)
-  GET  /<allowed asset>       -> css/js/settings.html (allowlist only)
+  GET  /<allowed asset>       -> allowlisted frontend assets only
   GET  /api/health           -> environment diagnostics
   POST /api/prepare          -> prepare media, return {jobId, filename, mode}
   GET  /api/download/{jobId} -> stream the prepared file, then clean it up
@@ -37,7 +37,9 @@ logging.basicConfig(
 )
 log = logging.getLogger("fetcher.app")
 
-# The only files reachable over HTTP, with their content types.
+# The only files reachable over HTTP, with their content types. Shell styling and
+# cursor artwork are ordinary static assets now; navigation JS no longer embeds
+# either of them as generated data.
 ALLOWED_ASSETS: dict[str, str] = {
     "project-fetcher.html": "text/html; charset=utf-8",
     "image.html": "text/html; charset=utf-8",
@@ -47,11 +49,19 @@ ALLOWED_ASSETS: dict[str, str] = {
     "about.html": "text/html; charset=utf-8",
     "updates.html": "text/html; charset=utf-8",
     "fetcher-theme.css": "text/css; charset=utf-8",
+    "fetcher-shell.css": "text/css; charset=utf-8",
+    "fetcher-main.css": "text/css; charset=utf-8",
+    "fetcher-settings.css": "text/css; charset=utf-8",
     "fetcher-trimmer.css": "text/css; charset=utf-8",
     "fetcher-prefs.js": "application/javascript; charset=utf-8",
     "fetcher-nav.js": "application/javascript; charset=utf-8",
+    "fetcher-main.js": "application/javascript; charset=utf-8",
+    "fetcher-settings.js": "application/javascript; charset=utf-8",
     "fetcher-trimmer.js": "application/javascript; charset=utf-8",
+    "paw-cursor-light.svg": "image/svg+xml",
+    "paw-cursor-dark.svg": "image/svg+xml",
     "hls.min.js": "application/javascript; charset=utf-8",
+    "found-you.mp3": "audio/mpeg",
 }
 
 _sweeper = StaleSweeper(
@@ -175,7 +185,7 @@ async def detect(url: str = ""):
         "supported": True,
         "provider": provider.name,
         "modes": sorted(provider.MODES),
-        "longForm": provider.long_form(url),   # UI shows the section-trim fields
+        "longForm": provider.long_form(url),
     }
 
 
@@ -217,9 +227,6 @@ def preview_segment(pid: str, name: str):
 
 @app.post("/api/prepare")
 async def prepare(req: PrepareRequest):
-    # Reject obviously-bad input synchronously (fast, no worker thread) so the
-    # client hears about a bad URL — or a mode the source can't deliver
-    # (e.g. video from an audio-only site) — immediately.
     try:
         provider = downloader.resolve_provider(req.url)
         if not provider.supports(req.mode):
@@ -234,9 +241,6 @@ async def prepare(req: PrepareRequest):
     job = store.create()
     job.mode = req.mode
     job.section = section
-    # A full long-form download (a whole VOD, no trim) gets the longer timeout;
-    # everything else — clips, tracks, normal videos, trimmed sections — the
-    # normal one.
     job.timeout = (
         config.LONG_TIMEOUT_SECONDS
         if (section is None and provider.long_form(req.url))
@@ -284,24 +288,20 @@ async def download(job_id: str):
     if job is None or not job.ready:
         return _error_response(errors.FetcherError(errors.JOB_NOT_FOUND))
 
-    # Delete the whole job directory once the response has finished streaming —
-    # media is never kept permanently. Abandoned jobs are caught by the sweeper.
     cleanup = BackgroundTask(store.remove, job.id)
     return FileResponse(
         path=str(job.filepath),
         media_type=job.media_type or "application/octet-stream",
-        filename=job.filename,          # Starlette adds RFC 5987 encoding for us
+        filename=job.filename,
         background=cleanup,
     )
 
 
 # --- Frontend (allowlist only) --------------------------------------------
-# Dev tool: keep the frontend always-fresh, but *cacheable*. "no-cache" makes the
-# browser revalidate every asset before use (ETag/Last-Modified -> 304 when
-# unchanged), so edits still show up on a plain reload — no stale-cache surprises
-# — yet an unchanged theme.css (with its embedded ~60KB font) isn't re-downloaded
-# on every navigation. Full re-downloads on each hop ("no-store") slowed the new
-# page's first paint enough to disrupt the cross-document view transition.
+# Dev tool: always revalidate frontend assets so local edits show up on a normal
+# reload, while unchanged large assets can still return 304 instead of being
+# downloaded again. The persistent shell keeps page navigation inside one parent
+# document, so this cache policy no longer participates in animation behavior.
 _NO_CACHE = {"Cache-Control": "no-cache"}
 
 

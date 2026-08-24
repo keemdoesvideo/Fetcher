@@ -1,0 +1,229 @@
+/*
+ * fetcher-shell.css
+ * Canonical styling for Fetcher's persistent chrome: themed cursor, primary rail,
+ * page-content transitions and destination-pill motion. The router owns state;
+ * page-specific presentation lives with each page.
+ */
+
+html{
+  --shell-page-fade:170ms;
+  --shell-nav-pop:230ms;
+  --shell-rail-collapse-dur:240ms;
+  --shell-rail-collapse-ease:cubic-bezier(.22,.8,.36,1);
+}
+html[data-motion="reserved"]{
+  --shell-page-fade:145ms;
+  --shell-nav-pop:170ms;
+  --shell-rail-collapse-dur:190ms;
+  --shell-rail-collapse-ease:var(--ease);
+}
+html[data-motion="reduced"]{
+  --shell-page-fade:100ms;
+  --shell-nav-pop:100ms;
+  --shell-rail-collapse-dur:100ms;
+  --shell-rail-collapse-ease:var(--ease);
+}
+
+/* ---------- Theme-aware arrow cursor ----------
+   These are the user's exact 24px black/white cursor PNGs embedded directly so
+   the cursor artwork is not resampled or recoloured by CSS. The visible pointer
+   tip starts at x=5/y=2 inside the transparent 24px canvas, so that is the
+   hotspot used for both themes. */
+html[data-theme="light"]{
+  --cursor-main:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAwklEQVR4nN3ToU5CYRgG4GdKMDDIBmchcwlSiJjtNrN6D1QKGxt34D14CcrgFiSxUT0Q+BzbCQbCOXi+4ru99X3C/3/81zxjik4WsEfgE9cZQPzqF/qZQGCLu0wgUOAhEwgc8JIJRNkJLjKBwBuuMoHAO7qZQGCFm0wgsK57K3WBqHsrcWa/cZ8JBD4ygKJ87OPXHf4VWGKOV4zQw2WV0SrADK26Y1WAHR6bGD4FbDDQcHbl+AK3TY8f84Qx2hnjjeYHQdOp1CTCH/MAAAAASUVORK5CYII=") 5 2;
+}
+html[data-theme="dark"]{
+  --cursor-main:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABHNCSVQICAgIfAhkiAAAAK5JREFUSInd1VENwjAUheHTBAFIQAJSkFAJONkcDCfMAZsC6mA4+HlZE0gWttv1vnAEnK9tenOlvwxwBTrg6AXkPFwQvvMEzp4AwFQVWQAyEj2BnP3ICgDQeAMAnTcAcKfkGxsAKJkVIwDWWSkAwDIrhUBGLp4AQP/Zddj8busZJSVJt73AKGmYy3pJKYSQTA0/rt8WHGgzEKuULwAvHPfBAJyqls9ABFq8dnLNvAFD43/2SZf3ogAAAABJRU5ErkJgggAAAAAAAAAAAA==") 5 2;
+}
+/* Keem is intentionally dark even when Appearance is set to Light, so keep the
+   white arrow used by normal Dark mode instead of switching to the black one. */
+html[data-easter-palette="keem"]{
+  --cursor-main:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABHNCSVQICAgIfAhkiAAAAK5JREFUSInd1VENwjAUheHTBAFIQAJSkFAJONkcDCfMAZsC6mA4+HlZE0gWttv1vnAEnK9tenOlvwxwBTrg6AXkPFwQvvMEzp4AwFQVWQAyEj2BnP3ICgDQeAMAnTcAcKfkGxsAKJkVIwDWWSkAwDIrhUBGLp4AQP/Zddj8busZJSVJt73AKGmYy3pJKYSQTA0/rt8WHGgzEKuULwAvHPfBAJyqls9ABFq8dnLNvAFD43/2SZf3ogAAAABJRU5ErkJgggAAAAAAAAAAAA==") 5 2!important;
+}
+html[data-theme]{cursor:var(--cursor-main),auto!important;}
+html[data-theme] body,
+html[data-theme] .app,
+html[data-theme] .fetcher-content-host,
+html[data-theme] .fetcher-page-frame{cursor:inherit!important;}
+html[data-theme] a,
+html[data-theme] button:not(:disabled),
+html[data-theme] [role="button"]:not([aria-disabled="true"]),
+html[data-theme] summary,
+html[data-theme] label[for],
+html[data-theme] .trim-play,
+html[data-theme] .trim-track{cursor:var(--cursor-main),pointer!important;}
+html[data-theme] input:not([type="button"]):not([type="submit"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+html[data-theme] textarea,
+html[data-theme] [contenteditable="true"]{cursor:text!important;}
+html[data-theme] button:disabled,
+html[data-theme] .seg-btn:disabled,
+html[data-theme] .settings-seg-btn:disabled,
+html[data-theme] [aria-disabled="true"]{cursor:not-allowed!important;}
+html[data-theme] .trim-handle{cursor:ew-resize!important;}
+
+/* ---------- Primary rail ---------- */
+.rail{
+  width:88px;
+  flex:0 0 88px;
+  height:100%;
+  background:var(--rail);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:14px 0 18px;
+  position:relative;
+  transition:
+    width var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
+    flex-basis var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
+    background var(--dur-base) var(--ease),
+    border-color var(--dur-base) var(--ease);
+}
+
+/* The approved paw cursor artwork is now Fetcher's brand mark. The logo tile
+   keeps its existing inverse-theme treatment, so light mode uses the white paw
+   on the dark tile and dark mode uses the black paw on the light tile. */
+html[data-theme="light"]{--mark-paw:url("paw-cursor-dark.svg");}
+html[data-theme="dark"]{--mark-paw:url("paw-cursor-light.svg");}
+/* Keem always keeps the normal Dark-mode logo treatment: white tile, black paw. */
+html[data-easter-palette="keem"]{--mark-paw:url("paw-cursor-light.svg")!important;}
+.mark{
+  width:30px;height:30px;border-radius:8px;background:var(--ink);color:var(--bg);
+  display:flex;align-items:center;justify-content:center;margin-bottom:12px;flex:0 0 auto;
+}
+.mark svg{display:none;}
+.mark::before{
+  content:"";width:18px;height:18px;display:block;
+  background:var(--mark-paw) center/contain no-repeat;
+}
+
+.rail-toggle{
+  width:36px;height:36px;border:none;background:transparent;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease-bounce);
+}
+.rail-toggle:hover{background:var(--surface);color:var(--ink);}
+.rail-toggle:active{transform:scale(.92);}
+.rail-toggle svg{transition:transform var(--dur-base) var(--ease-bounce);}
+
+.rail-primary{display:flex;flex-direction:column;gap:6px;margin-top:14px;align-items:center;width:100%;padding:0 12px;}
+.rail-btn{
+  width:64px;max-width:64px;height:64px;border:none;border-radius:var(--r-md);background:transparent;color:var(--ink);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  cursor:pointer;font-size:11px;letter-spacing:.01em;position:relative;
+  transition:
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease-bounce),
+    color var(--dur-fast) var(--ease),
+    width var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
+    height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
+    gap var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease);
+}
+.rail-btn svg{transition:transform var(--dur-fast) var(--ease-bounce);}
+.rail-btn:hover svg{transform:translateY(-1px);}
+.rail-btn:active{transform:scale(.95);}
+.rail-btn span{
+  display:block;max-height:14px;line-height:14px;overflow:hidden;opacity:1;transform:translateY(0);white-space:nowrap;
+  transition:
+    opacity 120ms var(--ease) 55ms,
+    max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
+    transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease);
+}
+.rail-btn > svg,.rail-btn > span{position:relative;z-index:1;}
+.rail-btn.active{color:var(--bg);}
+.rail-btn.active::before{
+  content:"";position:absolute;inset:0;z-index:0;background:var(--ink);border-radius:var(--r-md);box-shadow:var(--shadow-sm);
+}
+.rail-btn.active:hover::before{background:var(--ink-strong);}
+.rail-spacer{margin-top:auto;}
+.rail-icons{display:flex;flex-direction:column;gap:4px;align-items:center;padding-bottom:2px;width:100%;padding-inline:8px;}
+.rail-icons .rail-btn:not(.active):hover{background:var(--surface);}
+.rail-icons .rail-btn.donate:hover{color:var(--mute);}
+.rail-icons .rail-btn.donate:hover svg{transform:translateY(-1px) scale(1.06);}
+
+/* Collapsed state is driven by the parent shell and persisted in localStorage. */
+html[data-rail-collapsed="true"] .rail{width:64px;flex-basis:64px;}
+html[data-rail-collapsed="true"] .rail .rail-toggle svg{transform:rotate(180deg);}
+html[data-rail-collapsed="true"] .rail .rail-btn{width:44px;height:44px;gap:0;}
+html[data-rail-collapsed="true"] .rail .rail-btn span{
+  opacity:0;max-height:0;transform:translateY(-3px);pointer-events:none;
+  transition:
+    opacity 90ms var(--ease),
+    max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
+    transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease);
+}
+
+/* Reserved keeps the same rail interaction but removes spring easing from
+   frequent controls. Structural dimensions stay monotonic in every mode. */
+html[data-motion="reserved"] .rail-toggle,
+html[data-motion="reserved"] .rail-toggle svg,
+html[data-motion="reserved"] .rail-btn svg{
+  transition-duration:150ms!important;
+  transition-timing-function:var(--ease)!important;
+}
+html[data-motion="reserved"] .rail-btn{
+  transition:
+    background 150ms var(--ease),
+    transform 150ms var(--ease),
+    color 150ms var(--ease),
+    width var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
+    height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
+    gap var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;
+}
+html[data-motion="reserved"] .rail-btn span{
+  transition:
+    opacity 100ms var(--ease) 30ms,
+    max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
+    transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;
+}
+html[data-motion="reserved"][data-rail-collapsed="true"] .rail-btn span{
+  transition:
+    opacity 80ms var(--ease),
+    max-height var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease),
+    transform var(--shell-rail-collapse-dur) var(--shell-rail-collapse-ease)!important;
+}
+
+/* Every active Easter palette now uses the slower symmetric reveal approved on
+   Keem: a tiny fully-covered beat, then a long opacity dissolve into the themed
+   interface. Base Fetcher has no data-easter-palette attribute, so its reset
+   wipe keeps the existing separate timing. */
+html[data-easter-palette][data-motion="full"] .fetcher-easter-v2-paint.reveal{
+  transition:opacity 2200ms cubic-bezier(.45,0,.55,1) 120ms!important;
+}
+html[data-easter-palette][data-motion="reserved"] .fetcher-easter-v2-paint.reveal{
+  transition:opacity 1500ms cubic-bezier(.45,0,.55,1) 80ms!important;
+}
+
+/* ---------- Persistent content pane ---------- */
+html[data-fetcher-embedded="true"] .rail{display:none!important;}
+html[data-fetcher-embedded="true"] .app{width:100%!important;}
+.fetcher-content-host{position:relative;flex:1 1 auto;min-width:0;height:100%;overflow:hidden;background:var(--bg);}
+.fetcher-content-host>.main{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;}
+.fetcher-page-frame{
+  position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg);opacity:0;
+  transition:opacity var(--shell-page-fade) var(--ease);
+}
+.fetcher-content-host>.fetcher-page-layer{transition:opacity var(--shell-page-fade) var(--ease);}
+html[data-motion="reduced"] .fetcher-page-frame,
+html[data-motion="reduced"] .fetcher-content-host>.fetcher-page-layer{transition:opacity var(--shell-page-fade) linear!important;}
+
+/* ---------- Destination pill ---------- */
+html[data-nav-pop="true"][data-motion="full"] .rail-btn.active::before{
+  animation:fetcher-nav-pop-full var(--shell-nav-pop) cubic-bezier(.34,1.3,.64,1) both;transform-origin:center;
+}
+@keyframes fetcher-nav-pop-full{0%{opacity:.35;transform:scale(.88);}68%{opacity:1;transform:scale(1.045);}100%{opacity:1;transform:scale(1);}}
+html[data-nav-pop="true"][data-motion="reserved"] .rail-btn.active::before{
+  animation:fetcher-nav-pop-reserved var(--shell-nav-pop) var(--ease) both;transform-origin:center;
+}
+@keyframes fetcher-nav-pop-reserved{from{opacity:.45;transform:scale(.96);}to{opacity:1;transform:scale(1);}}
+html[data-nav-pop="true"][data-motion="reduced"] .rail-btn.active::before{
+  animation:fetcher-nav-pop-reduced var(--shell-nav-pop) linear both!important;
+}
+@keyframes fetcher-nav-pop-reduced{from{opacity:.45;}to{opacity:1;}}
+
+@media (hover:none),(pointer:coarse){.rail-btn:hover svg,.rail-icons .rail-btn.donate:hover svg{transform:none!important;}}
+@media (max-width:560px){
+  .rail{width:64px;flex-basis:64px;}
+  .rail-btn{width:44px;height:44px;gap:0;}
+  .rail-btn span{display:none!important;}
+}
