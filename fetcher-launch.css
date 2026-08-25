@@ -1,0 +1,264 @@
+/*
+ * Launch-only finishing layer.
+ * Keep this file for production polish that belongs across pages: phone-width
+ * hardening and tiny milestone/user delight. Page design still lives with each page.
+ */
+
+/* Never let a long URL, filename, or fixed utility bubble widen the viewport. */
+html,body,.app,.main,.fetcher-content-host,.fetcher-page-frame{min-width:0;max-width:100%;}
+
+/* Branded 404 return: fade the lost page away, then reveal Fetcher with the
+   same long symmetric dissolve used by the approved Easter palette handoff. */
+html.fetcher-404-leaving .main{
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 650ms cubic-bezier(.45,0,.55,1)!important;
+}
+html.fetcher-return-from-404{background:var(--bg);}
+html.fetcher-return-from-404 body{opacity:0;}
+html.fetcher-return-from-404.fetcher-return-from-404-reveal body{
+  opacity:1;
+  transition:opacity 2200ms cubic-bezier(.45,0,.55,1) 120ms!important;
+}
+
+/* Keem keeps the one-off reveal halo on top of his persistent snowfall. */
+.fetcher-name-signature{
+  position:fixed;inset:0;z-index:10012;pointer-events:none;overflow:hidden;
+}
+.fetcher-signature-halo{
+  position:absolute;left:50%;top:50%;width:min(62vw,560px);aspect-ratio:1;border-radius:50%;
+  transform:translate(-50%,-50%) scale(.74);opacity:0;
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 0 48px rgba(255,255,255,.10),0 0 110px rgba(255,255,255,.075),inset 0 0 70px rgba(255,255,255,.035);
+  animation:fetcher-signature-halo 2100ms cubic-bezier(.45,0,.55,1) both;
+}
+@keyframes fetcher-signature-halo{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.72);}
+  34%{opacity:.62;}
+  72%{opacity:.28;}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.08);}
+}
+
+/* Persistent named-Easter ambience. These layers never intercept input. */
+.fetcher-theme-ambience{position:fixed;inset:0;z-index:9994;pointer-events:none;overflow:hidden;}
+
+/* Ailincia: occasional faint peach/pink petals drifting diagonally. */
+.fetcher-ambient-petal{
+  position:absolute;left:var(--amb-left);top:var(--amb-top);width:11px;height:7px;
+  border-radius:85% 12% 78% 18%;background:var(--amb-color);opacity:0;
+  box-shadow:0 2px 12px color-mix(in srgb,var(--amb-color) 18%,transparent);
+  animation:fetcher-ambient-petal var(--amb-dur) ease-in-out var(--amb-delay) both;
+}
+@keyframes fetcher-ambient-petal{
+  0%{opacity:0;transform:translate3d(0,0,0) rotate(var(--amb-rot)) scale(.82);}
+  13%{opacity:var(--amb-opacity);}
+  76%{opacity:calc(var(--amb-opacity) * .82);}
+  100%{opacity:0;transform:translate3d(var(--amb-dx),var(--amb-dy),0) rotate(calc(var(--amb-rot) + var(--amb-spin))) scale(1.04);}
+}
+
+/* Vitaviita: tiny icy-blue raindrop/ripple rings. */
+.fetcher-ambient-ripple{
+  position:absolute;left:var(--amb-left);top:var(--amb-top);width:var(--amb-size);height:var(--amb-size);
+  border-radius:50%;border:1px solid rgba(172,203,255,.40);opacity:0;
+  box-shadow:0 0 20px rgba(137,147,255,.08),inset 0 0 14px rgba(244,250,255,.08);
+  transform:translate(-50%,-50%) scale(.08);
+  animation:fetcher-ambient-ripple 2200ms cubic-bezier(.22,.72,.28,1) var(--amb-delay) both;
+}
+@keyframes fetcher-ambient-ripple{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.08);}
+  16%{opacity:.42;}
+  68%{opacity:.18;}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1);}
+}
+
+/* Suki: dreamy lavender crescents near the screen edges. */
+.fetcher-ambient-crescent{
+  position:absolute;color:rgba(217,203,226,.56);font-family:Georgia,'Times New Roman',serif;
+  font-size:22px;line-height:1;opacity:0;text-shadow:0 0 16px rgba(166,145,184,.22);
+  animation:fetcher-ambient-crescent 4600ms cubic-bezier(.45,0,.55,1) both;
+}
+.fetcher-ambient-crescent-star{
+  position:absolute;left:19px;top:-6px;font-size:7px;color:rgba(217,203,226,.7);
+  animation:fetcher-ambient-star-twinkle 1500ms ease-in-out 650ms both;
+}
+@keyframes fetcher-ambient-crescent{
+  0%{opacity:0;transform:translate(0,0) rotate(-5deg) scale(.88);}
+  20%{opacity:.52;}
+  72%{opacity:.38;transform:translate(var(--amb-orbit-x),var(--amb-orbit-y)) rotate(5deg) scale(1);}
+  100%{opacity:0;transform:translate(calc(var(--amb-orbit-x) * .7),calc(var(--amb-orbit-y) * .7)) rotate(8deg) scale(.96);}
+}
+@keyframes fetcher-ambient-star-twinkle{0%,100%{opacity:0;transform:scale(.4);}45%{opacity:.85;transform:scale(1.2);}}
+
+/* KayWordley: short energetic showers, also fired at click position. */
+.fetcher-ambient-spark{
+  position:absolute;width:var(--amb-length);height:2px;border-radius:999px;background:var(--amb-color);
+  transform-origin:0 50%;opacity:0;box-shadow:0 0 8px color-mix(in srgb,var(--amb-color) 45%,transparent);
+  animation:fetcher-ambient-spark 760ms cubic-bezier(.18,.78,.24,1) var(--amb-delay) both;
+}
+@keyframes fetcher-ambient-spark{
+  0%{opacity:0;transform:rotate(var(--amb-angle)) translateX(0) scaleX(.35);}
+  18%{opacity:.95;}
+  70%{opacity:.62;}
+  100%{opacity:0;transform:rotate(var(--amb-angle)) translateX(var(--amb-distance)) scaleX(.9);}
+}
+
+/* Wahibah: miniature constellations with very faint connecting lines. */
+.fetcher-ambient-constellation{
+  position:absolute;width:130px;height:100px;overflow:visible;opacity:0;
+  filter:drop-shadow(0 0 8px rgba(193,100,153,.12));
+  animation:fetcher-ambient-constellation 2900ms cubic-bezier(.45,0,.55,1) both;
+}
+.fetcher-constellation-line{stroke:rgba(254,194,168,.20);stroke-width:.8;vector-effect:non-scaling-stroke;}
+.fetcher-constellation-star{fill:#FEC2A8;opacity:.15;animation:fetcher-constellation-star 1200ms ease-in-out 1 both;}
+@keyframes fetcher-ambient-constellation{0%{opacity:0;transform:scale(.96);}20%{opacity:.9;}78%{opacity:.72;}100%{opacity:0;transform:scale(1.025);}}
+@keyframes fetcher-constellation-star{0%,100%{opacity:.18;}45%{opacity:.95;filter:drop-shadow(0 0 4px #FEC2A8);}}
+
+/* JackIgoe: small graphic party-popper bursts. */
+.fetcher-ambient-jack-bit{
+  position:absolute;opacity:0;background:var(--amb-color);transform-origin:center;
+  animation:fetcher-ambient-jack 900ms cubic-bezier(.16,.82,.24,1) var(--amb-delay) both;
+}
+.fetcher-ambient-jack-bit.rect{width:8px;height:4px;border-radius:1px;}
+.fetcher-ambient-jack-bit.dot{width:6px;height:6px;border-radius:50%;}
+.fetcher-ambient-jack-bit.streamer{width:12px;height:3px;border-radius:999px;}
+@keyframes fetcher-ambient-jack{
+  0%{opacity:0;transform:rotate(var(--amb-angle)) translateX(0) rotate(var(--amb-rot)) scale(.45);}
+  16%{opacity:1;}
+  68%{opacity:.82;}
+  100%{opacity:0;transform:rotate(var(--amb-angle)) translateX(var(--amb-distance)) rotate(calc(var(--amb-rot) + 80deg)) scale(1);}
+}
+
+/* Stonakah: old ember selectors retained but no longer driven by the launch JS. */
+.fetcher-ember-trail{
+  position:fixed;z-index:9998;pointer-events:none;height:1.5px;transform-origin:0 50%;opacity:.7;
+  background:linear-gradient(90deg,rgba(255,174,82,.88),rgba(176,137,104,.48),rgba(176,137,104,0));
+  box-shadow:0 0 5px rgba(255,159,55,.30);animation:fetcher-ember-fade 580ms ease-out both;
+}
+.fetcher-ember-dot{
+  position:fixed;z-index:9999;pointer-events:none;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;
+  background:#FFAE52;box-shadow:0 0 7px rgba(255,174,82,.7);animation:fetcher-ember-dot 720ms ease-out both;
+}
+@keyframes fetcher-ember-fade{0%{opacity:.72;}100%{opacity:0;filter:blur(.8px);}}
+@keyframes fetcher-ember-dot{0%{opacity:.92;transform:translate(0,0) scale(1);}100%{opacity:0;transform:translate(4px,-13px) scale(.3);}}
+
+.fetcher-milestone-note{
+  display:inline-flex;align-items:center;gap:8px;margin-top:12px;
+  font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--accent-ink);background:var(--accent-tint);border:1px solid var(--border);
+  border-radius:999px;padding:7px 11px;opacity:0;transform:translateY(5px) scale(.98);
+  animation:fetcher-milestone-note-in 320ms var(--ease-bounce) 120ms forwards;
+}
+.fetcher-milestone-note::before{
+  content:"";width:13px;height:13px;display:block;background:var(--mark-paw) center/contain no-repeat;
+}
+@keyframes fetcher-milestone-note-in{to{opacity:1;transform:translateY(0) scale(1);}}
+.fetcher-milestone-paws{position:fixed;inset:0;z-index:10010;pointer-events:none;overflow:hidden;}
+.fetcher-milestone-paw{
+  position:absolute;left:50%;top:50%;width:var(--milestone-size);height:var(--milestone-size);
+  background:var(--mark-paw) center/contain no-repeat;opacity:0;
+  animation:fetcher-milestone-paw-out 1500ms cubic-bezier(.16,1,.3,1) var(--milestone-delay) both;
+}
+@keyframes fetcher-milestone-paw-out{
+  0%{opacity:0;transform:translate(-50%,-50%) translate(0,0) rotate(var(--milestone-rot)) scale(.55);}
+  18%{opacity:.7;}70%{opacity:.42;}
+  100%{opacity:0;transform:translate(-50%,-50%) translate(var(--milestone-x),var(--milestone-y)) rotate(calc(var(--milestone-rot) + 16deg)) scale(1.08);}
+}
+
+/* Pet the Paw: five quick taps on Fetcher's rail mark. */
+.rail .mark{cursor:var(--cursor-main),pointer!important;touch-action:manipulation;user-select:none;}
+.mark.fetcher-paw-pet{animation:fetcher-paw-pet 240ms cubic-bezier(.34,1.45,.64,1);}
+.mark.fetcher-paw-happy{animation:fetcher-paw-happy 600ms cubic-bezier(.34,1.45,.64,1);}
+@keyframes fetcher-paw-pet{0%,100%{transform:rotate(0) scale(1);}38%{transform:rotate(-7deg) scale(.9);}72%{transform:rotate(5deg) scale(1.06);}}
+@keyframes fetcher-paw-happy{0%,100%{transform:translateY(0) rotate(0) scale(1);}26%{transform:translateY(-4px) rotate(-9deg) scale(.9);}55%{transform:translateY(1px) rotate(8deg) scale(1.12);}78%{transform:translateY(-2px) rotate(-4deg) scale(1.04);}}
+.fetcher-good-dog{
+  position:fixed;left:calc(50% + 44px);bottom:150px;z-index:10020;pointer-events:none;
+  transform:translateX(-50%) translateY(9px) scale(.96);opacity:0;
+  background:var(--ink);color:var(--bg);border:1px solid var(--border-strong);
+  border-radius:999px;padding:9px 14px;box-shadow:0 12px 34px -20px rgba(0,0,0,.42);
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:lowercase;
+  animation:fetcher-good-dog 1900ms cubic-bezier(.16,1,.3,1) both;
+}
+html[data-rail-collapsed="true"] .fetcher-good-dog{left:calc(50% + 32px);}
+@keyframes fetcher-good-dog{0%{opacity:0;transform:translateX(-50%) translateY(9px) scale(.96);}16%,72%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}100%{opacity:0;transform:translateX(-50%) translateY(-4px) scale(.98);}}
+.fetcher-pet-trail{position:fixed;left:88px;right:0;bottom:105px;height:112px;z-index:10015;pointer-events:none;overflow:hidden;}
+html[data-rail-collapsed="true"] .fetcher-pet-trail{left:64px;}
+.fetcher-pet-print{
+  position:absolute;left:var(--pet-left);bottom:var(--pet-bottom);width:24px;height:24px;opacity:0;
+  background:var(--ink);-webkit-mask:var(--mark-paw) center/contain no-repeat;mask:var(--mark-paw) center/contain no-repeat;
+  animation:fetcher-pet-print 900ms cubic-bezier(.16,1,.3,1) var(--pet-delay) both;
+}
+@keyframes fetcher-pet-print{0%{opacity:0;transform:translateY(9px) rotate(var(--pet-rot)) scale(.6);}28%{opacity:.82;transform:translateY(0) rotate(var(--pet-rot)) scale(1);}72%{opacity:.55;}100%{opacity:0;transform:translateY(-5px) rotate(var(--pet-rot)) scale(1.04);}}
+
+@media (max-width:760px){
+  .app{width:100vw;overflow:hidden;}
+  .main,.fetcher-content-host{min-width:0!important;}
+  .stage{padding-left:18px!important;padding-right:18px!important;}
+  .stage-inner{width:100%!important;max-width:100%!important;min-width:0!important;}
+  .input-row{width:100%!important;min-width:0!important;}
+  #url-input{min-width:0!important;font-size:16px!important;}
+  .controls-row{max-width:100%!important;flex-wrap:wrap!important;row-gap:10px!important;}
+  .segmented{max-width:100%!important;}
+  .foot{padding-left:18px!important;padding-right:18px!important;}
+  .chips{max-width:100%!important;}
+  .dl-bubble,.kbd-bubble{max-width:calc(100vw - 84px)!important;}
+  .dl-bubble-list,.kbd-bubble-list{max-width:calc(100vw - 84px)!important;}
+  .soon{max-width:100%!important;}
+  .soon-actions{width:100%;}
+  .soon-btn{min-height:44px;}
+  .settings-content{min-width:0!important;}
+  .settings-content-inner{width:100%;max-width:100%;}
+  .settings-seg{max-width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;}
+  .settings-seg::-webkit-scrollbar{display:none;}
+  .settings-seg-btn{min-width:68px;flex:1 0 auto;}
+  .about,.updates,.donate{overflow-wrap:anywhere;}
+}
+
+@media (max-width:560px){
+  .fetcher-good-dog{left:calc(50% + 32px);bottom:135px;}
+  .fetcher-pet-trail{left:64px;bottom:92px;height:106px;}
+}
+@media (max-width:520px){
+  .stage{padding-left:14px!important;padding-right:14px!important;}
+  .foot{padding-left:14px!important;padding-right:14px!important;}
+  .dl-bubble,.kbd-bubble,.dl-bubble-list,.kbd-bubble-list{max-width:calc(100vw - 76px)!important;}
+}
+
+@media (hover:none),(pointer:coarse){button,a,.rail-btn,.settings-nav-item,.settings-seg-btn,.soon-btn,.about-btn{touch-action:manipulation;}}
+
+html[data-motion="reduced"] .fetcher-name-signature,
+html[data-motion="reduced"] .fetcher-theme-ambience,
+html[data-motion="reduced"] .fetcher-ember-trail,
+html[data-motion="reduced"] .fetcher-ember-dot{display:none;}
+html[data-motion="reduced"] .fetcher-milestone-note{animation:none;opacity:1;transform:none;}
+html[data-motion="reduced"] .fetcher-milestone-paws{display:none;}
+html[data-motion="reduced"] .mark.fetcher-paw-pet,
+html[data-motion="reduced"] .mark.fetcher-paw-happy{animation:none;}
+html[data-motion="reduced"] .fetcher-pet-trail{display:none;}
+html[data-motion="reduced"] .fetcher-good-dog{animation:none;opacity:1;transform:translateX(-50%);}
+html[data-motion="reduced"].fetcher-404-leaving .main{transition:opacity 100ms linear!important;}
+html[data-motion="reduced"].fetcher-return-from-404.fetcher-return-from-404-reveal body{transition:opacity 100ms linear!important;}
+
+/* HARD KILL-SWITCH: Stonakah's experimental groove is completely disabled.
+   The launch script injects its own carve CSS after this stylesheet, so these
+   selectors deliberately carry much higher specificity and reset every property
+   that changed Fetcher's shell stacking/surfaces. */
+html.fetcher-stonakah-carve-active.fetcher-stonakah-carve-active body > .app.app.app{
+  position:static!important;
+  z-index:auto!important;
+  background:var(--bg)!important;
+  background-color:var(--bg)!important;
+}
+html.fetcher-stonakah-carve-active.fetcher-stonakah-carve-active body .main.main.main{
+  background:var(--bg)!important;
+  background-color:var(--bg)!important;
+}
+html.fetcher-stonakah-carve-active.fetcher-stonakah-carve-active body .fetcher-content-host.fetcher-content-host.fetcher-content-host,
+html.fetcher-stonakah-carve-active.fetcher-stonakah-carve-active body .fetcher-page-frame.fetcher-page-frame.fetcher-page-frame{
+  background:var(--bg)!important;
+  background-color:var(--bg)!important;
+}
+html.fetcher-stonakah-carve-active.fetcher-stonakah-carve-active body .fetcher-stonakah-groove.fetcher-stonakah-groove.fetcher-stonakah-groove{
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+}

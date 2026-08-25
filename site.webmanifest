@@ -1,0 +1,24 @@
+{
+  "name": "Fetcher",
+  "short_name": "Fetcher",
+  "description": "Paste a link, choose video or audio, and fetch it cleanly.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F2F0EA",
+  "theme_color": "#F2F0EA",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/fetcher-favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
