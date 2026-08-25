@@ -345,6 +345,7 @@ html[data-motion="reduced"] .celebrate-msg{animation:none!important;}
 }
 @media (max-width:560px){
   .controls-row{flex-direction:column;align-items:stretch;}
+  .segmented{align-self:flex-start;width:max-content;max-width:100%;}
   .paste-btn{justify-content:center;}
   .foot{padding-bottom:72px;}
   .kbd-bubble{right:14px;bottom:14px;}
