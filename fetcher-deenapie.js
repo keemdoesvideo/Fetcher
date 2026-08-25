@@ -1,28 +1,19 @@
-/* Deenapie-only palette + ambience: soft pink/purple theme with occasional stylised pie slices. */
+/* Deenapie-only ambience: soft pink/purple pie slices drifting behind the UI. */
 (function () {
   'use strict';
 
-  var SECRET = 'deenapie';
-  var STORAGE_KEY = 'fetcher.easterPalette';
   var root = document.documentElement;
   var topWindow = window;
   try { if (window.top) topWindow = window.top; } catch (e) { topWindow = window; }
   var isMaster = topWindow === window;
   var layer = null;
   var renderTimer = null;
-  var secretBusy = false;
 
   function rand(min, max) { return min + Math.random() * (max - min); }
   function pick(items) { return items[Math.floor(Math.random() * items.length)]; }
-  function motionMode() { return root.getAttribute('data-motion') || 'full'; }
-
-  function rawStoredPalette() {
-    try { return window.sessionStorage.getItem(STORAGE_KEY) || ''; }
-    catch (e) { return ''; }
-  }
 
   function active() {
-    return root.getAttribute('data-easter-palette') === SECRET;
+    return root.getAttribute('data-easter-palette') === 'deenapie';
   }
 
   function reducedMotion() {
@@ -30,13 +21,27 @@
   }
 
   function masterActive() {
-    try { return topWindow.document.documentElement.getAttribute('data-easter-palette') === SECRET; }
+    try { return topWindow.document.documentElement.getAttribute('data-easter-palette') === 'deenapie'; }
     catch (e) { return active(); }
   }
 
   function masterReducedMotion() {
     try { return topWindow.document.documentElement.getAttribute('data-motion') === 'reduced'; }
     catch (e) { return reducedMotion(); }
+  }
+
+  function sharedState() {
+    try {
+      if (!topWindow.FetcherDeenapiePiesShared) {
+        topWindow.FetcherDeenapiePiesShared = { pies: [], nextId: 1, timer: null, running: false };
+      }
+      return topWindow.FetcherDeenapiePiesShared;
+    } catch (e) {
+      if (!window.FetcherDeenapiePiesShared) {
+        window.FetcherDeenapiePiesShared = { pies: [], nextId: 1, timer: null, running: false };
+      }
+      return window.FetcherDeenapiePiesShared;
+    }
   }
 
   function ensureStyles() {
@@ -52,13 +57,9 @@
       '.fetcher-deenapie-pie{position:absolute;left:0;top:0;width:var(--dee-size);height:calc(var(--dee-size) * .82);transform:translate(-50%,-50%) rotate(var(--dee-r0));transform-origin:center;animation:fetcher-deenapie-turn var(--dee-duration) cubic-bezier(.38,.08,.62,.96) var(--dee-delay) both;filter:drop-shadow(0 9px 16px rgba(74,35,64,.10));will-change:transform;}',
       '.fetcher-deenapie-pie svg{display:block;width:100%;height:100%;overflow:visible;}',
       'html[data-theme="dark"][data-easter-palette="deenapie"] .fetcher-deenapie-pie{filter:drop-shadow(0 10px 19px rgba(0,0,0,.20));}',
-      '.fetcher-deenapie-transition{position:fixed;inset:0;z-index:10030;pointer-events:auto;background:#F6E9F8;opacity:0;transition:opacity 620ms cubic-bezier(.45,0,.55,1);}',
-      '.fetcher-deenapie-transition.show{opacity:1;}',
-      '.fetcher-deenapie-transition.reveal{opacity:0;transition-duration:1100ms;}',
       '@keyframes fetcher-deenapie-flight{0%{opacity:0;transform:translate3d(var(--dee-sx),var(--dee-sy),0);}9%{opacity:var(--dee-opacity);}48%{opacity:var(--dee-opacity);transform:translate3d(var(--dee-mx),var(--dee-my),0);}91%{opacity:var(--dee-opacity);transform:translate3d(var(--dee-ex),var(--dee-ey),0);}100%{opacity:0;transform:translate3d(var(--dee-ex),var(--dee-ey),0);}}',
       '@keyframes fetcher-deenapie-turn{0%{transform:translate(-50%,-50%) rotate(var(--dee-r0));}48%{transform:translate(-50%,-50%) rotate(var(--dee-r1));}100%{transform:translate(-50%,-50%) rotate(var(--dee-r2));}}',
-      'html[data-motion="reduced"] .fetcher-deenapie-layer{display:none!important;}',
-      'html[data-motion="reduced"] .fetcher-deenapie-transition{transition-duration:180ms!important;}'
+      'html[data-motion="reduced"] .fetcher-deenapie-layer{display:none!important;}'
     ].join('\n');
     (document.head || document.documentElement).appendChild(style);
   }
@@ -68,167 +69,6 @@
     var meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) return;
     meta.setAttribute('content', root.getAttribute('data-theme') === 'dark' ? '#261522' : '#F6E9F8');
-  }
-
-  function applyDeenapiePalette() {
-    try { window.sessionStorage.setItem(STORAGE_KEY, SECRET); } catch (e) {}
-    root.setAttribute('data-easter-palette', SECRET);
-    syncBrowserColor();
-    syncMasterActivity();
-    startRenderer();
-    try { document.dispatchEvent(new CustomEvent('fetcher:easter-change', { detail: { palette: SECRET } })); } catch (e) {}
-  }
-
-  function patchPrefs() {
-    var prefs = window.FetcherPrefs;
-    if (!prefs || prefs.__deenapiePatched) return !!prefs;
-
-    var originalGet = prefs.getEasterPalette ? prefs.getEasterPalette.bind(prefs) : function () { return ''; };
-    var originalSet = prefs.setEasterPalette ? prefs.setEasterPalette.bind(prefs) : null;
-    var originalApply = prefs.applyEasterPalette ? prefs.applyEasterPalette.bind(prefs) : null;
-
-    prefs.getEasterPalette = function () {
-      if (rawStoredPalette() === SECRET) return SECRET;
-      return originalGet();
-    };
-
-    prefs.setEasterPalette = function (value) {
-      value = String(value || '').trim().toLowerCase();
-      if (value === SECRET) {
-        applyDeenapiePalette();
-        return;
-      }
-      if (originalSet) originalSet(value);
-    };
-
-    prefs.applyEasterPalette = function () {
-      if (rawStoredPalette() === SECRET) {
-        root.setAttribute('data-easter-palette', SECRET);
-        syncBrowserColor();
-        syncMasterActivity();
-        startRenderer();
-        return;
-      }
-      if (originalApply) originalApply();
-    };
-
-    prefs.__deenapiePatched = true;
-    return true;
-  }
-
-  function runTransition() {
-    ensureStyles();
-    if (!document.body || motionMode() === 'reduced') {
-      applyDeenapiePalette();
-      return Promise.resolve();
-    }
-
-    return new Promise(function (resolve) {
-      var wash = document.createElement('div');
-      wash.className = 'fetcher-deenapie-transition';
-      wash.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(wash);
-
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () { wash.classList.add('show'); });
-      });
-
-      window.setTimeout(function () {
-        applyDeenapiePalette();
-        window.setTimeout(function () {
-          wash.classList.add('reveal');
-          window.setTimeout(function () {
-            if (wash.parentNode) wash.remove();
-            resolve();
-          }, 1180);
-        }, 120);
-      }, 660);
-    });
-  }
-
-  function patchTransition() {
-    var controller = window.FetcherEaster;
-    if (!controller || controller.__deenapiePatched) return !!controller;
-    var original = controller.transitionTo ? controller.transitionTo.bind(controller) : null;
-    controller.transitionTo = function (name) {
-      if (String(name || '').trim().toLowerCase() === SECRET) return runTransition();
-      return original ? original(name) : Promise.resolve();
-    };
-    controller.__deenapiePatched = true;
-    return true;
-  }
-
-  function secretHoldTime() {
-    var motion = motionMode();
-    if (motion === 'reduced') return 300;
-    if (motion === 'reserved') return 320;
-    return 620;
-  }
-
-  function runSecret() {
-    if (secretBusy) return;
-    var input = document.getElementById('url-input');
-    if (!input) return;
-    secretBusy = true;
-    var wasReadOnly = input.readOnly;
-    input.readOnly = true;
-    input.value = 'found you.';
-    input.classList.add('fetcher-easter-confirmation');
-    var wrap = document.getElementById('fetch-wrap');
-    if (wrap) wrap.classList.add('show');
-    try {
-      if (window.FetcherPrefs && FetcherPrefs.playFoundYouCue) FetcherPrefs.playFoundYouCue();
-    } catch (e) {}
-
-    window.setTimeout(function () {
-      Promise.resolve(runTransition()).catch(function () { applyDeenapiePalette(); }).then(function () {
-        input.value = '';
-        input.readOnly = wasReadOnly;
-        input.classList.remove('fetcher-easter-confirmation');
-        secretBusy = false;
-      });
-    }, secretHoldTime());
-  }
-
-  function matchesSecret(value) {
-    return String(value || '').trim().toLowerCase() === SECRET;
-  }
-
-  function installSecretListeners() {
-    if (document.documentElement.getAttribute('data-deenapie-listeners') === '1') return;
-    document.documentElement.setAttribute('data-deenapie-listeners', '1');
-
-    document.addEventListener('keydown', function (event) {
-      if (event.key !== 'Enter' || secretBusy) return;
-      var input = document.getElementById('url-input');
-      if (!input || document.activeElement !== input || !matchesSecret(input.value)) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      runSecret();
-    }, true);
-
-    document.addEventListener('click', function (event) {
-      if (secretBusy) return;
-      var target = event.target && event.target.closest ? event.target.closest('#fetch-btn') : null;
-      if (!target) return;
-      var input = document.getElementById('url-input');
-      if (!input || !matchesSecret(input.value)) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      runSecret();
-    }, true);
-  }
-
-  function sharedState() {
-    try {
-      if (!topWindow.FetcherDeenapiePiesShared) {
-        topWindow.FetcherDeenapiePiesShared = { pies: [], nextId: 1, timer: null, running: false };
-      }
-      return topWindow.FetcherDeenapiePiesShared;
-    } catch (e) {
-      if (!window.FetcherDeenapiePiesShared) window.FetcherDeenapiePiesShared = { pies: [], nextId: 1, timer: null, running: false };
-      return window.FetcherDeenapiePiesShared;
-    }
   }
 
   function host() { return document.querySelector('.main') || document.body; }
@@ -258,10 +98,7 @@
     var viewportW = Math.max(720, window.innerWidth || 1280);
     var viewportH = Math.max(520, window.innerHeight || 720);
     var route = Math.floor(rand(0, 4));
-    var startX;
-    var startY;
-    var endX;
-    var endY;
+    var startX, startY, endX, endY;
 
     if (route === 0) {
       startX = rand(-130, -74);
@@ -288,13 +125,25 @@
     var colors = piePalette();
     var size = rand(46, 72);
     return {
-      id: sharedState().nextId++, bornAt: Date.now() + (offsetMs || 0), duration: rand(9000, 13200),
-      opacity: rand(.43, .64), startX:startX, startY:startY,
-      midX:(startX + endX) / 2 + rand(-78,78), midY:((startY + endY) / 2) + rand(-82,82),
-      endX:endX, endY:endY, size:size,
-      r0:rand(-16,16), r1:rand(-8,8), r2:rand(-18,18),
-      crust:colors.crust, fill:colors.fill, detail:colors.detail, outline:colors.outline,
-      pattern:Math.floor(rand(0,3))
+      id: sharedState().nextId++,
+      bornAt: Date.now() + (offsetMs || 0),
+      duration: rand(9000, 13200),
+      opacity: rand(.43, .64),
+      startX: startX,
+      startY: startY,
+      midX: (startX + endX) / 2 + rand(-78, 78),
+      midY: (startY + endY) / 2 + rand(-82, 82),
+      endX: endX,
+      endY: endY,
+      size: size,
+      r0: rand(-16, 16),
+      r1: rand(-8, 8),
+      r2: rand(-18, 18),
+      crust: colors.crust,
+      fill: colors.fill,
+      detail: colors.detail,
+      outline: colors.outline,
+      pattern: Math.floor(rand(0, 3))
     };
   }
 
@@ -305,7 +154,9 @@
 
   function prune(shared) {
     var now = Date.now();
-    shared.pies = shared.pies.filter(function (pie) { return now < pie.bornAt + pie.duration + 300; });
+    shared.pies = shared.pies.filter(function (pie) {
+      return now < pie.bornAt + pie.duration + 300;
+    });
   }
 
   function schedule() {
@@ -385,6 +236,7 @@
     node.style.setProperty('--dee-r0', pie.r0 + 'deg');
     node.style.setProperty('--dee-r1', pie.r1 + 'deg');
     node.style.setProperty('--dee-r2', pie.r2 + 'deg');
+
     var art = document.createElement('span');
     art.className = 'fetcher-deenapie-pie';
     art.innerHTML = pieSvg(pie);
@@ -399,16 +251,20 @@
       if (layer) layer.replaceChildren();
       return;
     }
+
     ensureStyles();
     syncBrowserColor();
     var target = ensureLayer();
     if (!target) return;
+
     var shared = sharedState();
     prune(shared);
     var live = {};
     shared.pies.forEach(function (pie) {
       live[String(pie.id)] = true;
-      if (!target.querySelector('[data-deenapie-pie-id="' + pie.id + '"]')) target.appendChild(renderPie(pie));
+      if (!target.querySelector('[data-deenapie-pie-id="' + pie.id + '"]')) {
+        target.appendChild(renderPie(pie));
+      }
     });
     Array.prototype.forEach.call(target.querySelectorAll('.fetcher-deenapie-flight'), function (node) {
       if (!live[node.getAttribute('data-deenapie-pie-id')]) node.remove();
@@ -432,26 +288,7 @@
     syncRendered();
   }
 
-  function restoreStoredTheme() {
-    if (rawStoredPalette() !== SECRET) return;
-    root.setAttribute('data-easter-palette', SECRET);
-    syncBrowserColor();
-    syncMasterActivity();
-    startRenderer();
-  }
-
-  function installHooks() {
-    patchPrefs();
-    patchTransition();
-    installSecretListeners();
-    restoreStoredTheme();
-    if ((!window.FetcherPrefs || !window.FetcherEaster) && document.body) {
-      window.setTimeout(installHooks, 40);
-    }
-  }
-
   document.addEventListener('fetcher:easter-change', function () {
-    if (rawStoredPalette() === SECRET && !active()) root.setAttribute('data-easter-palette', SECRET);
     syncMasterActivity();
     if (active() && !reducedMotion()) startRenderer();
     else stopRenderer();
@@ -470,21 +307,22 @@
   if (window.MutationObserver) {
     new MutationObserver(function () {
       syncBrowserColor();
+      syncMasterActivity();
       if (active() && !reducedMotion()) {
-        syncMasterActivity();
         if (!renderTimer) startRenderer();
       } else {
         stopRenderer();
       }
-    }).observe(root, { attributes:true, attributeFilter:['data-easter-palette','data-motion','data-theme'] });
+    }).observe(root, { attributes: true, attributeFilter: ['data-easter-palette', 'data-motion', 'data-theme'] });
   }
 
   function init() {
     ensureStyles();
-    installHooks();
-    restoreStoredTheme();
+    syncBrowserColor();
+    syncMasterActivity();
+    if (active() && !reducedMotion()) startRenderer();
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
