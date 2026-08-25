@@ -35,7 +35,8 @@
     turnuptaco: true,
     iaar: true,
     melisae: true,
-    luumi: true
+    luumi: true,
+    shanjuanita: true
   };
   var snowReady = false;
   var foundYouPreload = null;
@@ -218,8 +219,6 @@
     document.documentElement.setAttribute('data-motion', resolveMotion());
   }
 
-  // Floating-chrome visibility (shortcuts + downloads bubbles). Set as html
-  // attributes pre-paint so CSS can hide them with no flash. 'off' hides.
   function applyChrome() {
     document.documentElement.setAttribute(
       'data-shortcuts', get('fetcher.showShortcuts') === 'off' ? 'off' : 'on');
@@ -305,7 +304,8 @@
       turnuptaco: '#F9AE00',
       iaar: '#0088CB',
       melisae: '#F0CBFF',
-      luumi: '#F52E6F'
+      luumi: '#F52E6F',
+      shanjuanita: '#869B8B'
     },
     dark: {
       fetcher: '#19181C',
@@ -321,7 +321,8 @@
       turnuptaco: '#241500',
       iaar: '#050505',
       melisae: '#211A29',
-      luumi: '#251219'
+      luumi: '#251219',
+      shanjuanita: '#1D1724'
     }
   };
 
@@ -526,7 +527,8 @@
     turnuptaco: 'turnuptaco',
     iaar: 'iaar',
     melisae: 'melisae',
-    luumi: 'luumi'
+    luumi: 'luumi',
+    shanjuanita: 'shanjuanita'
   };
   var busy = false;
 
@@ -560,7 +562,7 @@
     if (pasteBtn) pasteBtn.disabled = true;
     Array.prototype.forEach.call(document.querySelectorAll('.seg-btn'), function (btn) { btn.disabled = true; });
 
-    if ((palette === 'deenapie' || palette === 'turnuptaco' || palette === 'iaar' || palette === 'melisae' || palette === 'luumi') &&
+    if ((palette === 'deenapie' || palette === 'turnuptaco' || palette === 'iaar' || palette === 'melisae' || palette === 'luumi' || palette === 'shanjuanita') &&
         window.FetcherPrefs && FetcherPrefs.playFoundYouCue) {
       FetcherPrefs.playFoundYouCue();
     }
