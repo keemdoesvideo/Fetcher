@@ -207,7 +207,7 @@ def _run_job(job, url: str, mode: str, preferences, client_key: str) -> None:
             log.info("job %s error %s: %s", job.id, err.code, err.detail or err.message)
             store.mark_failed(job, jobstate.ERROR, err.code, err.message)
     except Exception:
-        log.exception("job %s failed unexpectedly", job.id)
+        log.exception("job %s failed unexpectedly")
         store.mark_failed(
             job, jobstate.ERROR, errors.BACKEND_ERROR, errors.FRIENDLY[errors.BACKEND_ERROR]
         )
@@ -389,6 +389,15 @@ _LAUNCH_HEAD = """
 <meta name="twitter:title" content="Fetcher — paste. pick. fetch.">
 <meta name="twitter:description" content="Save video and audio without the clutter. A small free tool by Hahkeemi.">
 <meta name="twitter:image" content="https://fetcher.hahkeemi.com/fetcher-social-card.png">
+<script>
+(function () {
+  try {
+    if (sessionStorage.getItem('fetcher.returnFrom404') === '1') {
+      document.documentElement.classList.add('fetcher-return-from-404');
+    }
+  } catch (e) {}
+})();
+</script>
 <link rel="stylesheet" href="/fetcher-launch.css">
 <script defer src="/fetcher-launch.js"></script>
 <script defer src="/fetcher-pet-paw.js"></script>
