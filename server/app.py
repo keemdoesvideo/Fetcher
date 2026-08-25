@@ -66,6 +66,7 @@ ALLOWED_ASSETS: dict[str, str] = {
     "fetcher-favicon.svg": "image/svg+xml",
     "apple-touch-icon.png": "image/png",
     "fetcher-social-card.png": "image/png",
+    "about-keem-portrait.webp": "image/webp",
     "site.webmanifest": "application/manifest+json",
     "paw-cursor-light.svg": "image/svg+xml",
     "paw-cursor-dark.svg": "image/svg+xml",
