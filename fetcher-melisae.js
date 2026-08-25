@@ -1,4 +1,4 @@
-/* Melisae-only ambience: softly forming honeycomb clusters behind the UI. */
+/* Melisae-only ambience: a softly animated pastel drip ceiling behind the UI. */
 (function () {
   'use strict';
 
@@ -9,13 +9,16 @@
   var layer = null;
   var renderTimer = null;
 
-  var PATTERNS = [
-    [[0,0],[34,0],[17,29],[-17,29],[51,29],[0,58],[34,58]],
-    [[0,0],[34,0],[68,0],[17,29],[51,29],[34,58],[68,58],[51,87]],
-    [[17,0],[51,0],[0,29],[34,29],[68,29],[17,58],[51,58],[34,87]]
+  var DRIPS = [
+    { x: 4,  w: 58, h: 58,  dur: 9800,  phase: 900,  variant: 'a' },
+    { x: 14, w: 42, h: 84,  dur: 12400, phase: 3800, variant: 'b' },
+    { x: 27, w: 66, h: 46,  dur: 11200, phase: 6100, variant: 'c' },
+    { x: 39, w: 48, h: 104, dur: 13800, phase: 2400, variant: 'b' },
+    { x: 53, w: 62, h: 68,  dur: 10400, phase: 7600, variant: 'a' },
+    { x: 66, w: 40, h: 92,  dur: 12800, phase: 4700, variant: 'c' },
+    { x: 78, w: 70, h: 52,  dur: 11800, phase: 1700, variant: 'a' },
+    { x: 91, w: 46, h: 78,  dur: 13200, phase: 8200, variant: 'b' }
   ];
-  var STROKES = ['#F0CBFF', '#DCDCFF', '#E6DE68'];
-  var ZONES = [[14,20],[50,13],[84,22],[12,70],[50,84],[86,70]];
 
   function rand(min, max) { return min + Math.random() * (max - min); }
 
@@ -39,29 +42,29 @@
 
   function sharedState() {
     try {
-      if (!topWindow.FetcherMelisaeHoneyShared || topWindow.FetcherMelisaeHoneyShared.version !== 1) {
-        topWindow.FetcherMelisaeHoneyShared = {
-          version: 1,
-          clusters: [],
+      if (!topWindow.FetcherMelisaeDripsShared || topWindow.FetcherMelisaeDripsShared.version !== 2) {
+        topWindow.FetcherMelisaeDripsShared = {
+          version: 2,
+          startedAt: Date.now(),
+          droplets: [],
           nextId: 1,
           timer: null,
-          running: false,
-          lastZone: -1
+          running: false
         };
       }
-      return topWindow.FetcherMelisaeHoneyShared;
+      return topWindow.FetcherMelisaeDripsShared;
     } catch (e) {
-      if (!window.FetcherMelisaeHoneyShared || window.FetcherMelisaeHoneyShared.version !== 1) {
-        window.FetcherMelisaeHoneyShared = {
-          version: 1,
-          clusters: [],
+      if (!window.FetcherMelisaeDripsShared || window.FetcherMelisaeDripsShared.version !== 2) {
+        window.FetcherMelisaeDripsShared = {
+          version: 2,
+          startedAt: Date.now(),
+          droplets: [],
           nextId: 1,
           timer: null,
-          running: false,
-          lastZone: -1
+          running: false
         };
       }
-      return window.FetcherMelisaeHoneyShared;
+      return window.FetcherMelisaeDripsShared;
     }
   }
 
@@ -74,16 +77,27 @@
       'html[data-theme="dark"][data-easter-palette="melisae"]{--bg:#211A29;--surface:#2B2335;--rail:#332A42;--ink:#FFF9FF;--ink-strong:#FFFFFF;--ink-soft:#E7D9EC;--ink-faint:#BBAAC4;--border:#493A57;--border-strong:#8E6BA0;--accent:#F0CBFF;--accent-ink:#FEFFA2;--accent-tint:rgba(240,203,255,.18);--on-accent:#211A29;--audio:#FEFFA2;--audio-tint:rgba(254,255,162,.16);--mute:#DCDCFF;--mute-tint:rgba(220,220,255,.14);--danger:#F0CBFF;--danger-tint:rgba(240,203,255,.14);--success:#FEFFA2;--success-tint:rgba(254,255,162,.13);--shiba:#F0CBFF;--shiba-deep:#DCDCFF;--shiba-cream:#FEFFA2;}',
       '.fetcher-melisae-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;}',
       'html[data-easter-palette="melisae"] .main>.stage,html[data-easter-palette="melisae"] .main>.foot,html[data-easter-palette="melisae"] .main>.settings-nav,html[data-easter-palette="melisae"] .main>.settings-content,html[data-easter-palette="melisae"] .main>.about,html[data-easter-palette="melisae"] .main>.donate,html[data-easter-palette="melisae"] .main>.updates,html[data-easter-palette="melisae"] .main>.soon{position:relative;z-index:1;}',
-      '.fetcher-melisae-cluster{position:absolute;left:var(--mel-x);top:var(--mel-y);width:120px;height:118px;transform:translate(-50%,-50%) rotate(var(--mel-rotate)) scale(var(--mel-scale));transform-origin:center;}',
-      '.fetcher-melisae-cell{position:absolute;left:var(--mel-cx);top:var(--mel-cy);width:38px;height:34px;opacity:0;transform:scale(.62);animation:fetcher-melisae-cell-life var(--mel-life) cubic-bezier(.2,.72,.25,1) var(--mel-delay) both;will-change:transform,opacity;}',
-      '.fetcher-melisae-cell svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(0 4px 8px rgba(85,62,103,.035));}',
-      '.fetcher-melisae-honey{position:absolute;left:4px;right:4px;top:3px;bottom:3px;clip-path:polygon(25% 2%,75% 2%,100% 50%,75% 98%,25% 98%,0 50%);background:linear-gradient(180deg,#FFFDBD 0%,#FEFFA2 52%,#E8D960 100%);transform:scaleY(0);transform-origin:50% 100%;opacity:0;animation:fetcher-melisae-honey-fill var(--mel-life) cubic-bezier(.2,.7,.3,1) var(--mel-delay) both;}',
-      'html[data-theme="dark"][data-easter-palette="melisae"] .fetcher-melisae-cell svg{filter:drop-shadow(0 5px 10px rgba(0,0,0,.12));}',
-      '@keyframes fetcher-melisae-cell-life{0%{opacity:0;transform:scale(.62);}8%{opacity:var(--mel-opacity);transform:scale(1.045);}14%{opacity:var(--mel-opacity);transform:scale(1);}72%{opacity:var(--mel-opacity);transform:scale(1);}88%{opacity:0;transform:scale(.9);}100%{opacity:0;transform:scale(.82);}}',
-      '@keyframes fetcher-melisae-honey-fill{0%,18%{opacity:0;transform:scaleY(0);}24%{opacity:.58;}46%{opacity:.68;transform:scaleY(1);}72%{opacity:.68;transform:scaleY(1);}88%,100%{opacity:0;transform:scaleY(1);}}',
-      'html[data-motion="reserved"] .fetcher-melisae-cell{animation-timing-function:var(--ease);}',
-      'html[data-motion="reserved"] .fetcher-melisae-honey{animation-timing-function:var(--ease);}',
-      'html[data-motion="reduced"] .fetcher-melisae-layer{display:none!important;}'
+      '.fetcher-melisae-ceiling{position:absolute;left:0;right:0;top:0;height:132px;overflow:visible;opacity:.94;}',
+      '.fetcher-melisae-band{position:absolute;left:-2%;right:-2%;top:-9px;height:43px;background:linear-gradient(180deg,#FFFEC4 0%,#FEFFA2 58%,#F6EE91 100%);border-radius:0 0 42% 38%/0 0 38% 34%;box-shadow:inset 0 -8px 16px rgba(240,203,255,.24),0 6px 20px rgba(122,103,142,.035);overflow:hidden;}',
+      '.fetcher-melisae-band::before{content:"";position:absolute;left:-8%;top:4px;width:52%;height:22px;border-radius:999px;background:linear-gradient(90deg,rgba(240,203,255,.14),rgba(240,203,255,.38),rgba(220,220,255,.14));filter:blur(5px);animation:fetcher-melisae-band-glow 15000ms ease-in-out var(--mel-band-a-delay,0ms) infinite alternate;}',
+      '.fetcher-melisae-band::after{content:"";position:absolute;right:-10%;top:10px;width:44%;height:18px;border-radius:999px;background:linear-gradient(90deg,rgba(220,220,255,.08),rgba(220,220,255,.34),rgba(240,203,255,.10));filter:blur(5px);animation:fetcher-melisae-band-glow-b 18000ms ease-in-out var(--mel-band-b-delay,0ms) infinite alternate;}',
+      '.fetcher-melisae-drip{position:absolute;top:22px;left:var(--mel-x);width:var(--mel-w);height:var(--mel-h);margin-left:calc(var(--mel-w) * -.5);transform-origin:50% 0%;border-radius:12px 12px 55% 55%/14px 14px 28px 28px;background:linear-gradient(108deg,#FEFFA2 0%,#FFFDB6 32%,#F8EFA0 66%,#F2E78F 100%);box-shadow:inset 7px 0 12px rgba(240,203,255,.15),inset -7px 0 13px rgba(220,220,255,.18),0 8px 18px rgba(112,91,128,.035);will-change:transform,border-radius;}',
+      '.fetcher-melisae-drip::before{content:"";position:absolute;left:18%;top:9px;width:28%;height:56%;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(240,203,255,.16),rgba(255,255,255,0));filter:blur(1px);opacity:.75;}',
+      '.fetcher-melisae-drip::after{content:"";position:absolute;right:12%;bottom:12%;width:38%;height:34%;border-radius:50%;background:radial-gradient(circle at 38% 35%,rgba(220,220,255,.34),rgba(220,220,255,.10) 54%,transparent 68%);opacity:.72;}',
+      '.fetcher-melisae-drip[data-variant="a"]{animation:fetcher-melisae-drip-a var(--mel-dur) cubic-bezier(.42,0,.58,1) infinite alternate;}',
+      '.fetcher-melisae-drip[data-variant="b"]{animation:fetcher-melisae-drip-b var(--mel-dur) cubic-bezier(.45,0,.55,1) infinite alternate;}',
+      '.fetcher-melisae-drip[data-variant="c"]{animation:fetcher-melisae-drip-c var(--mel-dur) cubic-bezier(.4,0,.6,1) infinite alternate;}',
+      '@keyframes fetcher-melisae-drip-a{0%{transform:scale3d(1,.92,1) translateY(-1px);border-radius:12px 12px 52% 58%/14px 14px 24px 31px;}48%{transform:scale3d(.97,1.06,1) translateY(1px);border-radius:10px 14px 58% 50%/14px 15px 33px 25px;}100%{transform:scale3d(1.025,.97,1) translateY(0);border-radius:14px 10px 49% 61%/15px 13px 25px 34px;}}',
+      '@keyframes fetcher-melisae-drip-b{0%{transform:scale3d(.98,1.04,1);border-radius:13px 10px 61% 48%/15px 13px 36px 24px;}52%{transform:scale3d(1.025,.94,1) translateY(-2px);border-radius:10px 14px 52% 60%/13px 15px 27px 35px;}100%{transform:scale3d(.965,1.08,1) translateY(2px);border-radius:14px 11px 58% 51%/16px 13px 34px 27px;}}',
+      '@keyframes fetcher-melisae-drip-c{0%{transform:scale3d(1.02,.95,1) translateY(-1px);border-radius:11px 14px 50% 60%/13px 16px 25px 34px;}46%{transform:scale3d(.965,1.075,1) translateY(2px);border-radius:14px 10px 61% 48%/16px 12px 35px 24px;}100%{transform:scale3d(1,.99,1);border-radius:12px 12px 54% 56%/14px 14px 29px 31px;}}',
+      '@keyframes fetcher-melisae-band-glow{from{transform:translate3d(-4%,0,0) scaleX(.92);opacity:.58;}to{transform:translate3d(58%,2px,0) scaleX(1.12);opacity:.82;}}',
+      '@keyframes fetcher-melisae-band-glow-b{from{transform:translate3d(8%,0,0) scaleX(1.04);opacity:.52;}to{transform:translate3d(-52%,-1px,0) scaleX(.9);opacity:.76;}}',
+      '.fetcher-melisae-drop{position:absolute;left:var(--mel-drop-x);top:var(--mel-drop-y);width:var(--mel-drop-size);height:calc(var(--mel-drop-size) * 1.18);margin-left:calc(var(--mel-drop-size) * -.5);border-radius:52% 48% 56% 44%/38% 40% 60% 62%;background:linear-gradient(145deg,#FFFDC2 0%,#FEFFA2 55%,#EFDFA1 100%);box-shadow:inset 2px 1px 4px rgba(240,203,255,.30),inset -2px -1px 4px rgba(220,220,255,.22),0 5px 10px rgba(91,70,107,.05);opacity:0;animation:fetcher-melisae-drop-fall var(--mel-drop-dur) cubic-bezier(.32,.02,.62,1) var(--mel-drop-delay) both;will-change:transform,opacity;}',
+      '.fetcher-melisae-drop::before{content:"";position:absolute;left:26%;top:15%;width:24%;height:28%;border-radius:50%;background:rgba(255,255,255,.45);filter:blur(.4px);}',
+      '@keyframes fetcher-melisae-drop-fall{0%{opacity:0;transform:translate3d(0,-4px,0) scale(.72,.86);}7%{opacity:.78;transform:translate3d(0,0,0) scale(1,1);}76%{opacity:.74;}100%{opacity:0;transform:translate3d(var(--mel-drop-drift),var(--mel-drop-fall),0) scale(.9,1.08);}}',
+      'html[data-motion="reserved"] .fetcher-melisae-drip,html[data-motion="reserved"] .fetcher-melisae-band::before,html[data-motion="reserved"] .fetcher-melisae-band::after{animation-timing-function:var(--ease);}',
+      'html[data-motion="reduced"] .fetcher-melisae-drip,html[data-motion="reduced"] .fetcher-melisae-band::before,html[data-motion="reduced"] .fetcher-melisae-band::after{animation:none!important;}',
+      'html[data-motion="reduced"] .fetcher-melisae-drop{display:none!important;}'
     ].join('\n');
     (document.head || document.documentElement).appendChild(style);
   }
@@ -109,44 +123,76 @@
     return layer;
   }
 
-  function makeCluster(offsetMs) {
+  function applyCeilingPhase() {
+    if (!layer) return;
     var shared = sharedState();
-    var zoneIndex = Math.floor(rand(0, ZONES.length));
-    if (ZONES.length > 1 && zoneIndex === shared.lastZone) zoneIndex = (zoneIndex + 1) % ZONES.length;
-    shared.lastZone = zoneIndex;
-    var zone = ZONES[zoneIndex];
-    var pattern = Math.floor(rand(0, PATTERNS.length));
-    var cellCount = PATTERNS[pattern].length;
-    var gap = rand(210, 300);
-    var duration = rand(9000, 11600);
+    var elapsed = Math.max(0, Date.now() - shared.startedAt);
+    Array.prototype.forEach.call(layer.querySelectorAll('.fetcher-melisae-drip'), function (drip, index) {
+      var spec = DRIPS[index % DRIPS.length];
+      var phase = (elapsed + spec.phase) % (spec.dur * 2);
+      drip.style.animationDelay = (-phase) + 'ms';
+    });
+    var band = layer.querySelector('.fetcher-melisae-band');
+    if (band) {
+      band.style.setProperty('--mel-band-a-delay', -((elapsed + 1700) % 30000) + 'ms');
+      band.style.setProperty('--mel-band-b-delay', -((elapsed + 4300) % 36000) + 'ms');
+    }
+  }
+
+  function ensureCeiling() {
+    var target = ensureLayer();
+    if (!target) return null;
+    var existing = target.querySelector('.fetcher-melisae-ceiling');
+    if (existing) return existing;
+
+    var ceiling = document.createElement('div');
+    ceiling.className = 'fetcher-melisae-ceiling';
+
+    var band = document.createElement('div');
+    band.className = 'fetcher-melisae-band';
+    ceiling.appendChild(band);
+
+    DRIPS.forEach(function (spec) {
+      var drip = document.createElement('span');
+      drip.className = 'fetcher-melisae-drip';
+      drip.setAttribute('data-variant', spec.variant);
+      drip.style.setProperty('--mel-x', spec.x + '%');
+      drip.style.setProperty('--mel-w', spec.w + 'px');
+      drip.style.setProperty('--mel-h', spec.h + 'px');
+      drip.style.setProperty('--mel-dur', spec.dur + 'ms');
+      ceiling.appendChild(drip);
+    });
+
+    target.appendChild(ceiling);
+    applyCeilingPhase();
+    return ceiling;
+  }
+
+  function makeDroplet() {
+    var shared = sharedState();
+    var sourceIndex = Math.floor(rand(0, DRIPS.length));
+    var source = DRIPS[sourceIndex];
+    var viewportH = Math.max(520, window.innerHeight || 720);
     return {
       id: shared.nextId++,
-      bornAt: Date.now() + (offsetMs || 0),
-      duration: duration,
-      gap: gap,
-      x: Math.max(7, Math.min(93, zone[0] + rand(-5, 5))),
-      y: Math.max(8, Math.min(92, zone[1] + rand(-6, 6))),
-      rotate: rand(-9, 9),
-      scale: rand(.82, 1.12),
-      opacity: rand(.34, .52),
-      pattern: pattern,
-      toneOffset: Math.floor(rand(0, 3)),
-      honeyIndex: Math.random() < .38 ? Math.floor(rand(0, cellCount)) : -1
+      bornAt: Date.now(),
+      duration: rand(4200, 5600),
+      x: Math.max(3, Math.min(97, source.x + rand(-1.4, 1.4))),
+      startY: source.h + 17,
+      fall: viewportH + rand(70, 150),
+      drift: rand(-34, 34),
+      size: rand(9, 14)
     };
   }
 
-  function addCluster(shared, offsetMs) {
-    shared.clusters.push(makeCluster(offsetMs || 0));
-  }
-
-  function prune(shared) {
+  function pruneDroplets(shared) {
     var now = Date.now();
-    shared.clusters = shared.clusters.filter(function (cluster) {
-      return now < cluster.bornAt + cluster.duration + 700;
+    shared.droplets = shared.droplets.filter(function (drop) {
+      return now < drop.bornAt + drop.duration + 250;
     });
   }
 
-  function schedule() {
+  function scheduleDroplet() {
     if (!isMaster) return;
     var shared = sharedState();
     window.clearTimeout(shared.timer);
@@ -154,10 +200,10 @@
     if (!shared.running || !masterActive() || masterReducedMotion()) return;
     shared.timer = window.setTimeout(function () {
       if (!shared.running || !masterActive() || masterReducedMotion()) return;
-      prune(shared);
-      if (shared.clusters.length < 3) addCluster(shared, 0);
-      schedule();
-    }, rand(5000, 7600));
+      pruneDroplets(shared);
+      if (shared.droplets.length < 2) shared.droplets.push(makeDroplet());
+      scheduleDroplet();
+    }, rand(7200, 11600));
   }
 
   function startShared() {
@@ -165,11 +211,16 @@
     var shared = sharedState();
     if (!shared.running) {
       shared.running = true;
-      shared.clusters = [];
-      addCluster(shared, 250);
-      addCluster(shared, 2500);
+      shared.droplets = [];
+      window.clearTimeout(shared.timer);
+      shared.timer = window.setTimeout(function () {
+        if (!shared.running || !masterActive() || masterReducedMotion()) return;
+        shared.droplets.push(makeDroplet());
+        scheduleDroplet();
+      }, 3600);
+      return;
     }
-    if (!masterReducedMotion() && !shared.timer) schedule();
+    if (!masterReducedMotion() && !shared.timer) scheduleDroplet();
   }
 
   function stopShared() {
@@ -178,7 +229,7 @@
     window.clearTimeout(shared.timer);
     shared.timer = null;
     shared.running = false;
-    shared.clusters = [];
+    shared.droplets = [];
   }
 
   function syncMasterActivity() {
@@ -187,98 +238,74 @@
     else stopShared();
   }
 
-  function cellSvg(stroke) {
-    return [
-      '<svg viewBox="0 0 100 88" aria-hidden="true" focusable="false">',
-      '<polygon points="25,3 75,3 98,44 75,85 25,85 2,44" fill="none" stroke="', stroke, '" stroke-width="5" stroke-linejoin="round"/>',
-      '</svg>'
-    ].join('');
-  }
-
-  function renderCluster(cluster) {
+  function renderDroplet(drop) {
     var target = ensureLayer();
     if (!target) return;
-    var pattern = PATTERNS[cluster.pattern] || PATTERNS[0];
-    var age = Date.now() - cluster.bornAt;
-    var maxOffset = cluster.gap * Math.max(0, pattern.length - 1);
-    var life = Math.max(6200, cluster.duration - maxOffset);
-
-    var node = document.createElement('div');
-    node.className = 'fetcher-melisae-cluster';
-    node.setAttribute('data-melisae-cluster-id', String(cluster.id));
-    node.style.setProperty('--mel-x', cluster.x + '%');
-    node.style.setProperty('--mel-y', cluster.y + '%');
-    node.style.setProperty('--mel-rotate', cluster.rotate + 'deg');
-    node.style.setProperty('--mel-scale', String(cluster.scale));
-
-    pattern.forEach(function (point, index) {
-      var cell = document.createElement('span');
-      cell.className = 'fetcher-melisae-cell';
-      cell.style.setProperty('--mel-cx', (point[0] + 24) + 'px');
-      cell.style.setProperty('--mel-cy', (point[1] + 8) + 'px');
-      cell.style.setProperty('--mel-opacity', String(cluster.opacity));
-      cell.style.setProperty('--mel-life', life + 'ms');
-      cell.style.setProperty('--mel-delay', (-age + (index * cluster.gap)) + 'ms');
-
-      if (index === cluster.honeyIndex) {
-        var honey = document.createElement('span');
-        honey.className = 'fetcher-melisae-honey';
-        cell.appendChild(honey);
-      }
-
-      var art = document.createElement('span');
-      art.innerHTML = cellSvg(STROKES[(index + cluster.toneOffset) % STROKES.length]);
-      while (art.firstChild) cell.appendChild(art.firstChild);
-      node.appendChild(cell);
-    });
-
+    var age = Date.now() - drop.bornAt;
+    var node = document.createElement('span');
+    node.className = 'fetcher-melisae-drop';
+    node.setAttribute('data-melisae-drop-id', String(drop.id));
+    node.style.setProperty('--mel-drop-x', drop.x + '%');
+    node.style.setProperty('--mel-drop-y', drop.startY + 'px');
+    node.style.setProperty('--mel-drop-size', drop.size + 'px');
+    node.style.setProperty('--mel-drop-dur', drop.duration + 'ms');
+    node.style.setProperty('--mel-drop-delay', (-age) + 'ms');
+    node.style.setProperty('--mel-drop-fall', drop.fall + 'px');
+    node.style.setProperty('--mel-drop-drift', drop.drift + 'px');
     target.appendChild(node);
   }
 
-  function syncRendered() {
+  function syncRenderedDrops() {
     if (!active() || reducedMotion()) {
-      if (layer) layer.replaceChildren();
+      if (layer) {
+        Array.prototype.forEach.call(layer.querySelectorAll('[data-melisae-drop-id]'), function (node) { node.remove(); });
+      }
       return;
     }
+
     var target = ensureLayer();
     if (!target) return;
     var shared = sharedState();
-    var now = Date.now();
+    pruneDroplets(shared);
     var live = {};
 
-    shared.clusters.forEach(function (cluster) {
-      if (now >= cluster.bornAt + cluster.duration + 700) return;
-      live[String(cluster.id)] = true;
-      if (!target.querySelector('[data-melisae-cluster-id="' + cluster.id + '"]')) {
-        renderCluster(cluster);
-      }
+    shared.droplets.forEach(function (drop) {
+      live[String(drop.id)] = true;
+      if (!target.querySelector('[data-melisae-drop-id="' + drop.id + '"]')) renderDroplet(drop);
     });
 
-    Array.prototype.forEach.call(target.querySelectorAll('[data-melisae-cluster-id]'), function (node) {
-      if (!live[node.getAttribute('data-melisae-cluster-id')]) node.remove();
+    Array.prototype.forEach.call(target.querySelectorAll('[data-melisae-drop-id]'), function (node) {
+      if (!live[node.getAttribute('data-melisae-drop-id')]) node.remove();
     });
   }
 
   function startRenderer() {
     window.clearInterval(renderTimer);
     renderTimer = null;
-    if (!active() || reducedMotion()) return;
-    ensureLayer();
-    syncRendered();
-    renderTimer = window.setInterval(syncRendered, 180);
+    if (!active()) return;
+    ensureCeiling();
+    syncRenderedDrops();
+    if (!reducedMotion()) renderTimer = window.setInterval(syncRenderedDrops, 220);
   }
 
   function stopRenderer() {
     window.clearInterval(renderTimer);
     renderTimer = null;
-    if (layer) layer.replaceChildren();
+    if (layer && layer.parentNode) layer.remove();
+    layer = null;
   }
 
   function syncAll() {
+    if (!active()) {
+      stopRenderer();
+      syncMasterActivity();
+      return;
+    }
+    ensureStyles();
     syncBrowserColor();
+    ensureCeiling();
     syncMasterActivity();
-    if (active() && !reducedMotion()) startRenderer();
-    else stopRenderer();
+    startRenderer();
   }
 
   document.addEventListener('fetcher:easter-change', syncAll);
@@ -289,15 +316,22 @@
   });
 
   if (window.MutationObserver) {
-    new MutationObserver(syncAll).observe(root, {
+    new MutationObserver(function () {
+      syncAll();
+    }).observe(root, { attributes: true, attributeFilter: ['data-easter-palette', 'data-theme', 'data-motion'] });
+  }
+
+  if (isMaster && window.MutationObserver) {
+    new MutationObserver(syncMasterActivity).observe(topWindow.document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-easter-palette', 'data-motion', 'data-theme']
+      attributeFilter: ['data-easter-palette', 'data-motion']
     });
   }
 
   function init() {
     ensureStyles();
-    syncAll();
+    if (active()) syncAll();
+    else syncMasterActivity();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
