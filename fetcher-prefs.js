@@ -30,7 +30,8 @@
     kaywordley: true,
     wahibah: true,
     jackigoe: true,
-    keem: true
+    keem: true,
+    turnuptaco: true
   };
   var snowReady = false;
   var foundYouPreload = null;
@@ -295,7 +296,8 @@
       kaywordley: '#FFA53D',
       wahibah: '#C16499',
       jackigoe: '#3E9B66',
-      keem: '#050506'
+      keem: '#050506',
+      turnuptaco: '#F9AE00'
     },
     dark: {
       fetcher: '#19181C',
@@ -306,7 +308,8 @@
       kaywordley: '#26030B',
       wahibah: '#100C1D',
       jackigoe: '#14261B',
-      keem: '#050506'
+      keem: '#050506',
+      turnuptaco: '#241500'
     }
   };
 
@@ -503,7 +506,8 @@
     kaywordley: 'kaywordley',
     wahibah: 'wahibah',
     jackigoe: 'jackigoe',
-    keem: 'keem'
+    keem: 'keem',
+    turnuptaco: 'turnuptaco'
   };
   var busy = false;
 
