@@ -2,10 +2,10 @@
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'fetcher.easterPalette';
   var root = document.documentElement;
   var topWindow = window;
   try { if (window.top) topWindow = window.top; } catch (e) { topWindow = window; }
+  var isMaster = topWindow === window;
   var layer = null;
   var renderTimer = null;
 
@@ -19,47 +19,44 @@
     return root.getAttribute('data-motion') === 'reduced';
   }
 
-  function selected() {
-    try { return topWindow.sessionStorage.getItem(STORAGE_KEY) === 'turnuptaco'; }
+  function masterActive() {
+    try { return topWindow.document.documentElement.getAttribute('data-easter-palette') === 'turnuptaco'; }
     catch (e) { return active(); }
   }
 
+  function masterReducedMotion() {
+    try { return topWindow.document.documentElement.getAttribute('data-motion') === 'reduced'; }
+    catch (e) { return reducedMotion(); }
+  }
+
   function sharedState() {
-    var holder = topWindow;
     try {
-      if (!holder.FetcherTurnupTacoShared || holder.FetcherTurnupTacoShared.version !== 2) {
-        var old = holder.FetcherTurnupTacoShared;
-        if (old && old.timer) {
-          try { holder.clearTimeout(old.timer); } catch (e) {}
+      if (!topWindow.FetcherTurnupTacoShared || topWindow.FetcherTurnupTacoShared.version !== 3) {
+        var previous = topWindow.FetcherTurnupTacoShared;
+        if (previous && previous.timer) {
+          try { topWindow.clearTimeout(previous.timer); } catch (e) {}
         }
-        holder.FetcherTurnupTacoShared = {
-          version: 2,
+        topWindow.FetcherTurnupTacoShared = {
+          version: 3,
           tacos: [],
           nextId: 1,
-          nextSpawnAt: 0,
+          timer: null,
           running: false
         };
       }
-      return holder.FetcherTurnupTacoShared;
+      return topWindow.FetcherTurnupTacoShared;
     } catch (e) {
-      if (!window.FetcherTurnupTacoShared || window.FetcherTurnupTacoShared.version !== 2) {
+      if (!window.FetcherTurnupTacoShared || window.FetcherTurnupTacoShared.version !== 3) {
         window.FetcherTurnupTacoShared = {
-          version: 2,
+          version: 3,
           tacos: [],
           nextId: 1,
-          nextSpawnAt: 0,
+          timer: null,
           running: false
         };
       }
       return window.FetcherTurnupTacoShared;
     }
-  }
-
-  function resetShared() {
-    var shared = sharedState();
-    shared.tacos = [];
-    shared.nextSpawnAt = 0;
-    shared.running = false;
   }
 
   function ensureStyles() {
@@ -72,9 +69,9 @@
       '.fetcher-turnuptaco-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;}',
       'html[data-easter-palette="turnuptaco"] .main>.stage,html[data-easter-palette="turnuptaco"] .main>.foot,html[data-easter-palette="turnuptaco"] .main>.settings-nav,html[data-easter-palette="turnuptaco"] .main>.settings-content,html[data-easter-palette="turnuptaco"] .main>.about,html[data-easter-palette="turnuptaco"] .main>.donate,html[data-easter-palette="turnuptaco"] .main>.updates,html[data-easter-palette="turnuptaco"] .main>.soon{position:relative;z-index:1;}',
       '.fetcher-turnuptaco-taco-run{position:absolute;left:var(--tt-start-x);top:var(--tt-start-y);width:1px;height:1px;opacity:0;animation:fetcher-turnuptaco-run var(--tt-duration) linear var(--tt-delay) both;will-change:transform,opacity;}',
-      '.fetcher-turnuptaco-taco{position:absolute;left:0;top:0;width:var(--tt-size);height:calc(var(--tt-size) * .72);transform:translate(-50%,-50%) scaleX(var(--tt-dir));transform-origin:50% 100%;filter:drop-shadow(0 7px 10px rgba(97,55,0,.12));will-change:transform;}',
-      '.fetcher-turnuptaco-taco.hops-2{animation:fetcher-turnuptaco-hop2 var(--tt-duration) cubic-bezier(.2,.72,.25,1) var(--tt-delay) both;}',
-      '.fetcher-turnuptaco-taco.hops-3{animation:fetcher-turnuptaco-hop3 var(--tt-duration) cubic-bezier(.2,.72,.25,1) var(--tt-delay) both;}',
+      '.fetcher-turnuptaco-taco{position:absolute;left:0;top:0;width:var(--tt-size);height:calc(var(--tt-size) * .72);transform:translate(-50%,-50%) scaleX(var(--tt-dir));transform-origin:50% 100%;animation-duration:var(--tt-duration);animation-delay:var(--tt-delay);animation-timing-function:cubic-bezier(.2,.72,.25,1);animation-fill-mode:both;filter:drop-shadow(0 7px 10px rgba(97,55,0,.12));will-change:transform;}',
+      '.fetcher-turnuptaco-taco.hops-2{animation-name:fetcher-turnuptaco-hop2;}',
+      '.fetcher-turnuptaco-taco.hops-3{animation-name:fetcher-turnuptaco-hop3;}',
       '.fetcher-turnuptaco-taco svg{display:block;width:100%;height:100%;overflow:visible;}',
       'html[data-theme="dark"][data-easter-palette="turnuptaco"] .fetcher-turnuptaco-taco{filter:drop-shadow(0 8px 13px rgba(0,0,0,.20));}',
       '@keyframes fetcher-turnuptaco-run{0%{opacity:0;transform:translate3d(0,0,0);}6%{opacity:var(--tt-opacity);}93%{opacity:var(--tt-opacity);}100%{opacity:0;transform:translate3d(var(--tt-travel-x),var(--tt-travel-y),0);}}',
@@ -145,9 +142,8 @@
   }
 
   function makeTaco(shared, offsetMs) {
-    var parent = host();
-    var width = Math.max(320, (parent && parent.clientWidth) || window.innerWidth || 900);
-    var height = Math.max(320, (parent && parent.clientHeight) || window.innerHeight || 700);
+    var width = Math.max(720, window.innerWidth || 1280);
+    var height = Math.max(520, window.innerHeight || 720);
     var point = chooseSpawnPoint(shared, width, height);
     var roomLeft = point.x - 44;
     var roomRight = width - point.x - 44;
@@ -184,46 +180,58 @@
     shared.tacos.push(makeTaco(shared, offsetMs || 0));
   }
 
-  function advanceShared(shared) {
-    var now = Date.now();
+  function schedule() {
+    if (!isMaster) return;
+    var shared = sharedState();
+    window.clearTimeout(shared.timer);
+    shared.timer = null;
+    if (!shared.running || !masterActive() || masterReducedMotion()) return;
+    shared.timer = window.setTimeout(function () {
+      if (!shared.running || !masterActive() || masterReducedMotion()) return;
+      prune(shared);
+      if (shared.tacos.length < 4) addTaco(shared, 0);
+      schedule();
+    }, rand(1400, 2400));
+  }
 
-    if (!selected()) {
-      if (shared.running || shared.tacos.length) resetShared();
-      return;
-    }
-
-    prune(shared);
-
+  function startShared() {
+    if (!isMaster) return;
+    var shared = sharedState();
     if (!shared.running) {
       shared.running = true;
       shared.tacos = [];
       addTaco(shared, 0);
       addTaco(shared, 650);
-      shared.nextSpawnAt = now + rand(1400, 2400);
-      return;
     }
+    if (!masterReducedMotion() && !shared.timer) schedule();
+  }
 
-    if (!shared.nextSpawnAt) shared.nextSpawnAt = now + rand(1400, 2400);
+  function stopShared() {
+    if (!isMaster) return;
+    var shared = sharedState();
+    window.clearTimeout(shared.timer);
+    shared.timer = null;
+    shared.running = false;
+    shared.tacos = [];
+  }
 
-    if (now >= shared.nextSpawnAt) {
-      if (shared.tacos.length < 4) addTaco(shared, 0);
-      shared.nextSpawnAt = now + rand(1400, 2400);
-    }
+  function syncMasterActivity() {
+    if (!isMaster) return;
+    if (masterActive() && !masterReducedMotion()) startShared();
+    else stopShared();
   }
 
   function renderTaco(taco) {
-    var delay = -(Date.now() - taco.bornAt);
-
-    var run = document.createElement('span');
-    run.className = 'fetcher-turnuptaco-taco-run';
-    run.setAttribute('data-turnuptaco-taco-id', String(taco.id));
-    run.style.setProperty('--tt-start-x', taco.startX + 'px');
-    run.style.setProperty('--tt-start-y', taco.startY + 'px');
-    run.style.setProperty('--tt-travel-x', taco.travelX + 'px');
-    run.style.setProperty('--tt-travel-y', taco.travelY + 'px');
-    run.style.setProperty('--tt-duration', taco.duration + 'ms');
-    run.style.setProperty('--tt-delay', delay + 'ms');
-    run.style.setProperty('--tt-opacity', String(taco.opacity));
+    var node = document.createElement('span');
+    node.className = 'fetcher-turnuptaco-taco-run';
+    node.setAttribute('data-turnuptaco-taco-id', String(taco.id));
+    node.style.setProperty('--tt-start-x', taco.startX + 'px');
+    node.style.setProperty('--tt-start-y', taco.startY + 'px');
+    node.style.setProperty('--tt-travel-x', taco.travelX + 'px');
+    node.style.setProperty('--tt-travel-y', taco.travelY + 'px');
+    node.style.setProperty('--tt-duration', taco.duration + 'ms');
+    node.style.setProperty('--tt-delay', (-(Date.now() - taco.bornAt)) + 'ms');
+    node.style.setProperty('--tt-opacity', String(taco.opacity));
 
     var art = document.createElement('span');
     art.className = 'fetcher-turnuptaco-taco hops-' + taco.hops;
@@ -234,22 +242,20 @@
     art.style.setProperty('--tt-dir-106', String(taco.dir * 1.06));
     art.style.setProperty('--tt-dir-105', String(taco.dir * 1.05));
     art.style.setProperty('--tt-duration', taco.duration + 'ms');
-    art.style.setProperty('--tt-delay', delay + 'ms');
+    art.style.setProperty('--tt-delay', (-(Date.now() - taco.bornAt)) + 'ms');
     art.style.setProperty('--tt-tilt1', taco.tilt1 + 'deg');
     art.style.setProperty('--tt-tilt2', taco.tilt2 + 'deg');
     art.style.setProperty('--tt-tilt3', taco.tilt3 + 'deg');
     art.innerHTML = tacoSvg();
-    run.appendChild(art);
-    return run;
+    node.appendChild(art);
+    return node;
   }
 
   function syncRendered() {
     window.clearTimeout(renderTimer);
     renderTimer = null;
-
     if (!active() || reducedMotion()) {
       if (layer) layer.replaceChildren();
-      if (!selected()) resetShared();
       return;
     }
 
@@ -259,9 +265,7 @@
     if (!target) return;
 
     var shared = sharedState();
-    advanceShared(shared);
     prune(shared);
-
     var live = {};
     shared.tacos.forEach(function (taco) {
       live[String(taco.id)] = true;
@@ -274,7 +278,7 @@
       if (!live[node.getAttribute('data-turnuptaco-taco-id')]) node.remove();
     });
 
-    renderTimer = window.setTimeout(syncRendered, 160);
+    renderTimer = window.setTimeout(syncRendered, 180);
   }
 
   function stopRenderer() {
@@ -289,12 +293,12 @@
     ensureStyles();
     syncBrowserColor();
     ensureLayer();
-    advanceShared(sharedState());
+    syncMasterActivity();
     syncRendered();
   }
 
   document.addEventListener('fetcher:easter-change', function () {
-    if (!selected()) resetShared();
+    syncMasterActivity();
     if (active() && !reducedMotion()) startRenderer();
     else stopRenderer();
   });
@@ -302,6 +306,7 @@
   document.addEventListener('fetcher:pref-change', function (event) {
     if (!event || !event.detail) return;
     if (event.detail.key === 'fetcher.motion') {
+      syncMasterActivity();
       if (active() && !reducedMotion()) startRenderer();
       else stopRenderer();
     }
@@ -311,7 +316,7 @@
   if (window.MutationObserver) {
     new MutationObserver(function () {
       syncBrowserColor();
-      if (!selected()) resetShared();
+      syncMasterActivity();
       if (active() && !reducedMotion()) {
         if (!renderTimer) startRenderer();
       } else {
@@ -323,6 +328,7 @@
   function init() {
     ensureStyles();
     syncBrowserColor();
+    syncMasterActivity();
     if (active() && !reducedMotion()) startRenderer();
   }
 
