@@ -1,4 +1,4 @@
-/* TurnupTaco-only palette + ambience: hot-sauce splats and tiny taco hops. */
+/* TurnupTaco-only palette + ambience: cute taco hops across the page. */
 (function () {
   'use strict';
 
@@ -13,7 +13,6 @@
   var secretBusy = false;
 
   function rand(min, max) { return min + Math.random() * (max - min); }
-  function pick(items) { return items[Math.floor(Math.random() * items.length)]; }
   function motionMode() { return root.getAttribute('data-motion') || 'full'; }
 
   function rawStoredPalette() {
@@ -48,20 +47,17 @@
       'html[data-theme="dark"][data-easter-palette="turnuptaco"]{--bg:#241500;--surface:#342000;--rail:#472B00;--ink:#FFF6D5;--ink-strong:#FFFFFF;--ink-soft:#FDD059;--ink-faint:#E8AD45;--border:#684000;--border-strong:#A65B00;--accent:#FA6A00;--accent-ink:#F2E848;--accent-tint:rgba(250,106,0,.22);--on-accent:#241500;--audio:#FA9F48;--audio-tint:rgba(250,159,72,.18);--mute:#F2DA2B;--mute-tint:rgba(242,218,43,.14);--danger:#FA6A00;--danger-tint:rgba(250,106,0,.18);--success:#F9AE00;--success-tint:rgba(249,174,0,.14);--shiba:#FA9F48;--shiba-deep:#FA6A00;--shiba-cream:#F2E848;}',
       '.fetcher-turnuptaco-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;}',
       'html[data-easter-palette="turnuptaco"] .main>.stage,html[data-easter-palette="turnuptaco"] .main>.foot,html[data-easter-palette="turnuptaco"] .main>.settings-nav,html[data-easter-palette="turnuptaco"] .main>.settings-content,html[data-easter-palette="turnuptaco"] .main>.about,html[data-easter-palette="turnuptaco"] .main>.donate,html[data-easter-palette="turnuptaco"] .main>.updates,html[data-easter-palette="turnuptaco"] .main>.soon{position:relative;z-index:1;}',
-      '.fetcher-turnuptaco-splat{position:absolute;width:86px;height:86px;transform:translate(-50%,-50%) rotate(var(--tt-rot)) scale(.42);opacity:0;animation:fetcher-turnuptaco-splat 920ms cubic-bezier(.16,.82,.24,1) both;filter:drop-shadow(0 7px 12px rgba(114,63,0,.08));}',
-      '.fetcher-turnuptaco-splat svg{display:block;width:100%;height:100%;overflow:visible;}',
-      '.fetcher-turnuptaco-taco-run{position:absolute;left:var(--tt-start-x);bottom:18px;width:1px;height:1px;opacity:0;animation:fetcher-turnuptaco-run var(--tt-duration) linear both;will-change:transform,opacity;}',
-      '.fetcher-turnuptaco-taco{position:absolute;left:0;top:0;width:var(--tt-size);height:calc(var(--tt-size) * .72);transform:translate(-50%,-100%) scaleX(var(--tt-dir));transform-origin:50% 100%;filter:drop-shadow(0 7px 10px rgba(97,55,0,.12));will-change:transform;}',
+      '.fetcher-turnuptaco-taco-run{position:absolute;left:var(--tt-start-x);top:var(--tt-start-y);width:1px;height:1px;opacity:0;animation:fetcher-turnuptaco-run var(--tt-duration) linear both;will-change:transform,opacity;}',
+      '.fetcher-turnuptaco-taco{position:absolute;left:0;top:0;width:var(--tt-size);height:calc(var(--tt-size) * .72);transform:translate(-50%,-50%) scaleX(var(--tt-dir));transform-origin:50% 100%;filter:drop-shadow(0 7px 10px rgba(97,55,0,.12));will-change:transform;}',
       '.fetcher-turnuptaco-taco.hops-2{animation:fetcher-turnuptaco-hop2 var(--tt-duration) cubic-bezier(.2,.72,.25,1) both;}',
       '.fetcher-turnuptaco-taco.hops-3{animation:fetcher-turnuptaco-hop3 var(--tt-duration) cubic-bezier(.2,.72,.25,1) both;}',
       '.fetcher-turnuptaco-taco svg{display:block;width:100%;height:100%;overflow:visible;}',
       '.fetcher-turnuptaco-transition{position:fixed;inset:0;z-index:10030;pointer-events:auto;background:#F9AE00;opacity:0;transition:opacity 620ms cubic-bezier(.45,0,.55,1);}',
       '.fetcher-turnuptaco-transition.show{opacity:1;}',
       '.fetcher-turnuptaco-transition.reveal{opacity:0;transition-duration:1100ms;}',
-      '@keyframes fetcher-turnuptaco-splat{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--tt-rot)) scale(.42);}18%{opacity:.9;}48%{opacity:.84;transform:translate(-50%,-50%) rotate(var(--tt-rot)) scale(1.08);}72%{opacity:.64;transform:translate(-50%,-50%) rotate(var(--tt-rot)) scale(.98);}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--tt-rot)) scale(1.12);}}',
-      '@keyframes fetcher-turnuptaco-run{0%{opacity:0;transform:translate3d(0,0,0);}7%{opacity:var(--tt-opacity);}92%{opacity:var(--tt-opacity);}100%{opacity:0;transform:translate3d(var(--tt-distance),0,0);}}',
-      '@keyframes fetcher-turnuptaco-hop2{0%{transform:translate(-50%,-100%) scaleX(var(--tt-dir)) scaleY(.86);}8%{transform:translate(-50%,-112%) scaleX(var(--tt-dir)) scaleY(1.06);}24%{transform:translate(-50%,-205%) scaleX(var(--tt-dir)) rotate(var(--tt-tilt1)) scaleY(1.02);}42%{transform:translate(-50%,-100%) scaleX(var(--tt-dir-108)) scaleY(.78);}50%{transform:translate(-50%,-112%) scaleX(var(--tt-dir)) scaleY(1.05);}70%{transform:translate(-50%,-188%) scaleX(var(--tt-dir)) rotate(var(--tt-tilt2));}90%{transform:translate(-50%,-100%) scaleX(var(--tt-dir-106)) scaleY(.80);}100%{transform:translate(-50%,-100%) scaleX(var(--tt-dir));}}',
-      '@keyframes fetcher-turnuptaco-hop3{0%{transform:translate(-50%,-100%) scaleX(var(--tt-dir)) scaleY(.86);}6%{transform:translate(-50%,-111%) scaleX(var(--tt-dir)) scaleY(1.05);}18%{transform:translate(-50%,-188%) scaleX(var(--tt-dir)) rotate(var(--tt-tilt1));}31%{transform:translate(-50%,-100%) scaleX(var(--tt-dir-107)) scaleY(.79);}38%{transform:translate(-50%,-111%) scaleX(var(--tt-dir)) scaleY(1.04);}50%{transform:translate(-50%,-205%) scaleX(var(--tt-dir)) rotate(var(--tt-tilt2));}64%{transform:translate(-50%,-100%) scaleX(var(--tt-dir-108)) scaleY(.78);}71%{transform:translate(-50%,-111%) scaleX(var(--tt-dir)) scaleY(1.04);}83%{transform:translate(-50%,-177%) scaleX(var(--tt-dir)) rotate(var(--tt-tilt3));}94%{transform:translate(-50%,-100%) scaleX(var(--tt-dir-105)) scaleY(.81);}100%{transform:translate(-50%,-100%) scaleX(var(--tt-dir));}}',
+      '@keyframes fetcher-turnuptaco-run{0%{opacity:0;transform:translate3d(0,0,0);}6%{opacity:var(--tt-opacity);}93%{opacity:var(--tt-opacity);}100%{opacity:0;transform:translate3d(var(--tt-travel-x),var(--tt-travel-y),0);}}',
+      '@keyframes fetcher-turnuptaco-hop2{0%{transform:translate(-50%,-50%) scaleX(var(--tt-dir)) scaleY(.86);}8%{transform:translate(-50%,-57%) scaleX(var(--tt-dir)) scaleY(1.06);}24%{transform:translate(-50%,-138%) scaleX(var(--tt-dir)) rotate(var(--tt-tilt1)) scaleY(1.02);}42%{transform:translate(-50%,-50%) scaleX(var(--tt-dir-108)) scaleY(.78);}50%{transform:translate(-50%,-57%) scaleX(var(--tt-dir)) scaleY(1.05);}70%{transform:translate(-50%,-124%) scaleX(var(--tt-dir)) rotate(var(--tt-tilt2));}90%{transform:translate(-50%,-50%) scaleX(var(--tt-dir-106)) scaleY(.80);}100%{transform:translate(-50%,-50%) scaleX(var(--tt-dir));}}',
+      '@keyframes fetcher-turnuptaco-hop3{0%{transform:translate(-50%,-50%) scaleX(var(--tt-dir)) scaleY(.86);}6%{transform:translate(-50%,-57%) scaleX(var(--tt-dir)) scaleY(1.05);}18%{transform:translate(-50%,-124%) scaleX(var(--tt-dir)) rotate(var(--tt-tilt1));}31%{transform:translate(-50%,-50%) scaleX(var(--tt-dir-107)) scaleY(.79);}38%{transform:translate(-50%,-57%) scaleX(var(--tt-dir)) scaleY(1.04);}50%{transform:translate(-50%,-140%) scaleX(var(--tt-dir)) rotate(var(--tt-tilt2));}64%{transform:translate(-50%,-50%) scaleX(var(--tt-dir-108)) scaleY(.78);}71%{transform:translate(-50%,-57%) scaleX(var(--tt-dir)) scaleY(1.04);}83%{transform:translate(-50%,-115%) scaleX(var(--tt-dir)) rotate(var(--tt-tilt3));}94%{transform:translate(-50%,-50%) scaleX(var(--tt-dir-105)) scaleY(.81);}100%{transform:translate(-50%,-50%) scaleX(var(--tt-dir));}}',
       'html[data-motion="reduced"] .fetcher-turnuptaco-layer{display:none!important;}',
       'html[data-motion="reduced"] .fetcher-turnuptaco-transition{transition-duration:180ms!important;}'
     ].join('\n');
@@ -79,7 +75,7 @@
     try { window.sessionStorage.setItem(STORAGE_KEY, SECRET); } catch (e) {}
     root.setAttribute('data-easter-palette', SECRET);
     syncBrowserColor();
-    syncTacoActivity();
+    syncTacoActivity(true);
     ensureLayer();
     try { document.dispatchEvent(new CustomEvent('fetcher:easter-change', { detail: { palette: SECRET } })); } catch (e) {}
   }
@@ -109,7 +105,7 @@
       if (rawStoredPalette() === SECRET) {
         root.setAttribute('data-easter-palette', SECRET);
         syncBrowserColor();
-        syncTacoActivity();
+        syncTacoActivity(true);
         ensureLayer();
         return;
       }
@@ -235,57 +231,6 @@
     return layer;
   }
 
-  function splatSvg(fill, detail) {
-    return [
-      '<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">',
-      '<path d="M51 18c8 0 11 9 18 12 8 3 18-1 22 7 4 9-7 14-8 22-1 7 7 14 2 21-5 7-14 0-22 2-8 2-10 12-19 11-9-1-8-12-15-17-6-5-17-2-20-11-3-9 8-13 11-21 3-8-2-17 6-22 8-5 14 5 22 6 8 1 15-11 23-9Z" fill="', fill, '"/>',
-      '<circle cx="17" cy="24" r="6" fill="', detail, '"/>',
-      '<circle cx="83" cy="16" r="4.5" fill="', detail, '"/>',
-      '<circle cx="91" cy="69" r="5.3" fill="', fill, '"/>',
-      '<circle cx="22" cy="86" r="3.8" fill="', fill, '"/>',
-      '<ellipse cx="49" cy="50" rx="18" ry="9" fill="', detail, '" opacity=".20" transform="rotate(-18 49 50)"/>',
-      '</svg>'
-    ].join('');
-  }
-
-  function spawnSplat(clientX, clientY) {
-    if (!active() || reducedMotion()) return;
-    var target = ensureLayer();
-    var parent = host();
-    if (!target || !parent) return;
-    var rect = parent.getBoundingClientRect();
-    var x = clientX - rect.left;
-    var y = clientY - rect.top;
-    if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
-
-    var colors = pick([
-      ['#FA6A00', '#FDD059'],
-      ['#FA9F48', '#F2E848'],
-      ['#F9AE00', '#FA6A00'],
-      ['#FDD059', '#FA9F48']
-    ]);
-    var node = document.createElement('span');
-    node.className = 'fetcher-turnuptaco-splat';
-    node.style.left = x + 'px';
-    node.style.top = y + 'px';
-    node.style.width = rand(70, 96) + 'px';
-    node.style.height = node.style.width;
-    node.style.setProperty('--tt-rot', rand(-34, 34) + 'deg');
-    node.innerHTML = splatSvg(colors[0], colors[1]);
-    target.appendChild(node);
-    window.setTimeout(function () { if (node.parentNode) node.remove(); }, 1050);
-  }
-
-  function backgroundClick(event) {
-    if (!active() || reducedMotion() || event.defaultPrevented || event.button !== 0) return;
-    var target = event.target;
-    if (!target || !target.closest) return;
-    var main = target.closest('.main');
-    if (!main) return;
-    if (target.closest('a,button,input,textarea,select,label,[role="button"],[contenteditable="true"],.segmented,.input-row,.trim-mount,.fetch-progress,.fetch-status,.toast,.modal,.popover,.menu')) return;
-    spawnSplat(event.clientX, event.clientY);
-  }
-
   function tacoSvg() {
     return [
       '<svg viewBox="0 0 100 72" aria-hidden="true" focusable="false">',
@@ -298,35 +243,69 @@
     ].join('');
   }
 
+  function currentTacos(target) {
+    return Array.prototype.slice.call(target.querySelectorAll('.fetcher-turnuptaco-taco-run'));
+  }
+
+  function chooseSpawnPoint(target, width, height) {
+    var existing = currentTacos(target);
+    var point = { x: width / 2, y: height / 2 };
+    var marginX = Math.min(72, Math.max(42, width * .07));
+    var marginY = Math.min(82, Math.max(52, height * .08));
+
+    for (var attempt = 0; attempt < 14; attempt += 1) {
+      point.x = rand(marginX, Math.max(marginX + 1, width - marginX));
+      point.y = rand(marginY, Math.max(marginY + 1, height - marginY));
+      var clear = existing.every(function (node) {
+        var ox = parseFloat(node.getAttribute('data-taco-x') || '0');
+        var oy = parseFloat(node.getAttribute('data-taco-y') || '0');
+        var dx = ox - point.x;
+        var dy = oy - point.y;
+        return Math.sqrt(dx * dx + dy * dy) > 145;
+      });
+      if (clear) break;
+    }
+    return point;
+  }
+
   function spawnTaco() {
-    if (!active() || reducedMotion()) return;
+    if (!active() || reducedMotion()) return false;
     var target = ensureLayer();
     var parent = host();
-    if (!target || !parent || target.querySelector('.fetcher-turnuptaco-taco-run')) return;
+    if (!target || !parent) return false;
+
+    var existing = currentTacos(target);
+    if (existing.length >= 4) return false;
+
     var width = Math.max(320, parent.clientWidth || window.innerWidth || 900);
-    var distance = rand(150, Math.min(310, width * .34));
-    var dir = Math.random() < .5 ? 1 : -1;
-    var startMin = dir > 0 ? 48 : distance + 56;
-    var startMax = dir > 0 ? width - distance - 56 : width - 48;
-    if (startMax <= startMin) {
-      dir = 1;
-      startMin = 48;
-      startMax = Math.max(64, width - distance - 48);
-    }
-    var startX = rand(startMin, Math.max(startMin + 1, startMax));
-    var hops = Math.random() < .48 ? 2 : 3;
-    var duration = hops === 2 ? rand(2500, 3300) : rand(3100, 4100);
+    var height = Math.max(320, parent.clientHeight || window.innerHeight || 700);
+    var point = chooseSpawnPoint(target, width, height);
+    var roomLeft = point.x - 44;
+    var roomRight = width - point.x - 44;
+    var dir = Math.random() < .5 ? -1 : 1;
+    if (dir < 0 && roomLeft < 110) dir = 1;
+    if (dir > 0 && roomRight < 110) dir = -1;
+
+    var maxDistance = Math.max(90, Math.min(230, dir > 0 ? roomRight : roomLeft));
+    var distance = rand(90, Math.max(91, maxDistance));
+    var travelY = rand(-26, 28);
+    var hops = Math.random() < .46 ? 2 : 3;
+    var duration = hops === 2 ? rand(4800, 6100) : rand(5600, 7200);
 
     var run = document.createElement('span');
     run.className = 'fetcher-turnuptaco-taco-run';
-    run.style.setProperty('--tt-start-x', startX + 'px');
-    run.style.setProperty('--tt-distance', (distance * dir) + 'px');
+    run.setAttribute('data-taco-x', point.x.toFixed(1));
+    run.setAttribute('data-taco-y', point.y.toFixed(1));
+    run.style.setProperty('--tt-start-x', point.x + 'px');
+    run.style.setProperty('--tt-start-y', point.y + 'px');
+    run.style.setProperty('--tt-travel-x', (distance * dir) + 'px');
+    run.style.setProperty('--tt-travel-y', travelY + 'px');
     run.style.setProperty('--tt-duration', duration + 'ms');
-    run.style.setProperty('--tt-opacity', String(rand(.72, .9)));
+    run.style.setProperty('--tt-opacity', String(rand(.74, .92)));
 
     var taco = document.createElement('span');
     taco.className = 'fetcher-turnuptaco-taco hops-' + hops;
-    taco.style.setProperty('--tt-size', rand(40, 54) + 'px');
+    taco.style.setProperty('--tt-size', rand(42, 58) + 'px');
     taco.style.setProperty('--tt-dir', String(dir));
     taco.style.setProperty('--tt-dir-108', String(dir * 1.08));
     taco.style.setProperty('--tt-dir-107', String(dir * 1.07));
@@ -340,7 +319,10 @@
     run.appendChild(taco);
     target.appendChild(run);
 
-    window.setTimeout(function () { if (run.parentNode) run.remove(); }, duration + 160);
+    window.setTimeout(function () {
+      if (run.parentNode) run.remove();
+    }, duration + 180);
+    return true;
   }
 
   function scheduleTaco() {
@@ -348,18 +330,27 @@
     window.clearTimeout(tacoTimer);
     tacoTimer = null;
     if (!masterActive() || masterReducedMotion()) return;
+
     tacoTimer = window.setTimeout(function () {
       if (!masterActive() || masterReducedMotion()) return;
       spawnTaco();
       scheduleTaco();
-    }, rand(9000, 15000));
+    }, rand(1400, 2400));
   }
 
-  function syncTacoActivity() {
+  function syncTacoActivity(seed) {
     if (!isMaster) return;
     window.clearTimeout(tacoTimer);
     tacoTimer = null;
-    if (masterActive() && !masterReducedMotion()) scheduleTaco();
+    if (!masterActive() || masterReducedMotion()) return;
+
+    if (seed && layer && currentTacos(layer).length === 0) {
+      spawnTaco();
+      window.setTimeout(function () {
+        if (masterActive() && !masterReducedMotion()) spawnTaco();
+      }, 650);
+    }
+    scheduleTaco();
   }
 
   function restoreStoredTheme() {
@@ -367,7 +358,7 @@
     root.setAttribute('data-easter-palette', SECRET);
     syncBrowserColor();
     ensureLayer();
-    syncTacoActivity();
+    syncTacoActivity(true);
   }
 
   function installHooks() {
@@ -380,13 +371,11 @@
     }
   }
 
-  document.addEventListener('click', backgroundClick, false);
-
   document.addEventListener('fetcher:easter-change', function () {
     if (rawStoredPalette() === SECRET && !active()) root.setAttribute('data-easter-palette', SECRET);
     if (active() && !reducedMotion()) {
       ensureLayer();
-      syncTacoActivity();
+      syncTacoActivity(true);
     } else {
       if (layer) layer.replaceChildren();
       if (isMaster) { window.clearTimeout(tacoTimer); tacoTimer = null; }
@@ -398,7 +387,7 @@
     if (event.detail.key === 'fetcher.motion') {
       if (active() && !reducedMotion()) {
         ensureLayer();
-        syncTacoActivity();
+        syncTacoActivity(true);
       } else {
         if (layer) layer.replaceChildren();
         if (isMaster) { window.clearTimeout(tacoTimer); tacoTimer = null; }
@@ -412,7 +401,7 @@
       syncBrowserColor();
       if (active() && !reducedMotion()) {
         ensureLayer();
-        if (isMaster && !tacoTimer) syncTacoActivity();
+        if (isMaster && !tacoTimer) syncTacoActivity(false);
       } else if (layer) {
         layer.replaceChildren();
       }
