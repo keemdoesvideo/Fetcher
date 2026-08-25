@@ -49,6 +49,7 @@ ALLOWED_ASSETS: dict[str, str] = {
     "fetcher-settings.js": "application/javascript; charset=utf-8",
     "fetcher-trimmer.js": "application/javascript; charset=utf-8",
     "fetcher-launch.js": "application/javascript; charset=utf-8",
+    "fetcher-pet-paw.js": "application/javascript; charset=utf-8",
     "fetcher-ailincia.js": "application/javascript; charset=utf-8",
     "fetcher-vitaviita.js": "application/javascript; charset=utf-8",
     "fetcher-suki.js": "application/javascript; charset=utf-8",
@@ -70,6 +71,7 @@ ALLOWED_ASSETS: dict[str, str] = {
     "paw-cursor-dark.svg": "image/svg+xml",
     "hls.min.js": "application/javascript; charset=utf-8",
     "found-you.mp3": "audio/mpeg",
+    "pet-paw-click.mp3": "audio/mpeg",
 }
 
 _sweeper = StaleSweeper(
@@ -388,6 +390,7 @@ _LAUNCH_HEAD = """
 <meta name="twitter:image" content="https://fetcher.hahkeemi.com/fetcher-social-card.png">
 <link rel="stylesheet" href="/fetcher-launch.css">
 <script defer src="/fetcher-launch.js"></script>
+<script defer src="/fetcher-pet-paw.js"></script>
 <script defer src="/fetcher-ailincia.js"></script>
 <script defer src="/fetcher-vitaviita.js"></script>
 <script defer src="/fetcher-suki.js"></script>
