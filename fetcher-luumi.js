@@ -1,4 +1,4 @@
-/* Luumi-only ambience: one continuous satin ribbon drifting behind the UI. */
+/* Luumi-only ambience: crisp rising pixel hearts behind the UI. */
 (function () {
   'use strict';
 
@@ -6,27 +6,39 @@
   var topWindow = window;
   try { if (window.top) topWindow = window.top; } catch (e) { topWindow = window; }
   var layer = null;
-  var DURATION = 18000;
+  var renderTimer = null;
 
-  function active() {
-    return root.getAttribute('data-easter-palette') === 'luumi';
-  }
+  var COLORS = ['#F52E6F', '#F98EA9', '#F6BCC4', '#F9CCD7'];
 
-  function reducedMotion() {
-    return root.getAttribute('data-motion') === 'reduced';
-  }
+  function rand(min, max) { return min + Math.random() * (max - min); }
+  function pick(list) { return list[Math.floor(rand(0, list.length))]; }
+  function active() { return root.getAttribute('data-easter-palette') === 'luumi'; }
+  function reducedMotion() { return root.getAttribute('data-motion') === 'reduced'; }
 
   function sharedState() {
+    var target = topWindow;
     try {
-      if (!topWindow.FetcherLuumiRibbonShared || topWindow.FetcherLuumiRibbonShared.version !== 1) {
-        topWindow.FetcherLuumiRibbonShared = { version: 1, startedAt: Date.now() };
+      if (!target.FetcherLuumiHeartShared || target.FetcherLuumiHeartShared.version !== 1) {
+        target.FetcherLuumiHeartShared = {
+          version: 1,
+          nextId: 1,
+          hearts: [],
+          nextHeartAt: Date.now(),
+          seeded: false
+        };
       }
-      return topWindow.FetcherLuumiRibbonShared;
+      return target.FetcherLuumiHeartShared;
     } catch (e) {
-      if (!window.FetcherLuumiRibbonShared || window.FetcherLuumiRibbonShared.version !== 1) {
-        window.FetcherLuumiRibbonShared = { version: 1, startedAt: Date.now() };
+      if (!window.FetcherLuumiHeartShared || window.FetcherLuumiHeartShared.version !== 1) {
+        window.FetcherLuumiHeartShared = {
+          version: 1,
+          nextId: 1,
+          hearts: [],
+          nextHeartAt: Date.now(),
+          seeded: false
+        };
       }
-      return window.FetcherLuumiRibbonShared;
+      return window.FetcherLuumiHeartShared;
     }
   }
 
@@ -37,76 +49,29 @@
     style.textContent = [
       'html[data-theme="light"][data-easter-palette="luumi"]{--bg:#FBFEFB;--surface:#FFFFFF;--rail:#F9CCD7;--ink:#4A1F2E;--ink-strong:#2D101A;--ink-soft:#7B4052;--ink-faint:#A86B7A;--border:#F6BCC4;--border-strong:#F98EA9;--accent:#F52E6F;--accent-ink:#B5164A;--accent-tint:#F9CCD7;--on-accent:#FFFFFF;--audio:#F98EA9;--audio-tint:#FCE0E7;--mute:#F6BCC4;--mute-tint:#FDEBF0;--danger:#F52E6F;--danger-tint:#F9CCD7;--success:#D95E86;--success-tint:#FCE0E7;--shiba:#F98EA9;--shiba-deep:#F52E6F;--shiba-cream:#FBFEFB;}',
       'html[data-theme="dark"][data-easter-palette="luumi"]{--bg:#251219;--surface:#321821;--rail:#421D2B;--ink:#FFF7FA;--ink-strong:#FFFFFF;--ink-soft:#F9CCD7;--ink-faint:#D98FA4;--border:#5C2A3B;--border-strong:#8C3B58;--accent:#F52E6F;--accent-ink:#F9CCD7;--accent-tint:rgba(245,46,111,.20);--on-accent:#FFFFFF;--audio:#F98EA9;--audio-tint:rgba(249,142,169,.18);--mute:#F6BCC4;--mute-tint:rgba(246,188,196,.13);--danger:#F52E6F;--danger-tint:rgba(245,46,111,.18);--success:#F98EA9;--success-tint:rgba(249,142,169,.14);--shiba:#F98EA9;--shiba-deep:#F52E6F;--shiba-cream:#F9CCD7;}',
-      '.fetcher-luumi-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;}',
+      '.fetcher-luumi-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;contain:layout paint style;}',
       'html[data-easter-palette="luumi"] .main>.stage,html[data-easter-palette="luumi"] .main>.foot,html[data-easter-palette="luumi"] .main>.settings-nav,html[data-easter-palette="luumi"] .main>.settings-content,html[data-easter-palette="luumi"] .main>.about,html[data-easter-palette="luumi"] .main>.donate,html[data-easter-palette="luumi"] .main>.updates,html[data-easter-palette="luumi"] .main>.soon{position:relative;z-index:1;}',
-      '.fetcher-luumi-ribbon{position:absolute;left:0;top:50%;width:300%;height:min(54vh,430px);transform:translate3d(0,-50%,0);opacity:.66;animation:fetcher-luumi-travel 18000ms linear var(--luumi-delay,0ms) infinite;will-change:transform;}',
-      '.fetcher-luumi-ribbon svg{display:block;width:100%;height:100%;overflow:visible;}',
-      '.fetcher-luumi-shadow{filter:drop-shadow(0 9px 12px rgba(132,28,65,.08));}',
-      '.fetcher-luumi-bow{filter:drop-shadow(0 5px 7px rgba(132,28,65,.09));}',
-      'html[data-theme="dark"][data-easter-palette="luumi"] .fetcher-luumi-ribbon{opacity:.72;}',
-      'html[data-theme="dark"][data-easter-palette="luumi"] .fetcher-luumi-shadow{filter:drop-shadow(0 10px 16px rgba(0,0,0,.18));}',
-      '@keyframes fetcher-luumi-travel{0%{transform:translate3d(0,-50%,0);}25%{transform:translate3d(-8.333%,-48.5%,0);}50%{transform:translate3d(-16.666%,-51.5%,0);}75%{transform:translate3d(-25%,-49%,0);}100%{transform:translate3d(-33.333%,-50%,0);}}',
-      'html[data-motion="reserved"] .fetcher-luumi-ribbon{animation-timing-function:linear;}',
+      '.fetcher-luumi-heart-flight{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;animation:fetcher-luumi-heart-rise var(--heart-duration) linear var(--heart-delay) both;will-change:transform,opacity;backface-visibility:hidden;}',
+      '.fetcher-luumi-pixel-heart{position:absolute;left:0;top:0;width:var(--heart-size);height:calc(var(--heart-size)*.875);transform:translate(-50%,-50%);image-rendering:pixelated;animation:fetcher-luumi-heart-tilt var(--heart-duration) linear var(--heart-delay) both;will-change:transform;backface-visibility:hidden;}',
+      '.fetcher-luumi-pixel-heart svg{display:block;width:100%;height:100%;overflow:visible;shape-rendering:crispEdges;}',
+      '@keyframes fetcher-luumi-heart-rise{0%{opacity:0;transform:translate3d(var(--hx0),var(--hy0),0);}7%{opacity:var(--heart-opacity);}34%{opacity:var(--heart-opacity);transform:translate3d(var(--hx1),var(--hy1),0);}68%{opacity:var(--heart-opacity);transform:translate3d(var(--hx2),var(--hy2),0);}92%{opacity:var(--heart-opacity);}100%{opacity:0;transform:translate3d(var(--hx3),var(--hy3),0);}}',
+      '@keyframes fetcher-luumi-heart-tilt{0%{transform:translate(-50%,-50%) rotate(var(--hr0)) scale(1);}35%{transform:translate(-50%,-50%) rotate(var(--hr1)) scale(1);}68%{transform:translate(-50%,-50%) rotate(var(--hr2)) scale(1);}100%{transform:translate(-50%,-50%) rotate(var(--hr3)) scale(1);}}',
+      'html[data-motion="reserved"] .fetcher-luumi-heart-flight,html[data-motion="reserved"] .fetcher-luumi-pixel-heart{animation-timing-function:linear;}',
       'html[data-motion="reduced"] .fetcher-luumi-layer{display:none!important;}'
     ].join('\n');
     (document.head || document.documentElement).appendChild(style);
   }
 
-  function syncBrowserColor() {
-    if (!active()) return;
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) return;
-    meta.setAttribute('content', root.getAttribute('data-theme') === 'dark' ? '#251219' : '#FBFEFB');
-  }
-
-  function host() {
-    return document.querySelector('.main') || document.body;
-  }
-
-  function ribbonSvg() {
-    var wave = 'M0 250 C100 92 300 92 400 250 S700 408 800 250 S1100 92 1200 250 S1500 408 1600 250 S1900 92 2000 250 S2300 408 2400 250';
-    function bow(x, y, rotation) {
-      return [
-        '<g class="fetcher-luumi-bow" transform="translate(', x, ' ', y, ') rotate(', rotation, ')">',
-        '<path d="M-7 0 C-42 -32 -72 -28 -66 2 C-61 28 -34 26 -7 8 Z" fill="#F98EA9" stroke="#F52E6F" stroke-width="5" stroke-linejoin="round"/>',
-        '<path d="M7 0 C42 -32 72 -28 66 2 C61 28 34 26 7 8 Z" fill="#F6BCC4" stroke="#F52E6F" stroke-width="5" stroke-linejoin="round"/>',
-        '<path d="M-4 10 L-27 49 L1 35 L11 12 Z" fill="#F9CCD7" stroke="#F52E6F" stroke-width="4" stroke-linejoin="round"/>',
-        '<path d="M4 10 L27 49 L-1 35 L-11 12 Z" fill="#F98EA9" stroke="#F52E6F" stroke-width="4" stroke-linejoin="round"/>',
-        '<ellipse cx="0" cy="4" rx="15" ry="13" fill="#F52E6F"/>',
-        '<ellipse cx="-4" cy="0" rx="6" ry="4" fill="#FBFEFB" opacity=".42"/>',
-        '</g>'
-      ].join('');
-    }
-
-    return [
-      '<svg viewBox="0 0 2400 500" preserveAspectRatio="none" aria-hidden="true" focusable="false">',
-      '<defs><linearGradient id="fetcher-luumi-ribbon-gradient" x1="0" y1="0" x2="1" y2="0">',
-      '<stop offset="0%" stop-color="#F52E6F"/><stop offset="24%" stop-color="#F98EA9"/><stop offset="50%" stop-color="#F6BCC4"/><stop offset="72%" stop-color="#F98EA9"/><stop offset="100%" stop-color="#F52E6F"/>',
-      '</linearGradient></defs>',
-      '<path class="fetcher-luumi-shadow" d="', wave, '" fill="none" stroke="#F9CCD7" stroke-width="38" stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>',
-      '<path d="', wave, '" fill="none" stroke="url(#fetcher-luumi-ribbon-gradient)" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>',
-      '<path d="', wave, '" fill="none" stroke="#FBFEFB" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".48" transform="translate(0 -5)"/>',
-      bow(405, 246, -10), bow(1205, 246, 8), bow(2005, 246, -10),
-      '</svg>'
-    ].join('');
-  }
+  function host() { return document.querySelector('.main') || document.body; }
 
   function ensureLayer() {
     var parent = host();
     if (!parent) return null;
     if (layer && layer.isConnected && layer.parentNode === parent) return layer;
-    if (layer && layer.parentNode) layer.remove();
-
+    clearLayer();
     layer = document.createElement('div');
     layer.className = 'fetcher-luumi-layer';
     layer.setAttribute('aria-hidden', 'true');
-
-    var ribbon = document.createElement('div');
-    ribbon.className = 'fetcher-luumi-ribbon';
-    var elapsed = Math.max(0, Date.now() - sharedState().startedAt) % DURATION;
-    ribbon.style.setProperty('--luumi-delay', (-elapsed) + 'ms');
-    ribbon.innerHTML = ribbonSvg();
-    layer.appendChild(ribbon);
     parent.insertBefore(layer, parent.firstChild);
     return layer;
   }
@@ -116,14 +81,166 @@
     layer = null;
   }
 
-  function syncAll() {
-    ensureStyles();
-    syncBrowserColor();
+  function syncBrowserColor() {
+    if (!active()) return;
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) return;
+    meta.setAttribute('content', root.getAttribute('data-theme') === 'dark' ? '#251219' : '#FBFEFB');
+  }
+
+  function heartSvg(color, highlight) {
+    return [
+      '<svg viewBox="0 0 8 7" aria-hidden="true" focusable="false">',
+      '<g fill="', color, '">',
+      '<rect x="1" y="0" width="2" height="1"/><rect x="5" y="0" width="2" height="1"/>',
+      '<rect x="0" y="1" width="4" height="1"/><rect x="4" y="1" width="4" height="1"/>',
+      '<rect x="0" y="2" width="8" height="2"/>',
+      '<rect x="1" y="4" width="6" height="1"/>',
+      '<rect x="2" y="5" width="4" height="1"/>',
+      '<rect x="3" y="6" width="2" height="1"/>',
+      '</g>',
+      '<rect x="1" y="1" width="1" height="1" fill="', highlight, '" opacity=".68"/>',
+      '</svg>'
+    ].join('');
+  }
+
+  function createHeart(now, ageOffset) {
+    var startX = rand(8, 92);
+    var drift = rand(-8, 8);
+    var wobble = rand(-3.5, 3.5);
+    var duration = rand(11500, 16500);
+    var color = pick(COLORS);
+    var highlight = color === '#F52E6F' ? '#F98EA9' : '#FBFEFB';
+    var rotate = rand(-4, 4);
+    return {
+      id: sharedState().nextId++,
+      bornAt: now - (ageOffset || 0),
+      duration: duration,
+      size: rand(13, 24),
+      opacity: rand(.62, .88),
+      color: color,
+      highlight: highlight,
+      x0: startX,
+      x1: startX + drift * .30 + wobble,
+      x2: startX + drift * .68 - wobble * .35,
+      x3: startX + drift,
+      y0: rand(103, 116),
+      y1: rand(67, 76),
+      y2: rand(29, 41),
+      y3: rand(-18, -8),
+      r0: rotate,
+      r1: rotate + rand(-3, 3),
+      r2: rotate + rand(-4, 4),
+      r3: rotate + rand(-2, 2)
+    };
+  }
+
+  function seedHearts(state, now) {
+    if (state.seeded) return;
+    state.seeded = true;
+    for (var i = 0; i < 5; i += 1) {
+      state.hearts.push(createHeart(now, rand(0, 11000)));
+    }
+    state.nextHeartAt = now + rand(1500, 2300);
+  }
+
+  function maintainShared() {
+    var state = sharedState();
+    var now = Date.now();
+    seedHearts(state, now);
+    state.hearts = state.hearts.filter(function (heart) {
+      return now < heart.bornAt + heart.duration + 250;
+    });
+    if (now >= state.nextHeartAt) {
+      if (state.hearts.length < 8) state.hearts.push(createHeart(now, 0));
+      state.nextHeartAt = now + rand(1500, 2600);
+    }
+    return state;
+  }
+
+  function renderHeart(heart) {
+    var target = ensureLayer();
+    if (!target) return;
+    var age = Date.now() - heart.bornAt;
+
+    var flight = document.createElement('span');
+    flight.className = 'fetcher-luumi-heart-flight';
+    flight.setAttribute('data-luumi-heart-id', String(heart.id));
+    flight.style.setProperty('--heart-duration', heart.duration + 'ms');
+    flight.style.setProperty('--heart-delay', (-age) + 'ms');
+    flight.style.setProperty('--heart-opacity', String(heart.opacity));
+    flight.style.setProperty('--hx0', heart.x0 + 'vw');
+    flight.style.setProperty('--hx1', heart.x1 + 'vw');
+    flight.style.setProperty('--hx2', heart.x2 + 'vw');
+    flight.style.setProperty('--hx3', heart.x3 + 'vw');
+    flight.style.setProperty('--hy0', heart.y0 + 'vh');
+    flight.style.setProperty('--hy1', heart.y1 + 'vh');
+    flight.style.setProperty('--hy2', heart.y2 + 'vh');
+    flight.style.setProperty('--hy3', heart.y3 + 'vh');
+
+    var art = document.createElement('span');
+    art.className = 'fetcher-luumi-pixel-heart';
+    art.style.setProperty('--heart-size', heart.size + 'px');
+    art.style.setProperty('--heart-duration', heart.duration + 'ms');
+    art.style.setProperty('--heart-delay', (-age) + 'ms');
+    art.style.setProperty('--hr0', heart.r0 + 'deg');
+    art.style.setProperty('--hr1', heart.r1 + 'deg');
+    art.style.setProperty('--hr2', heart.r2 + 'deg');
+    art.style.setProperty('--hr3', heart.r3 + 'deg');
+    art.innerHTML = heartSvg(heart.color, heart.highlight);
+
+    flight.appendChild(art);
+    target.appendChild(flight);
+  }
+
+  function syncRendered() {
     if (!active() || reducedMotion()) {
       clearLayer();
       return;
     }
+
+    var target = ensureLayer();
+    if (!target) return;
+    var state = maintainShared();
+    var now = Date.now();
+    var live = {};
+
+    state.hearts.forEach(function (heart) {
+      if (now >= heart.bornAt + heart.duration + 250) return;
+      live[String(heart.id)] = true;
+      if (!target.querySelector('[data-luumi-heart-id="' + heart.id + '"]')) renderHeart(heart);
+    });
+
+    Array.prototype.forEach.call(target.querySelectorAll('[data-luumi-heart-id]'), function (node) {
+      if (!live[node.getAttribute('data-luumi-heart-id')]) node.remove();
+    });
+  }
+
+  function startRenderer() {
+    window.clearInterval(renderTimer);
+    renderTimer = null;
+    if (!active() || reducedMotion()) {
+      clearLayer();
+      return;
+    }
+    ensureStyles();
+    syncBrowserColor();
     ensureLayer();
+    syncRendered();
+    renderTimer = window.setInterval(syncRendered, 320);
+  }
+
+  function stopRenderer() {
+    window.clearInterval(renderTimer);
+    renderTimer = null;
+    clearLayer();
+  }
+
+  function syncAll() {
+    ensureStyles();
+    if (active() && !reducedMotion()) startRenderer();
+    else stopRenderer();
+    syncBrowserColor();
   }
 
   document.addEventListener('fetcher:easter-change', syncAll);
@@ -135,10 +252,23 @@
   window.addEventListener('pageshow', syncAll);
 
   if (window.MutationObserver) {
-    new MutationObserver(function () { syncBrowserColor(); })
-      .observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    new MutationObserver(function (mutations) {
+      var needsFullSync = false;
+      var themeOnly = false;
+      mutations.forEach(function (mutation) {
+        if (mutation.attributeName === 'data-easter-palette' || mutation.attributeName === 'data-motion') needsFullSync = true;
+        if (mutation.attributeName === 'data-theme') themeOnly = true;
+      });
+      if (needsFullSync) syncAll();
+      else if (themeOnly) syncBrowserColor();
+    }).observe(root, { attributes: true, attributeFilter: ['data-easter-palette', 'data-motion', 'data-theme'] });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncAll, { once: true });
-  else syncAll();
+  function init() {
+    ensureStyles();
+    syncAll();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+  else init();
 })();
