@@ -207,7 +207,7 @@ def _run_job(job, url: str, mode: str, preferences, client_key: str) -> None:
             log.info("job %s error %s: %s", job.id, err.code, err.detail or err.message)
             store.mark_failed(job, jobstate.ERROR, err.code, err.message)
     except Exception:
-        log.exception("job %s failed unexpectedly")
+        log.exception("job %s failed unexpectedly", job.id)
         store.mark_failed(
             job, jobstate.ERROR, errors.BACKEND_ERROR, errors.FRIENDLY[errors.BACKEND_ERROR]
         )
@@ -276,7 +276,7 @@ def preview_segment(pid: str, name: str):
         return _error_response(errors.FetcherError(errors.JOB_NOT_FOUND))
     chunks, media_type = result
     return StreamingResponse(
-        chunks, media_type=media_type, headers={"Cache-Control": "no-store"}
+        chunks, media_type=media_type, headers={"Cache-Control": "no-store"},
     )
 
 
