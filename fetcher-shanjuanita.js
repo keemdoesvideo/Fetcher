@@ -55,18 +55,18 @@
     style.textContent = [
       'html[data-theme="light"][data-easter-palette="shanjuanita"]{--bg:#F0E9DE;--surface:#FAF7F1;--rail:#A9BAAB;--ink:#342440;--ink-strong:#21162A;--ink-soft:#5D4C68;--ink-faint:#796D7E;--border:#CCD3CA;--border-strong:#869B8B;--accent:#705A89;--accent-ink:#4D316C;--accent-tint:#E2DCE7;--on-accent:#FFFFFF;--audio:#869B8B;--audio-tint:#DCE5DD;--mute:#A9BAAB;--mute-tint:#E5E9E3;--danger:#705A89;--danger-tint:#E7DFEA;--success:#869B8B;--success-tint:#DCE5DD;--shiba:#A9BAAB;--shiba-deep:#4D316C;--shiba-cream:#F0E9DE;}',
       'html[data-theme="dark"][data-easter-palette="shanjuanita"]{--bg:#1D1724;--surface:#281F31;--rail:#33293D;--ink:#F8F4EE;--ink-strong:#FFFFFF;--ink-soft:#DED7E2;--ink-faint:#A99FAF;--border:#44374F;--border-strong:#705A89;--accent:#B4A6C0;--accent-ink:#F0E9DE;--accent-tint:rgba(112,90,137,.24);--on-accent:#1D1724;--audio:#A9BAAB;--audio-tint:rgba(169,186,171,.18);--mute:#869B8B;--mute-tint:rgba(134,155,139,.16);--danger:#B4A6C0;--danger-tint:rgba(112,90,137,.20);--success:#A9BAAB;--success-tint:rgba(169,186,171,.16);--shiba:#A9BAAB;--shiba-deep:#705A89;--shiba-cream:#F0E9DE;}',
-      '.fetcher-shanjuanita-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;}',
+      '.fetcher-shanjuanita-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;contain:layout paint style;}',
       'html[data-easter-palette="shanjuanita"] .main>.stage,html[data-easter-palette="shanjuanita"] .main>.foot,html[data-easter-palette="shanjuanita"] .main>.settings-nav,html[data-easter-palette="shanjuanita"] .main>.settings-content,html[data-easter-palette="shanjuanita"] .main>.about,html[data-easter-palette="shanjuanita"] .main>.donate,html[data-easter-palette="shanjuanita"] .main>.updates,html[data-easter-palette="shanjuanita"] .main>.soon{position:relative;z-index:1;}',
       '.fetcher-shanjuanita-rays{position:absolute;inset:0;overflow:hidden;opacity:.74;}',
-      '.fetcher-shanjuanita-ray{position:absolute;right:-8%;top:-10%;height:88%;transform-origin:100% 0;clip-path:polygon(100% 0,72% 100%,0 100%,82% 0);background:linear-gradient(180deg,rgba(255,250,234,.38) 0%,rgba(240,233,222,.20) 40%,rgba(240,233,222,0) 100%);filter:blur(5px);animation:fetcher-shanjuanita-ray-breathe 18s ease-in-out infinite alternate;}',
+      '.fetcher-shanjuanita-ray{position:absolute;right:-8%;top:-10%;height:88%;transform-origin:100% 0;clip-path:polygon(100% 0,72% 100%,0 100%,82% 0);background:linear-gradient(180deg,rgba(255,250,234,.38) 0%,rgba(240,233,222,.20) 40%,rgba(240,233,222,0) 100%);filter:blur(5px);animation:fetcher-shanjuanita-ray-breathe 18s ease-in-out infinite alternate;will-change:transform,opacity;backface-visibility:hidden;}',
       '.fetcher-shanjuanita-ray:nth-child(1){width:31%;transform:rotate(7deg);opacity:.36;animation-delay:-3s;--ray-rot:7deg;}',
       '.fetcher-shanjuanita-ray:nth-child(2){width:42%;transform:rotate(18deg);opacity:.24;animation-delay:-9s;--ray-rot:18deg;}',
       '.fetcher-shanjuanita-ray:nth-child(3){width:25%;transform:rotate(31deg);opacity:.18;animation-delay:-14s;--ray-rot:31deg;}',
-      '@keyframes fetcher-shanjuanita-ray-breathe{0%{opacity:.72;filter:blur(5px);transform:rotate(var(--ray-rot,0deg)) scaleX(.98);}100%{opacity:1;filter:blur(7px);transform:rotate(var(--ray-rot,0deg)) scaleX(1.04);}}',
+      '@keyframes fetcher-shanjuanita-ray-breathe{0%{opacity:.72;transform:rotate(var(--ray-rot,0deg)) scaleX(.98) translateZ(0);}100%{opacity:1;transform:rotate(var(--ray-rot,0deg)) scaleX(1.04) translateZ(0);}}',
       'html[data-theme="dark"][data-easter-palette="shanjuanita"] .fetcher-shanjuanita-rays{opacity:.34;}',
       'html[data-theme="dark"][data-easter-palette="shanjuanita"] .fetcher-shanjuanita-ray{background:linear-gradient(180deg,rgba(240,233,222,.24) 0%,rgba(169,186,171,.10) 45%,rgba(240,233,222,0) 100%);}',
-      '.fetcher-shanjuanita-leaf-flight{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;will-change:transform,opacity;animation:fetcher-shanjuanita-leaf-fall var(--leaf-duration) linear var(--leaf-delay) both;}',
-      '.fetcher-shanjuanita-leaf-svg{position:absolute;left:0;top:0;width:var(--leaf-size);height:var(--leaf-size);transform:translate(-50%,-50%) rotate(var(--spin-0)) scale(var(--scale-0));transform-origin:center;will-change:transform;animation:fetcher-shanjuanita-leaf-tumble var(--leaf-duration) linear var(--leaf-delay) both;filter:drop-shadow(0 4px 7px rgba(77,49,108,.08));}',
+      '.fetcher-shanjuanita-leaf-flight{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;will-change:transform,opacity;animation:fetcher-shanjuanita-leaf-fall var(--leaf-duration) linear var(--leaf-delay) both;backface-visibility:hidden;}',
+      '.fetcher-shanjuanita-leaf-svg{position:absolute;left:0;top:0;width:var(--leaf-size);height:var(--leaf-size);transform:translate(-50%,-50%) rotate(var(--spin-0)) scale(var(--scale-0));transform-origin:center;will-change:transform;animation:fetcher-shanjuanita-leaf-tumble var(--leaf-duration) linear var(--leaf-delay) both;backface-visibility:hidden;}',
       '.fetcher-shanjuanita-leaf-svg svg{display:block;width:100%;height:100%;overflow:visible;}',
       '@keyframes fetcher-shanjuanita-leaf-fall{0%{opacity:0;transform:translate3d(var(--x0),var(--y0),0);}5%{opacity:var(--leaf-opacity);}33%{opacity:var(--leaf-opacity);transform:translate3d(var(--x1),var(--y1),0);}66%{opacity:var(--leaf-opacity);transform:translate3d(var(--x2),var(--y2),0);}94%{opacity:var(--leaf-opacity);}100%{opacity:0;transform:translate3d(var(--x3),var(--y3),0);}}',
       '@keyframes fetcher-shanjuanita-leaf-tumble{0%{transform:translate(-50%,-50%) rotate(var(--spin-0)) scale(var(--scale-0));}24%{transform:translate(-50%,-50%) rotate(var(--spin-1)) scale(var(--scale-1));}50%{transform:translate(-50%,-50%) rotate(var(--spin-2)) scale(var(--scale-0));}76%{transform:translate(-50%,-50%) rotate(var(--spin-3)) scale(var(--scale-1));}100%{transform:translate(-50%,-50%) rotate(var(--spin-4)) scale(var(--scale-2));}}',
@@ -260,7 +260,7 @@
     syncBrowserColor();
     ensureRays(ensureLayer());
     syncRendered();
-    renderTimer = window.setInterval(syncRendered, 180);
+    renderTimer = window.setInterval(syncRendered, 360);
   }
 
   function stopRenderer() {
