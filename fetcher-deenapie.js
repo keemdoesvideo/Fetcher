@@ -257,19 +257,40 @@
   function makePie(offsetMs) {
     var viewportW = Math.max(720, window.innerWidth || 1280);
     var viewportH = Math.max(520, window.innerHeight || 720);
-    var leftToRight = Math.random() < .54;
-    var startX = leftToRight ? rand(-125, -72) : rand(viewportW + 72, viewportW + 125);
-    var endX = leftToRight ? rand(viewportW + 72, viewportW + 145) : rand(-145, -72);
-    var minY = Math.max(72, viewportH * .10);
-    var maxY = Math.min(viewportH * .70, viewportH - 96);
-    var startY = rand(minY, Math.max(minY + 90, maxY));
-    var endY = Math.max(62, Math.min(viewportH * .76, startY + rand(-105, 105)));
+    var route = Math.floor(rand(0, 4));
+    var startX;
+    var startY;
+    var endX;
+    var endY;
+
+    if (route === 0) {
+      startX = rand(-130, -74);
+      startY = rand(24, viewportH - 24);
+      endX = rand(viewportW + 74, viewportW + 150);
+      endY = rand(24, viewportH - 24);
+    } else if (route === 1) {
+      startX = rand(viewportW + 74, viewportW + 130);
+      startY = rand(24, viewportH - 24);
+      endX = rand(-150, -74);
+      endY = rand(24, viewportH - 24);
+    } else if (route === 2) {
+      startX = rand(24, viewportW - 24);
+      startY = rand(-130, -74);
+      endX = rand(24, viewportW - 24);
+      endY = rand(viewportH + 74, viewportH + 150);
+    } else {
+      startX = rand(24, viewportW - 24);
+      startY = rand(viewportH + 74, viewportH + 130);
+      endX = rand(24, viewportW - 24);
+      endY = rand(-150, -74);
+    }
+
     var colors = piePalette();
     var size = rand(46, 72);
     return {
       id: sharedState().nextId++, bornAt: Date.now() + (offsetMs || 0), duration: rand(9000, 13200),
       opacity: rand(.43, .64), startX:startX, startY:startY,
-      midX:(startX + endX) / 2 + rand(-58,58), midY:((startY + endY) / 2) + rand(-62,62),
+      midX:(startX + endX) / 2 + rand(-78,78), midY:((startY + endY) / 2) + rand(-82,82),
       endX:endX, endY:endY, size:size,
       r0:rand(-16,16), r1:rand(-8,8), r2:rand(-18,18),
       crust:colors.crust, fill:colors.fill, detail:colors.detail, outline:colors.outline,
@@ -279,7 +300,7 @@
 
   function addSweep(shared) {
     shared.pies.push(makePie(0));
-    if (Math.random() < .20) shared.pies.push(makePie(rand(420, 980)));
+    if (Math.random() < .32) shared.pies.push(makePie(rand(320, 760)));
   }
 
   function prune(shared) {
@@ -296,9 +317,9 @@
     shared.timer = window.setTimeout(function () {
       if (!shared.running || !masterActive() || masterReducedMotion()) return;
       prune(shared);
-      if (shared.pies.length < 3) addSweep(shared);
+      if (shared.pies.length < 4) addSweep(shared);
       schedule();
-    }, rand(7600, 11800));
+    }, rand(4200, 6800));
   }
 
   function startShared() {
