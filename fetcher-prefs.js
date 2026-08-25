@@ -31,6 +31,7 @@
     wahibah: true,
     jackigoe: true,
     keem: true,
+    deenapie: true,
     turnuptaco: true
   };
   var snowReady = false;
@@ -297,6 +298,7 @@
       wahibah: '#C16499',
       jackigoe: '#3E9B66',
       keem: '#050506',
+      deenapie: '#F6E9F8',
       turnuptaco: '#F9AE00'
     },
     dark: {
@@ -309,6 +311,7 @@
       wahibah: '#100C1D',
       jackigoe: '#14261B',
       keem: '#050506',
+      deenapie: '#261522',
       turnuptaco: '#241500'
     }
   };
@@ -335,6 +338,10 @@
     var style = document.createElement('style');
     style.id = 'fetcher-easter-polish-styles';
     style.textContent = [
+      'html[data-theme="light"][data-easter-palette="deenapie"]{--bg:#F6E9F8;--surface:#F5D2E6;--rail:#F4BBD3;--ink:#3C233B;--ink-strong:#281526;--ink-soft:#70425F;--ink-faint:#98627D;--border:#F4BBD3;--border-strong:#F98CB9;--accent:#FE5D9F;--accent-ink:#B52668;--accent-tint:#F5D2E6;--on-accent:#FFFFFF;--audio:#F98CB9;--audio-tint:#F5D2E6;--mute:#F4BBD3;--mute-tint:#F6E9F8;--danger:#FE5D9F;--danger-tint:#F5D2E6;--success:#F98CB9;--success-tint:#F6E9F8;--shiba:#F98CB9;--shiba-deep:#FE5D9F;--shiba-cream:#F6E9F8;}',
+      'html[data-theme="dark"][data-easter-palette="deenapie"]{--bg:#261522;--surface:#321C2D;--rail:#47243A;--ink:#FFF5FC;--ink-strong:#FFFFFF;--ink-soft:#F5D2E6;--ink-faint:#D89DBB;--border:#63314D;--border-strong:#A64B78;--accent:#FE5D9F;--accent-ink:#F6E9F8;--accent-tint:rgba(254,93,159,.20);--on-accent:#261522;--audio:#F98CB9;--audio-tint:rgba(249,140,185,.18);--mute:#F4BBD3;--mute-tint:rgba(244,187,211,.14);--danger:#FE5D9F;--danger-tint:rgba(254,93,159,.16);--success:#F98CB9;--success-tint:rgba(249,140,185,.14);--shiba:#F98CB9;--shiba-deep:#FE5D9F;--shiba-cream:#F6E9F8;}',
+      'html[data-theme="light"][data-easter-palette="turnuptaco"]{--bg:#F9AE00;--surface:#F2E848;--rail:#F2DA2B;--ink:#3A2400;--ink-strong:#241500;--ink-soft:#704500;--ink-faint:#91610A;--border:#FDD059;--border-strong:#FA9F48;--accent:#FA6A00;--accent-ink:#B94900;--accent-tint:#FDD059;--on-accent:#FFFFFF;--audio:#FA9F48;--audio-tint:#FDD059;--mute:#F2DA2B;--mute-tint:#F2E848;--danger:#FA6A00;--danger-tint:#FDD059;--success:#F9AE00;--success-tint:#F2E848;--shiba:#FA9F48;--shiba-deep:#FA6A00;--shiba-cream:#F2E848;}',
+      'html[data-theme="dark"][data-easter-palette="turnuptaco"]{--bg:#241500;--surface:#342000;--rail:#472B00;--ink:#FFF6D5;--ink-strong:#FFFFFF;--ink-soft:#FDD059;--ink-faint:#E8AD45;--border:#684000;--border-strong:#A65B00;--accent:#FA6A00;--accent-ink:#F2E848;--accent-tint:rgba(250,106,0,.22);--on-accent:#241500;--audio:#FA9F48;--audio-tint:rgba(250,159,72,.18);--mute:#F2DA2B;--mute-tint:rgba(242,218,43,.14);--danger:#FA6A00;--danger-tint:rgba(250,106,0,.18);--success:#F9AE00;--success-tint:rgba(249,174,0,.14);--shiba:#FA9F48;--shiba-deep:#FA6A00;--shiba-cream:#F2E848;}',
       'html[data-theme="light"][data-easter-palette="suki"]{--bg:#856B9B;--surface:#D9CBE2;--rail:#A691B8;--ink:#1F143C;--ink-strong:#120A26;--ink-soft:#3D2B55;--ink-faint:#58426D;--border:#705887;--border-strong:#4C306B;--accent:#4C306B;--accent-ink:#35204D;--accent-tint:#C8B7D4;--on-accent:#FFFFFF;--audio:#6A4C86;--audio-tint:#C8B7D4;--mute:#856B9B;--mute-tint:#D9CBE2;--danger:#4C306B;--danger-tint:#D9CBE2;--success:#6A4C86;--success-tint:#D9CBE2;--shiba:#856B9B;--shiba-deep:#4C306B;--shiba-cream:#D9CBE2;}',
       'html[data-theme="dark"][data-easter-palette="suki"]{--bg:#1F143C;--surface:#2A1B4A;--rail:#4C306B;--ink:#F7F2FA;--ink-strong:#FFFFFF;--ink-soft:#D9CBE2;--ink-faint:#A691B8;--border:#60477A;--border-strong:#856B9B;--accent:#A691B8;--accent-ink:#D9CBE2;--accent-tint:rgba(166,145,184,.22);--on-accent:#1F143C;--audio:#856B9B;--audio-tint:rgba(133,107,155,.24);--mute:#856B9B;--mute-tint:rgba(133,107,155,.18);--danger:#B58BC3;--danger-tint:rgba(181,139,195,.18);--success:#A691B8;--success-tint:rgba(166,145,184,.18);}',
       'html[data-theme="light"][data-easter-palette="kaywordley"]{--bg:#FFA53D;--surface:#FFF0CF;--rail:#FF853D;--ink:#3B0B12;--ink-strong:#220309;--ink-soft:#7A2D1F;--ink-faint:#9A4530;--border:#FF543D;--border-strong:#F20039;--accent:#F20039;--accent-ink:#A00026;--accent-tint:#FFD0AE;--on-accent:#FFFFFF;--audio:#FF543D;--audio-tint:#FFD6B3;--mute:#FF853D;--mute-tint:#FFE0BF;--danger:#F20039;--danger-tint:#FFD1DA;--success:#FFBE3D;--success-tint:#FFF0C7;--shiba:#FF853D;--shiba-deep:#F20039;--shiba-cream:#FFBE3D;}',
@@ -507,6 +514,7 @@
     wahibah: 'wahibah',
     jackigoe: 'jackigoe',
     keem: 'keem',
+    deenapie: 'deenapie',
     turnuptaco: 'turnuptaco'
   };
   var busy = false;
@@ -540,6 +548,11 @@
     fetchBtn.disabled = true;
     if (pasteBtn) pasteBtn.disabled = true;
     Array.prototype.forEach.call(document.querySelectorAll('.seg-btn'), function (btn) { btn.disabled = true; });
+
+    if ((palette === 'deenapie' || palette === 'turnuptaco') &&
+        window.FetcherPrefs && FetcherPrefs.playFoundYouCue) {
+      FetcherPrefs.playFoundYouCue();
+    }
 
     input.value = 'found you.';
     if (fetchWrap) fetchWrap.classList.add('show');
