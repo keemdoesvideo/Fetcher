@@ -60,6 +60,7 @@
       'html[data-theme="light"][data-easter-palette="iaar"]{--bg:#FFFFFF;--surface:#F5F7F8;--rail:#F1F3F5;--ink:#101214;--ink-strong:#000000;--ink-soft:#3C4650;--ink-faint:#6D7780;--border:#D9DEE3;--border-strong:#0088CB;--accent:#0088CB;--accent-ink:#006C9F;--accent-tint:#DDF3FC;--on-accent:#FFFFFF;--audio:#ED1C24;--audio-tint:#FDE3E5;--mute:#000000;--mute-tint:#ECEFF1;--danger:#ED1C24;--danger-tint:#FDE3E5;--success:#0088CB;--success-tint:#DDF3FC;--shiba:#FFCB05;--shiba-deep:#ED1C24;--shiba-cream:#FFFFFF;}',
       'html[data-theme="dark"][data-easter-palette="iaar"]{--bg:#050505;--surface:#111315;--rail:#0A0A0B;--ink:#F7F8F9;--ink-strong:#FFFFFF;--ink-soft:#D4D9DD;--ink-faint:#9BA4AC;--border:#252A2E;--border-strong:#0088CB;--accent:#0088CB;--accent-ink:#FFFFFF;--accent-tint:rgba(0,136,203,.22);--on-accent:#FFFFFF;--audio:#ED1C24;--audio-tint:rgba(237,28,36,.18);--mute:#FFFFFF;--mute-tint:rgba(255,255,255,.08);--danger:#ED1C24;--danger-tint:rgba(237,28,36,.18);--success:#0088CB;--success-tint:rgba(0,136,203,.18);--shiba:#FFCB05;--shiba-deep:#ED1C24;--shiba-cream:#FFFFFF;}',
       '.fetcher-iaar-layer{position:absolute;left:0;right:0;bottom:0;height:54px;z-index:0;pointer-events:none;overflow:hidden;border-radius:0 0 inherit inherit;opacity:.82;}',
+      '.fetcher-iaar-layer.is-inline{position:relative;left:auto;right:auto;bottom:auto;width:100%;height:54px;margin-top:12px;border-radius:12px;}',
       '.fetcher-iaar-layer::before{content:"";position:absolute;left:0;right:0;bottom:0;height:46px;border-top:1px solid rgba(0,0,0,.10);background:linear-gradient(180deg,rgba(255,255,255,0),rgba(0,0,0,.035));}',
       'html[data-theme="dark"][data-easter-palette="iaar"] .fetcher-iaar-layer::before{border-top-color:rgba(255,255,255,.10);background:linear-gradient(180deg,rgba(0,0,0,0),rgba(255,255,255,.035));}',
       'html[data-easter-palette="iaar"] .main>.stage,html[data-easter-palette="iaar"] .main>.foot,html[data-easter-palette="iaar"] .main>.settings-nav,html[data-easter-palette="iaar"] .main>.settings-content,html[data-easter-palette="iaar"] .main>.about,html[data-easter-palette="iaar"] .main>.donate,html[data-easter-palette="iaar"] .main>.updates,html[data-easter-palette="iaar"] .main>.soon{position:relative;z-index:1;}',
@@ -93,8 +94,12 @@
     meta.setAttribute('content', root.getAttribute('data-theme') === 'dark' ? '#050505' : '#FFFFFF');
   }
 
-  function host() {
-    return document.querySelector('.main') || document.body;
+  function placement() {
+    var controls = document.querySelector('.stage-inner > .controls-row');
+    if (controls && controls.parentNode) {
+      return { parent: controls.parentNode, after: controls, inline: true };
+    }
+    return { parent: document.querySelector('.main') || document.body, after: null, inline: false };
   }
 
   function makeFrame(spec, index) {
@@ -146,16 +151,17 @@
   }
 
   function ensureLayer() {
-    var parent = host();
+    var spot = placement();
+    var parent = spot.parent;
     if (!parent) return null;
-    if (layer && layer.isConnected && layer.parentNode === parent) {
+    if (layer && layer.isConnected && layer.parentNode === parent && layer.classList.contains('is-inline') === spot.inline) {
       applyPhase();
       return layer;
     }
 
     if (layer && layer.parentNode) layer.remove();
     layer = document.createElement('div');
-    layer.className = 'fetcher-iaar-layer';
+    layer.className = 'fetcher-iaar-layer' + (spot.inline ? ' is-inline' : '');
     layer.setAttribute('aria-hidden', 'true');
 
     track = document.createElement('div');
@@ -163,7 +169,12 @@
     track.appendChild(makeSequence());
     track.appendChild(makeSequence());
     layer.appendChild(track);
-    parent.insertBefore(layer, parent.firstChild);
+
+    if (spot.inline) {
+      parent.insertBefore(layer, spot.after.nextSibling);
+    } else {
+      parent.insertBefore(layer, parent.firstChild);
+    }
     applyPhase();
     return layer;
   }
