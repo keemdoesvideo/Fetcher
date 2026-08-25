@@ -34,7 +34,8 @@
     deenapie: true,
     turnuptaco: true,
     iaar: true,
-    melisae: true
+    melisae: true,
+    luumi: true
   };
   var snowReady = false;
   var foundYouPreload = null;
@@ -303,7 +304,8 @@
       deenapie: '#F6E9F8',
       turnuptaco: '#F9AE00',
       iaar: '#0088CB',
-      melisae: '#F0CBFF'
+      melisae: '#F0CBFF',
+      luumi: '#F52E6F'
     },
     dark: {
       fetcher: '#19181C',
@@ -318,7 +320,8 @@
       deenapie: '#261522',
       turnuptaco: '#241500',
       iaar: '#050505',
-      melisae: '#211A29'
+      melisae: '#211A29',
+      luumi: '#251219'
     }
   };
 
@@ -467,8 +470,6 @@
       });
 
       window.setTimeout(function () {
-        /* Everything the user will see after the reveal is finalized while the
-           screen is still fully covered, so the dissolve has no end-frame snap. */
         settleUiUnderPaint();
         FetcherPrefs.setEasterPalette(name);
 
@@ -490,9 +491,6 @@
           requestAnimationFrame(function () {
             requestAnimationFrame(function () { layer.classList.add('reveal'); });
           });
-
-          /* Fallback only; normal completion is tied to the actual CSS opacity
-             transition so a busy frame cannot remove the paint early. */
           window.setTimeout(finishReveal, t.reveal + 240);
         }, t.cover);
       }, t.wash);
@@ -527,7 +525,8 @@
     deenapie: 'deenapie',
     turnuptaco: 'turnuptaco',
     iaar: 'iaar',
-    melisae: 'melisae'
+    melisae: 'melisae',
+    luumi: 'luumi'
   };
   var busy = false;
 
@@ -561,7 +560,7 @@
     if (pasteBtn) pasteBtn.disabled = true;
     Array.prototype.forEach.call(document.querySelectorAll('.seg-btn'), function (btn) { btn.disabled = true; });
 
-    if ((palette === 'deenapie' || palette === 'turnuptaco' || palette === 'iaar' || palette === 'melisae') &&
+    if ((palette === 'deenapie' || palette === 'turnuptaco' || palette === 'iaar' || palette === 'melisae' || palette === 'luumi') &&
         window.FetcherPrefs && FetcherPrefs.playFoundYouCue) {
       FetcherPrefs.playFoundYouCue();
     }
