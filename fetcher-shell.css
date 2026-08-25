@@ -6,13 +6,13 @@
  */
 
 html{
-  --shell-page-fade:170ms;
+  --shell-page-fade:380ms;
   --shell-nav-pop:230ms;
   --shell-rail-collapse-dur:240ms;
   --shell-rail-collapse-ease:cubic-bezier(.22,.8,.36,1);
 }
 html[data-motion="reserved"]{
-  --shell-page-fade:145ms;
+  --shell-page-fade:280ms;
   --shell-nav-pop:170ms;
   --shell-rail-collapse-dur:190ms;
   --shell-rail-collapse-ease:var(--ease);
