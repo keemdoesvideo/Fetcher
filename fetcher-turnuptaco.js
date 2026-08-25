@@ -2,10 +2,10 @@
 (function () {
   'use strict';
 
+  var STORAGE_KEY = 'fetcher.easterPalette';
   var root = document.documentElement;
   var topWindow = window;
   try { if (window.top) topWindow = window.top; } catch (e) { topWindow = window; }
-  var isMaster = topWindow === window;
   var layer = null;
   var renderTimer = null;
 
@@ -19,28 +19,47 @@
     return root.getAttribute('data-motion') === 'reduced';
   }
 
-  function masterActive() {
-    try { return topWindow.document.documentElement.getAttribute('data-easter-palette') === 'turnuptaco'; }
+  function selected() {
+    try { return topWindow.sessionStorage.getItem(STORAGE_KEY) === 'turnuptaco'; }
     catch (e) { return active(); }
   }
 
-  function masterReducedMotion() {
-    try { return topWindow.document.documentElement.getAttribute('data-motion') === 'reduced'; }
-    catch (e) { return reducedMotion(); }
-  }
-
   function sharedState() {
+    var holder = topWindow;
     try {
-      if (!topWindow.FetcherTurnupTacoShared) {
-        topWindow.FetcherTurnupTacoShared = { tacos: [], nextId: 1, timer: null, running: false };
+      if (!holder.FetcherTurnupTacoShared || holder.FetcherTurnupTacoShared.version !== 2) {
+        var old = holder.FetcherTurnupTacoShared;
+        if (old && old.timer) {
+          try { holder.clearTimeout(old.timer); } catch (e) {}
+        }
+        holder.FetcherTurnupTacoShared = {
+          version: 2,
+          tacos: [],
+          nextId: 1,
+          nextSpawnAt: 0,
+          running: false
+        };
       }
-      return topWindow.FetcherTurnupTacoShared;
+      return holder.FetcherTurnupTacoShared;
     } catch (e) {
-      if (!window.FetcherTurnupTacoShared) {
-        window.FetcherTurnupTacoShared = { tacos: [], nextId: 1, timer: null, running: false };
+      if (!window.FetcherTurnupTacoShared || window.FetcherTurnupTacoShared.version !== 2) {
+        window.FetcherTurnupTacoShared = {
+          version: 2,
+          tacos: [],
+          nextId: 1,
+          nextSpawnAt: 0,
+          running: false
+        };
       }
       return window.FetcherTurnupTacoShared;
     }
+  }
+
+  function resetShared() {
+    var shared = sharedState();
+    shared.tacos = [];
+    shared.nextSpawnAt = 0;
+    shared.running = false;
   }
 
   function ensureStyles() {
@@ -165,51 +184,35 @@
     shared.tacos.push(makeTaco(shared, offsetMs || 0));
   }
 
-  function schedule() {
-    if (!isMaster) return;
-    var shared = sharedState();
-    window.clearTimeout(shared.timer);
-    shared.timer = null;
-    if (!shared.running || !masterActive() || masterReducedMotion()) return;
+  function advanceShared(shared) {
+    var now = Date.now();
 
-    shared.timer = window.setTimeout(function () {
-      if (!shared.running || !masterActive() || masterReducedMotion()) return;
-      prune(shared);
-      if (shared.tacos.length < 4) addTaco(shared, 0);
-      schedule();
-    }, rand(1400, 2400));
-  }
+    if (!selected()) {
+      if (shared.running || shared.tacos.length) resetShared();
+      return;
+    }
 
-  function startShared() {
-    if (!isMaster) return;
-    var shared = sharedState();
+    prune(shared);
+
     if (!shared.running) {
       shared.running = true;
       shared.tacos = [];
       addTaco(shared, 0);
       addTaco(shared, 650);
+      shared.nextSpawnAt = now + rand(1400, 2400);
+      return;
     }
-    if (!masterReducedMotion() && !shared.timer) schedule();
-  }
 
-  function stopShared() {
-    if (!isMaster) return;
-    var shared = sharedState();
-    window.clearTimeout(shared.timer);
-    shared.timer = null;
-    shared.running = false;
-    shared.tacos = [];
-  }
+    if (!shared.nextSpawnAt) shared.nextSpawnAt = now + rand(1400, 2400);
 
-  function syncMasterActivity() {
-    if (!isMaster) return;
-    if (masterActive() && !masterReducedMotion()) startShared();
-    else stopShared();
+    if (now >= shared.nextSpawnAt) {
+      if (shared.tacos.length < 4) addTaco(shared, 0);
+      shared.nextSpawnAt = now + rand(1400, 2400);
+    }
   }
 
   function renderTaco(taco) {
-    var elapsed = Date.now() - taco.bornAt;
-    var delay = -Math.max(0, elapsed);
+    var delay = -(Date.now() - taco.bornAt);
 
     var run = document.createElement('span');
     run.className = 'fetcher-turnuptaco-taco-run';
@@ -243,8 +246,10 @@
   function syncRendered() {
     window.clearTimeout(renderTimer);
     renderTimer = null;
+
     if (!active() || reducedMotion()) {
       if (layer) layer.replaceChildren();
+      if (!selected()) resetShared();
       return;
     }
 
@@ -254,7 +259,9 @@
     if (!target) return;
 
     var shared = sharedState();
+    advanceShared(shared);
     prune(shared);
+
     var live = {};
     shared.tacos.forEach(function (taco) {
       live[String(taco.id)] = true;
@@ -267,7 +274,7 @@
       if (!live[node.getAttribute('data-turnuptaco-taco-id')]) node.remove();
     });
 
-    renderTimer = window.setTimeout(syncRendered, 180);
+    renderTimer = window.setTimeout(syncRendered, 160);
   }
 
   function stopRenderer() {
@@ -282,12 +289,12 @@
     ensureStyles();
     syncBrowserColor();
     ensureLayer();
-    syncMasterActivity();
+    advanceShared(sharedState());
     syncRendered();
   }
 
   document.addEventListener('fetcher:easter-change', function () {
-    syncMasterActivity();
+    if (!selected()) resetShared();
     if (active() && !reducedMotion()) startRenderer();
     else stopRenderer();
   });
@@ -295,7 +302,6 @@
   document.addEventListener('fetcher:pref-change', function (event) {
     if (!event || !event.detail) return;
     if (event.detail.key === 'fetcher.motion') {
-      syncMasterActivity();
       if (active() && !reducedMotion()) startRenderer();
       else stopRenderer();
     }
@@ -305,7 +311,7 @@
   if (window.MutationObserver) {
     new MutationObserver(function () {
       syncBrowserColor();
-      syncMasterActivity();
+      if (!selected()) resetShared();
       if (active() && !reducedMotion()) {
         if (!renderTimer) startRenderer();
       } else {
@@ -317,7 +323,6 @@
   function init() {
     ensureStyles();
     syncBrowserColor();
-    syncMasterActivity();
     if (active() && !reducedMotion()) startRenderer();
   }
 
