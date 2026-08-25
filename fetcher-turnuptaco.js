@@ -1,10 +1,13 @@
-/* TurnupTaco-only ambience: cute taco hops across the current page. */
+/* TurnupTaco-only ambience: cute taco hops continuously across routed pages. */
 (function () {
   'use strict';
 
   var root = document.documentElement;
+  var topWindow = window;
+  try { if (window.top) topWindow = window.top; } catch (e) { topWindow = window; }
+  var isMaster = topWindow === window;
   var layer = null;
-  var tacoTimer = null;
+  var renderTimer = null;
 
   function rand(min, max) { return min + Math.random() * (max - min); }
 
@@ -16,6 +19,30 @@
     return root.getAttribute('data-motion') === 'reduced';
   }
 
+  function masterActive() {
+    try { return topWindow.document.documentElement.getAttribute('data-easter-palette') === 'turnuptaco'; }
+    catch (e) { return active(); }
+  }
+
+  function masterReducedMotion() {
+    try { return topWindow.document.documentElement.getAttribute('data-motion') === 'reduced'; }
+    catch (e) { return reducedMotion(); }
+  }
+
+  function sharedState() {
+    try {
+      if (!topWindow.FetcherTurnupTacoShared) {
+        topWindow.FetcherTurnupTacoShared = { tacos: [], nextId: 1, timer: null, running: false };
+      }
+      return topWindow.FetcherTurnupTacoShared;
+    } catch (e) {
+      if (!window.FetcherTurnupTacoShared) {
+        window.FetcherTurnupTacoShared = { tacos: [], nextId: 1, timer: null, running: false };
+      }
+      return window.FetcherTurnupTacoShared;
+    }
+  }
+
   function ensureStyles() {
     if (document.getElementById('fetcher-turnuptaco-styles')) return;
     var style = document.createElement('style');
@@ -25,10 +52,10 @@
       'html[data-theme="dark"][data-easter-palette="turnuptaco"]{--bg:#241500;--surface:#342000;--rail:#472B00;--ink:#FFF6D5;--ink-strong:#FFFFFF;--ink-soft:#FDD059;--ink-faint:#E8AD45;--border:#684000;--border-strong:#A65B00;--accent:#FA6A00;--accent-ink:#F2E848;--accent-tint:rgba(250,106,0,.22);--on-accent:#241500;--audio:#FA9F48;--audio-tint:rgba(250,159,72,.18);--mute:#F2DA2B;--mute-tint:rgba(242,218,43,.14);--danger:#FA6A00;--danger-tint:rgba(250,106,0,.18);--success:#F9AE00;--success-tint:rgba(249,174,0,.14);--shiba:#FA9F48;--shiba-deep:#FA6A00;--shiba-cream:#F2E848;}',
       '.fetcher-turnuptaco-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit;}',
       'html[data-easter-palette="turnuptaco"] .main>.stage,html[data-easter-palette="turnuptaco"] .main>.foot,html[data-easter-palette="turnuptaco"] .main>.settings-nav,html[data-easter-palette="turnuptaco"] .main>.settings-content,html[data-easter-palette="turnuptaco"] .main>.about,html[data-easter-palette="turnuptaco"] .main>.donate,html[data-easter-palette="turnuptaco"] .main>.updates,html[data-easter-palette="turnuptaco"] .main>.soon{position:relative;z-index:1;}',
-      '.fetcher-turnuptaco-taco-run{position:absolute;left:var(--tt-start-x);top:var(--tt-start-y);width:1px;height:1px;opacity:0;animation:fetcher-turnuptaco-run var(--tt-duration) linear both;will-change:transform,opacity;}',
+      '.fetcher-turnuptaco-taco-run{position:absolute;left:var(--tt-start-x);top:var(--tt-start-y);width:1px;height:1px;opacity:0;animation:fetcher-turnuptaco-run var(--tt-duration) linear var(--tt-delay) both;will-change:transform,opacity;}',
       '.fetcher-turnuptaco-taco{position:absolute;left:0;top:0;width:var(--tt-size);height:calc(var(--tt-size) * .72);transform:translate(-50%,-50%) scaleX(var(--tt-dir));transform-origin:50% 100%;filter:drop-shadow(0 7px 10px rgba(97,55,0,.12));will-change:transform;}',
-      '.fetcher-turnuptaco-taco.hops-2{animation:fetcher-turnuptaco-hop2 var(--tt-duration) cubic-bezier(.2,.72,.25,1) both;}',
-      '.fetcher-turnuptaco-taco.hops-3{animation:fetcher-turnuptaco-hop3 var(--tt-duration) cubic-bezier(.2,.72,.25,1) both;}',
+      '.fetcher-turnuptaco-taco.hops-2{animation:fetcher-turnuptaco-hop2 var(--tt-duration) cubic-bezier(.2,.72,.25,1) var(--tt-delay) both;}',
+      '.fetcher-turnuptaco-taco.hops-3{animation:fetcher-turnuptaco-hop3 var(--tt-duration) cubic-bezier(.2,.72,.25,1) var(--tt-delay) both;}',
       '.fetcher-turnuptaco-taco svg{display:block;width:100%;height:100%;overflow:visible;}',
       'html[data-theme="dark"][data-easter-palette="turnuptaco"] .fetcher-turnuptaco-taco{filter:drop-shadow(0 8px 13px rgba(0,0,0,.20));}',
       '@keyframes fetcher-turnuptaco-run{0%{opacity:0;transform:translate3d(0,0,0);}6%{opacity:var(--tt-opacity);}93%{opacity:var(--tt-opacity);}100%{opacity:0;transform:translate3d(var(--tt-travel-x),var(--tt-travel-y),0);}}',
@@ -72,12 +99,15 @@
     ].join('');
   }
 
-  function currentTacos(target) {
-    return Array.prototype.slice.call(target.querySelectorAll('.fetcher-turnuptaco-taco-run'));
+  function prune(shared) {
+    var now = Date.now();
+    shared.tacos = shared.tacos.filter(function (taco) {
+      return now < taco.bornAt + taco.duration + 260;
+    });
   }
 
-  function chooseSpawnPoint(target, width, height) {
-    var existing = currentTacos(target);
+  function chooseSpawnPoint(shared, width, height) {
+    prune(shared);
     var point = { x: width / 2, y: height / 2 };
     var marginX = Math.min(72, Math.max(42, width * .07));
     var marginY = Math.min(82, Math.max(52, height * .08));
@@ -85,11 +115,9 @@
     for (var attempt = 0; attempt < 14; attempt += 1) {
       point.x = rand(marginX, Math.max(marginX + 1, width - marginX));
       point.y = rand(marginY, Math.max(marginY + 1, height - marginY));
-      var clear = existing.every(function (node) {
-        var ox = parseFloat(node.getAttribute('data-taco-x') || '0');
-        var oy = parseFloat(node.getAttribute('data-taco-y') || '0');
-        var dx = ox - point.x;
-        var dy = oy - point.y;
+      var clear = shared.tacos.every(function (taco) {
+        var dx = taco.startX - point.x;
+        var dy = taco.startY - point.y;
         return Math.sqrt(dx * dx + dy * dy) > 145;
       });
       if (clear) break;
@@ -97,18 +125,11 @@
     return point;
   }
 
-  function spawnTaco() {
-    if (!active() || reducedMotion()) return false;
-    var target = ensureLayer();
+  function makeTaco(shared, offsetMs) {
     var parent = host();
-    if (!target || !parent) return false;
-
-    var existing = currentTacos(target);
-    if (existing.length >= 4) return false;
-
-    var width = Math.max(320, parent.clientWidth || window.innerWidth || 900);
-    var height = Math.max(320, parent.clientHeight || window.innerHeight || 700);
-    var point = chooseSpawnPoint(target, width, height);
+    var width = Math.max(320, (parent && parent.clientWidth) || window.innerWidth || 900);
+    var height = Math.max(320, (parent && parent.clientHeight) || window.innerHeight || 700);
+    var point = chooseSpawnPoint(shared, width, height);
     var roomLeft = point.x - 44;
     var roomRight = width - point.x - 44;
     var dir = Math.random() < .5 ? -1 : 1;
@@ -117,86 +138,166 @@
 
     var maxDistance = Math.max(90, Math.min(230, dir > 0 ? roomRight : roomLeft));
     var distance = rand(90, Math.max(91, maxDistance));
-    var travelY = rand(-26, 28);
     var hops = Math.random() < .46 ? 2 : 3;
     var duration = hops === 2 ? rand(4800, 6100) : rand(5600, 7200);
 
-    var run = document.createElement('span');
-    run.className = 'fetcher-turnuptaco-taco-run';
-    run.setAttribute('data-taco-x', point.x.toFixed(1));
-    run.setAttribute('data-taco-y', point.y.toFixed(1));
-    run.style.setProperty('--tt-start-x', point.x + 'px');
-    run.style.setProperty('--tt-start-y', point.y + 'px');
-    run.style.setProperty('--tt-travel-x', (distance * dir) + 'px');
-    run.style.setProperty('--tt-travel-y', travelY + 'px');
-    run.style.setProperty('--tt-duration', duration + 'ms');
-    run.style.setProperty('--tt-opacity', String(rand(.74, .92)));
-
-    var taco = document.createElement('span');
-    taco.className = 'fetcher-turnuptaco-taco hops-' + hops;
-    taco.style.setProperty('--tt-size', rand(42, 58) + 'px');
-    taco.style.setProperty('--tt-dir', String(dir));
-    taco.style.setProperty('--tt-dir-108', String(dir * 1.08));
-    taco.style.setProperty('--tt-dir-107', String(dir * 1.07));
-    taco.style.setProperty('--tt-dir-106', String(dir * 1.06));
-    taco.style.setProperty('--tt-dir-105', String(dir * 1.05));
-    taco.style.setProperty('--tt-duration', duration + 'ms');
-    taco.style.setProperty('--tt-tilt1', rand(-9, 9) + 'deg');
-    taco.style.setProperty('--tt-tilt2', rand(-8, 8) + 'deg');
-    taco.style.setProperty('--tt-tilt3', rand(-7, 7) + 'deg');
-    taco.innerHTML = tacoSvg();
-    run.appendChild(taco);
-    target.appendChild(run);
-
-    window.setTimeout(function () {
-      if (run.parentNode) run.remove();
-    }, duration + 180);
-    return true;
+    return {
+      id: shared.nextId++,
+      bornAt: Date.now() + (offsetMs || 0),
+      startX: point.x,
+      startY: point.y,
+      travelX: distance * dir,
+      travelY: rand(-26, 28),
+      hops: hops,
+      duration: duration,
+      opacity: rand(.74, .92),
+      size: rand(42, 58),
+      dir: dir,
+      tilt1: rand(-9, 9),
+      tilt2: rand(-8, 8),
+      tilt3: rand(-7, 7)
+    };
   }
 
-  function stopTacos() {
-    window.clearTimeout(tacoTimer);
-    tacoTimer = null;
-    if (layer) layer.replaceChildren();
+  function addTaco(shared, offsetMs) {
+    prune(shared);
+    if (shared.tacos.length >= 4) return;
+    shared.tacos.push(makeTaco(shared, offsetMs || 0));
   }
 
-  function scheduleTaco() {
-    window.clearTimeout(tacoTimer);
-    tacoTimer = null;
-    if (!active() || reducedMotion()) return;
+  function schedule() {
+    if (!isMaster) return;
+    var shared = sharedState();
+    window.clearTimeout(shared.timer);
+    shared.timer = null;
+    if (!shared.running || !masterActive() || masterReducedMotion()) return;
 
-    tacoTimer = window.setTimeout(function () {
-      if (!active() || reducedMotion()) return;
-      spawnTaco();
-      scheduleTaco();
+    shared.timer = window.setTimeout(function () {
+      if (!shared.running || !masterActive() || masterReducedMotion()) return;
+      prune(shared);
+      if (shared.tacos.length < 4) addTaco(shared, 0);
+      schedule();
     }, rand(1400, 2400));
   }
 
-  function startTacos(seed) {
-    window.clearTimeout(tacoTimer);
-    tacoTimer = null;
-    if (!active() || reducedMotion()) return;
-
-    ensureLayer();
-    if (seed && layer && currentTacos(layer).length === 0) {
-      spawnTaco();
-      window.setTimeout(function () {
-        if (active() && !reducedMotion()) spawnTaco();
-      }, 650);
+  function startShared() {
+    if (!isMaster) return;
+    var shared = sharedState();
+    if (!shared.running) {
+      shared.running = true;
+      shared.tacos = [];
+      addTaco(shared, 0);
+      addTaco(shared, 650);
     }
-    scheduleTaco();
+    if (!masterReducedMotion() && !shared.timer) schedule();
+  }
+
+  function stopShared() {
+    if (!isMaster) return;
+    var shared = sharedState();
+    window.clearTimeout(shared.timer);
+    shared.timer = null;
+    shared.running = false;
+    shared.tacos = [];
+  }
+
+  function syncMasterActivity() {
+    if (!isMaster) return;
+    if (masterActive() && !masterReducedMotion()) startShared();
+    else stopShared();
+  }
+
+  function renderTaco(taco) {
+    var elapsed = Date.now() - taco.bornAt;
+    var delay = -Math.max(0, elapsed);
+
+    var run = document.createElement('span');
+    run.className = 'fetcher-turnuptaco-taco-run';
+    run.setAttribute('data-turnuptaco-taco-id', String(taco.id));
+    run.style.setProperty('--tt-start-x', taco.startX + 'px');
+    run.style.setProperty('--tt-start-y', taco.startY + 'px');
+    run.style.setProperty('--tt-travel-x', taco.travelX + 'px');
+    run.style.setProperty('--tt-travel-y', taco.travelY + 'px');
+    run.style.setProperty('--tt-duration', taco.duration + 'ms');
+    run.style.setProperty('--tt-delay', delay + 'ms');
+    run.style.setProperty('--tt-opacity', String(taco.opacity));
+
+    var art = document.createElement('span');
+    art.className = 'fetcher-turnuptaco-taco hops-' + taco.hops;
+    art.style.setProperty('--tt-size', taco.size + 'px');
+    art.style.setProperty('--tt-dir', String(taco.dir));
+    art.style.setProperty('--tt-dir-108', String(taco.dir * 1.08));
+    art.style.setProperty('--tt-dir-107', String(taco.dir * 1.07));
+    art.style.setProperty('--tt-dir-106', String(taco.dir * 1.06));
+    art.style.setProperty('--tt-dir-105', String(taco.dir * 1.05));
+    art.style.setProperty('--tt-duration', taco.duration + 'ms');
+    art.style.setProperty('--tt-delay', delay + 'ms');
+    art.style.setProperty('--tt-tilt1', taco.tilt1 + 'deg');
+    art.style.setProperty('--tt-tilt2', taco.tilt2 + 'deg');
+    art.style.setProperty('--tt-tilt3', taco.tilt3 + 'deg');
+    art.innerHTML = tacoSvg();
+    run.appendChild(art);
+    return run;
+  }
+
+  function syncRendered() {
+    window.clearTimeout(renderTimer);
+    renderTimer = null;
+    if (!active() || reducedMotion()) {
+      if (layer) layer.replaceChildren();
+      return;
+    }
+
+    ensureStyles();
+    syncBrowserColor();
+    var target = ensureLayer();
+    if (!target) return;
+
+    var shared = sharedState();
+    prune(shared);
+    var live = {};
+    shared.tacos.forEach(function (taco) {
+      live[String(taco.id)] = true;
+      if (!target.querySelector('[data-turnuptaco-taco-id="' + taco.id + '"]')) {
+        target.appendChild(renderTaco(taco));
+      }
+    });
+
+    Array.prototype.forEach.call(target.querySelectorAll('.fetcher-turnuptaco-taco-run'), function (node) {
+      if (!live[node.getAttribute('data-turnuptaco-taco-id')]) node.remove();
+    });
+
+    renderTimer = window.setTimeout(syncRendered, 180);
+  }
+
+  function stopRenderer() {
+    window.clearTimeout(renderTimer);
+    renderTimer = null;
+    if (layer) layer.replaceChildren();
+  }
+
+  function startRenderer() {
+    stopRenderer();
+    if (!active() || reducedMotion()) return;
+    ensureStyles();
+    syncBrowserColor();
+    ensureLayer();
+    syncMasterActivity();
+    syncRendered();
   }
 
   document.addEventListener('fetcher:easter-change', function () {
-    if (active() && !reducedMotion()) startTacos(true);
-    else stopTacos();
+    syncMasterActivity();
+    if (active() && !reducedMotion()) startRenderer();
+    else stopRenderer();
   });
 
   document.addEventListener('fetcher:pref-change', function (event) {
     if (!event || !event.detail) return;
     if (event.detail.key === 'fetcher.motion') {
-      if (active() && !reducedMotion()) startTacos(true);
-      else stopTacos();
+      syncMasterActivity();
+      if (active() && !reducedMotion()) startRenderer();
+      else stopRenderer();
     }
     if (event.detail.key === 'fetcher.theme') syncBrowserColor();
   });
@@ -204,11 +305,11 @@
   if (window.MutationObserver) {
     new MutationObserver(function () {
       syncBrowserColor();
+      syncMasterActivity();
       if (active() && !reducedMotion()) {
-        ensureLayer();
-        if (!tacoTimer) startTacos(false);
+        if (!renderTimer) startRenderer();
       } else {
-        stopTacos();
+        stopRenderer();
       }
     }).observe(root, { attributes: true, attributeFilter: ['data-easter-palette', 'data-motion', 'data-theme'] });
   }
@@ -216,7 +317,8 @@
   function init() {
     ensureStyles();
     syncBrowserColor();
-    if (active() && !reducedMotion()) startTacos(true);
+    syncMasterActivity();
+    if (active() && !reducedMotion()) startRenderer();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
