@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 from urllib.parse import urlsplit
 
-from . import errors, providers
+from . import editor_compat, errors, providers
 from .jobs import Job
 from .models import Preferences
 from .providers.base import ProviderResult
@@ -68,5 +68,13 @@ def prepare_media(url: str, mode: str, preferences: Preferences, job: Job) -> Pr
     log.info("prepare job=%s provider=%s mode=%s host=%s",
              job.id, provider.name, mode, urlsplit(normalized).hostname)
     result = provider.prepare(normalized, mode, preferences, job)
+
+    # Playback-compatible is not the same thing as edit-compatible. A browser can
+    # happily play VP9/AV1/HEVC inside MP4 while an NLE such as DaVinci Resolve
+    # imports only the audio. Keep H.264/AAC files untouched; convert only the
+    # incompatible streams so every video Fetcher hands back is editor-safe.
+    if mode == "video":
+        result.filepath = editor_compat.ensure_editor_compatible(result.filepath, job)
+
     log.info("prepared job=%s file=%s (%s)", job.id, result.filename, result.media_type)
     return result
