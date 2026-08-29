@@ -17,6 +17,7 @@ from __future__ import annotations
 import re
 from urllib.parse import urlsplit
 
+from .. import errors
 from .ytdlp_base import YtdlpProvider, normalize_url
 
 
@@ -34,3 +35,19 @@ class InstagramProvider(YtdlpProvider):
         if host not in self.ALLOWED_HOSTS:
             return False
         return self._MEDIA_RE.search(parts.path.lower()) is not None
+
+    def _classify(self, message: str, last_error: str | None) -> errors.FetcherError:
+        """Keep Instagram's actionable cookie hint local to Instagram.
+
+        LOGIN_REQUIRED is shared by all providers, so the global copy must stay
+        provider-neutral; otherwise a TikTok login/rate-limit response can be
+        mislabeled as an Instagram problem in the UI.
+        """
+        err = super()._classify(message, last_error)
+        if err.code == errors.LOGIN_REQUIRED:
+            return errors.FetcherError(
+                errors.LOGIN_REQUIRED,
+                message="instagram needs you to be logged in — enable cookies in the readme, then retry",
+                detail=err.detail or message,
+            )
+        return err
