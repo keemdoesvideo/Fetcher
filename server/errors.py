@@ -33,7 +33,7 @@ FRIENDLY = {
     UNSUPPORTED_PROVIDER: "fetcher can't fetch links from there yet",
     VIDEO_UNAVAILABLE: "that video isn't available — it may be private or removed",
     RESTRICTED: "that one's age- or login-restricted, so fetcher can't reach it",
-    LOGIN_REQUIRED: "instagram needs you to be logged in — enable cookies in the readme, then retry",
+    LOGIN_REQUIRED: "that site is asking for a logged-in session, so fetcher can't reach it right now",
     BOT_CHECK: "youtube wants to verify fetcher isn't a bot — this video needs extra setup",
     EXTRACTION_FAILED: "fetcher couldn't read that video — give it another try",
     MEDIA_UNAVAILABLE: "that quality isn't available for this video",
