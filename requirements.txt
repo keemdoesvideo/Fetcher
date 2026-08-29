@@ -1,8 +1,8 @@
 # Fetcher backend — Python 3.10+
-# Pinned to floors; yt-dlp especially should be kept current (YouTube changes
-# often): run `pip install -U yt-dlp` when extraction starts failing.
+# Keep yt-dlp current: TikTok's August 2026 extractor fix requires 2026.8.19+,
+# and YouTube/TikTok extraction changes frequently.
 fastapi>=0.111,<1.0
 uvicorn[standard]>=0.30,<1.0
-yt-dlp>=2025.1.15
+yt-dlp>=2026.8.19
 
 # FFmpeg is NOT a pip package — install it separately (see README.md).
