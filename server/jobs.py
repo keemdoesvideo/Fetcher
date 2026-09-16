@@ -43,6 +43,7 @@ class Job:
     id: str
     dir: Path
     created_at: float = field(default_factory=time.time)
+    finished_at: Optional[float] = None
 
     # Live state polled via /api/progress.
     status: str = PREPARING
@@ -114,6 +115,7 @@ class JobStore:
         job.progress = 100.0
         job.stage = "done"
         job.status = READY
+        job.finished_at = time.time()
 
     def mark_failed(self, job: Job, status: str, code: Optional[str] = None,
                     message: Optional[str] = None) -> None:
@@ -123,6 +125,7 @@ class JobStore:
         job.status = status
         job.error_code = code
         job.error_message = message
+        job.finished_at = time.time()
         _empty_dir(job.dir)
 
     def remove(self, job_id: str) -> None:
@@ -135,10 +138,19 @@ class JobStore:
 
     # --- maintenance -------------------------------------------------------
     def sweep_stale(self, ttl_seconds: int) -> int:
-        """Remove jobs older than ttl_seconds. Returns how many were reclaimed."""
+        """Remove abandoned terminal jobs after their TTL.
+
+        Active downloads are deliberately never swept. Long-form media can take
+        well over the retention window to prepare, and deleting an in-flight
+        working directory corrupts the running yt-dlp/FFmpeg job.
+        """
         now = time.time()
         with self._lock:
-            stale = [j for j in self._jobs.values() if now - j.created_at > ttl_seconds]
+            stale = [
+                j for j in self._jobs.values()
+                if j.status in TERMINAL
+                and now - (j.finished_at or j.created_at) > ttl_seconds
+            ]
             for job in stale:
                 self._jobs.pop(job.id, None)
         for job in stale:
