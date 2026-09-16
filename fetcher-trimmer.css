@@ -1,9 +1,8 @@
 /*
  * fetcher-trimmer.css
- * Inline scrub-to-trim viewer that expands into the space above the URL bar
- * when a long-form source (Twitch VOD) is recognised, and collapses back down
- * on fetch. Plays a preview via hls.js through Fetcher's same-origin HLS proxy
- * (server/preview.py) — only the segments you scrub to are loaded.
+ * Inline scrub-to-trim viewer that expands above the URL bar for any supported
+ * video link. The shell keeps Fetcher's native design but picks up a subtle
+ * provider-coloured rim (YouTube, Twitch, X, Instagram or TikTok).
  */
 
 /* Mount = a smooth 0fr->1fr height reveal (no fixed pixel height needed). */
@@ -27,9 +26,25 @@
   box-shadow:var(--shadow-sm);
   overflow:hidden;
   opacity:0;transform:translateY(6px);
-  transition:opacity var(--dur-base) var(--ease), transform var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+  transition:opacity var(--dur-base) var(--ease), transform var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
 }
 .trim-mount.open .trim-panel{opacity:1;transform:none;}
+
+/* Provider rims: intentionally just a thin coloured edge + tiny halo so the
+   scrubber still belongs to Fetcher instead of turning into a branded embed. */
+.trim-mount[data-provider="youtube"]{--trim-provider-rim:#ff0033;}
+.trim-mount[data-provider="twitch"]{--trim-provider-rim:#9146ff;}
+.trim-mount[data-provider="x"]{--trim-provider-rim:#1d9bf0;}
+.trim-mount[data-provider="instagram"]{--trim-provider-rim:#e1306c;}
+.trim-mount[data-provider="tiktok"]{--trim-provider-rim:#0b0b0d;}
+
+.trim-mount[data-provider] .trim-panel{
+  border-color:var(--trim-provider-rim);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--trim-provider-rim) 82%, transparent),
+    var(--shadow-sm),
+    0 0 18px color-mix(in srgb, var(--trim-provider-rim) 12%, transparent);
+}
 
 .trim-head{
   display:flex;align-items:center;gap:10px;
