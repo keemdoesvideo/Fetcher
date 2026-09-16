@@ -119,9 +119,9 @@
     return (h ? h + ':' : '') + mm + ':' + String(sec).padStart(2, '0');
   }
 
-  function applyLongForm(on) {
+  function applyPreview(on, provider) {
     if (!window.FetcherTrimmer) return;
-    if (on) window.FetcherTrimmer.open(input.value.trim());
+    if (on) window.FetcherTrimmer.open(input.value.trim(), provider || '');
     else window.FetcherTrimmer.close();
   }
 
@@ -141,7 +141,7 @@
     if (!url) {
       lastModes = null;
       applyModes(null);
-      applyLongForm(false);
+      applyPreview(false);
       return;
     }
     var seq = ++detectSeq;
@@ -152,7 +152,7 @@
         lastModes = data && data.supported ? data.modes : null;
         if (!busy) {
           applyModes(lastModes);
-          applyLongForm(!!(data && data.longForm));
+          applyPreview(!!(data && data.preview), data && data.provider);
         }
       })
       .catch(function () {});
@@ -218,10 +218,39 @@
      Fetch lifecycle
   ----------------------------------------------------------------------- */
   var POLL_INTERVAL = 350;
+  var ACTIVE_JOB_KEY = 'fetcher.activeJob';
   var pollTimer = null;
   var currentJobId = null;
   var cancelled = false;
   var lastFetch = null;
+
+  function saveActiveJob() {
+    if (!currentJobId || !lastFetch) return;
+    try {
+      sessionStorage.setItem(ACTIVE_JOB_KEY, JSON.stringify({
+        jobId: currentJobId,
+        url: lastFetch.url || '',
+        mode: lastFetch.mode || 'video',
+        startedAt: Date.now()
+      }));
+    } catch (e) {}
+  }
+
+  function loadActiveJob() {
+    try {
+      var raw = sessionStorage.getItem(ACTIVE_JOB_KEY);
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      if (!data || !data.jobId) return null;
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearActiveJob() {
+    try { sessionStorage.removeItem(ACTIVE_JOB_KEY); } catch (e) {}
+  }
 
   function buildPreferences(mode) {
     var prefs = { filenameStyle: FetcherPrefs.get('fetcher.filenameStyle') };
@@ -307,6 +336,7 @@
     setProgress(100, false);
     setStatus('success', 'fetched!');
     startDownload(currentJobId, filename);
+    clearActiveJob();
     if (lastFetch) recordHistory(lastFetch.url, filename, lastFetch.mode);
     maybeCelebrateFirstFetch();
     wait(1400).then(function () {
@@ -316,13 +346,14 @@
       input.value = '';
       updateFetchVisibility();
       restoreModes();
-      applyLongForm(false);
+      applyPreview(false);
       input.focus();
     });
   }
 
   function failFlow(message) {
     stopPolling();
+    clearActiveJob();
     setProgress(0, false);
     fetchProgress.classList.remove('open');
     setStatus('error', message || 'hmm, couldn’t fetch that — try again');
@@ -412,6 +443,7 @@
         }
         if (!result.ok) return failFlow(result.data && result.data.error && result.data.error.message);
         currentJobId = result.data.jobId;
+        saveActiveJob();
         pollProgress();
       })
       .catch(function () { if (!cancelled) failFlow(null); });
@@ -421,6 +453,7 @@
     if (!busy) return;
     cancelled = true;
     stopPolling();
+    clearActiveJob();
     if (currentJobId) {
       fetch('/api/cancel/' + encodeURIComponent(currentJobId), { method: 'POST' }).catch(function () {});
     }
@@ -436,11 +469,39 @@
     });
   }
 
+  function resumeActiveJob() {
+    var active = loadActiveJob();
+    if (!active) return false;
+
+    currentJobId = active.jobId;
+    lastFetch = {
+      url: active.url || '',
+      mode: active.mode === 'audio' ? 'audio' : 'video'
+    };
+    cancelled = false;
+
+    if (lastFetch.url) {
+      input.value = lastFetch.url;
+      updateFetchVisibility();
+    }
+    selectMode(lastFetch.mode, false);
+    if (window.FetcherTrimmer) window.FetcherTrimmer.close();
+
+    setBusy(true);
+    showProgress();
+    setProgress(0, true);
+    setStatus('fetching', 'reconnecting to your fetch…');
+    pollProgress();
+    return true;
+  }
+
   fetchBtn.addEventListener('click', runFetchFlow);
   cancelBtn.addEventListener('click', cancelFetch);
   input.addEventListener('keydown', function (event) {
     if (event.key === 'Enter') runFetchFlow();
   });
+
+  resumeActiveJob();
 
   /* -----------------------------------------------------------------------
      Recent downloads
