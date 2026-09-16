@@ -20,3 +20,8 @@ class YouTubeProvider(YtdlpProvider):
     name = "youtube"
     # Exactly the hosts we allow — no arbitrary yt-dlp sites slip through.
     ALLOWED_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"}
+
+    def long_form(self, url: str) -> bool:
+        # Regular YouTube uploads can be multi-hour VODs. Grant full-video
+        # downloads the long-form ceiling; Shorts keep the normal short timeout.
+        return "/shorts/" not in url.lower()
