@@ -1,17 +1,17 @@
 /*
  * fetcher-trimmer.js
  * Inline scrub-to-trim viewer. Mounts above the URL bar and expands into view
- * when a long-form source (Twitch VOD) is recognised; collapses on fetch. Plays
- * a preview via hls.js through Fetcher's same-origin HLS proxy (/api/preview),
- * so only the segments the user scrubs to are ever loaded — never the whole VOD.
+ * for any supported video-capable link; collapses on fetch. HLS sources use
+ * hls.js through Fetcher's same-origin segment proxy, while ordinary hosted
+ * videos use a same-origin byte-range proxy for lightweight seeking.
  *
  *   FetcherTrimmer.mount(mountEl);      // once, on load
- *   FetcherTrimmer.open(url);           // when a VOD is detected
+ *   FetcherTrimmer.open(url, provider); // when a video-capable URL is detected
  *   FetcherTrimmer.close();             // when it isn't / on fetch
  *   FetcherTrimmer.isOpen();            // bool
  *   FetcherTrimmer.getSelection();      // {start,end} seconds, or null (= whole)
  *
- * hls.js is fetched lazily on first open (it's large and only VODs need it).
+ * hls.js is fetched lazily only when the resolved preview source is HLS.
  */
 (function (global) {
   'use strict';
@@ -60,7 +60,7 @@
           '<span class="trim-title">preview</span>' +
         '</div>' +
         '<div class="trim-video-wrap">' +
-          '<video class="trim-video" playsinline preload="auto"></video>' +
+          '<video class="trim-video" playsinline preload="metadata"></video>' +
           '<div class="trim-loading"><span class="spin-ring"></span><span class="trim-loading-text">loading preview…</span></div>' +
         '</div>' +
         '<div class="trim-controls">' +
@@ -218,6 +218,17 @@
   }
   function seekTo(t) { curT = t; try { dom.video.currentTime = t; } catch (e) {} position(); }
 
+  function syncNativeDuration() {
+    var nativeDuration = dom && dom.video ? Number(dom.video.duration) : 0;
+    if ((!duration || duration <= 0) && isFinite(nativeDuration) && nativeDuration > 0) {
+      duration = nativeDuration;
+      endT = duration;
+      dom.dur.textContent = fmt(duration);
+      ready = true;
+      position();
+    }
+  }
+
   function showError(msg) {
     if (!dom) return;
     dom.loading.hidden = false; dom.loading.classList.add('err'); dom.loadingText.textContent = msg;
@@ -230,8 +241,11 @@
   // --- public API --------------------------------------------------------
   function mount(el) { mountEl = el; build(); }
 
-  function open(url) {
+  function open(url, provider) {
     if (!mountEl) return;
+    provider = String(provider || '').toLowerCase();
+    if (provider) mountEl.setAttribute('data-provider', provider);
+    else mountEl.removeAttribute('data-provider');
     if (currentUrl === url && mountEl.classList.contains('open')) return;  // already showing this
     currentUrl = url; ready = false;
     duration = 0; startT = 0; endT = 0; curT = 0; dragging = null;
@@ -255,14 +269,24 @@
       .then(function (info) {
         if (currentUrl !== url) return;                 // URL changed while loading
         dom.title.textContent = info.title || 'preview';
-        duration = info.duration || 0; endT = duration;
-        dom.dur.textContent = fmt(duration); ready = true; position();
-        ensureHls(function () { if (currentUrl === url) play(info.playlist); });
+        duration = Number(info.duration) || 0;
+        endT = duration;
+        dom.dur.textContent = fmt(duration);
+        ready = duration > 0;
+        position();
+
+        if (info.kind === 'hls') {
+          ensureHls(function () {
+            if (currentUrl === url) playHls(info.source);
+          });
+        } else {
+          playDirect(info.source);
+        }
       })
       .catch(function (err) { showError((err && err.message) || 'couldn’t load the preview'); });
   }
 
-  function play(playlist) {
+  function playHls(playlist) {
     var v = dom.video;
     if (global.Hls && global.Hls.isSupported()) {
       hls = new global.Hls({ maxBufferLength: 20 });
@@ -270,17 +294,42 @@
       hls.on(global.Hls.Events.ERROR, function (e, data) {
         if (data && data.fatal) showError('preview stream error — you can still set times below');
       });
-      hls.loadSource(playlist); hls.attachMedia(v);
+      v.addEventListener('loadedmetadata', syncNativeDuration, { once: true });
+      hls.loadSource(playlist);
+      hls.attachMedia(v);
     } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
-      v.src = playlist; v.addEventListener('loadedmetadata', function () { dom.loading.hidden = true; });
+      v.src = playlist;
+      v.addEventListener('loadedmetadata', function () {
+        syncNativeDuration();
+        dom.loading.hidden = true;
+      }, { once: true });
+      v.load();
     } else {
       showError('this browser can’t preview HLS');
     }
   }
 
+  function playDirect(source) {
+    var v = dom.video;
+    if (!source) {
+      showError('couldn’t load the preview');
+      return;
+    }
+    v.src = source;
+    v.addEventListener('loadedmetadata', function () {
+      syncNativeDuration();
+      dom.loading.hidden = true;
+    }, { once: true });
+    v.addEventListener('error', function () {
+      showError('preview stream error — you can still set times below');
+    }, { once: true });
+    v.load();
+  }
+
   function close() {
     if (!mountEl) return;
     mountEl.classList.remove('open');
+    mountEl.removeAttribute('data-provider');
     currentUrl = null; ready = false;
     teardown();
   }
