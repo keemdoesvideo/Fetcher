@@ -119,7 +119,7 @@
     return (h ? h + ':' : '') + mm + ':' + String(sec).padStart(2, '0');
   }
 
-  function applyLongForm(on) {
+  function applyPreview(on) {
     if (!window.FetcherTrimmer) return;
     if (on) window.FetcherTrimmer.open(input.value.trim());
     else window.FetcherTrimmer.close();
@@ -141,7 +141,7 @@
     if (!url) {
       lastModes = null;
       applyModes(null);
-      applyLongForm(false);
+      applyPreview(false);
       return;
     }
     var seq = ++detectSeq;
@@ -152,7 +152,7 @@
         lastModes = data && data.supported ? data.modes : null;
         if (!busy) {
           applyModes(lastModes);
-          applyLongForm(!!(data && data.longForm));
+          applyPreview(!!(data && data.preview));
         }
       })
       .catch(function () {});
@@ -346,7 +346,7 @@
       input.value = '';
       updateFetchVisibility();
       restoreModes();
-      applyLongForm(false);
+      applyPreview(false);
       input.focus();
     });
   }
