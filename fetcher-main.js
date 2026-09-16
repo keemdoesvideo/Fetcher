@@ -119,9 +119,9 @@
     return (h ? h + ':' : '') + mm + ':' + String(sec).padStart(2, '0');
   }
 
-  function applyPreview(on) {
+  function applyPreview(on, provider) {
     if (!window.FetcherTrimmer) return;
-    if (on) window.FetcherTrimmer.open(input.value.trim());
+    if (on) window.FetcherTrimmer.open(input.value.trim(), provider || '');
     else window.FetcherTrimmer.close();
   }
 
@@ -152,7 +152,7 @@
         lastModes = data && data.supported ? data.modes : null;
         if (!busy) {
           applyModes(lastModes);
-          applyPreview(!!(data && data.preview));
+          applyPreview(!!(data && data.preview), data && data.provider);
         }
       })
       .catch(function () {});
