@@ -33,8 +33,8 @@ class PrepareRequest(BaseModel):
     url: str = Field(..., min_length=1, max_length=2048)
     mode: Mode = "video"
     preferences: Preferences = Field(default_factory=Preferences)
-    # Optional time-range trim (long-form sources like Twitch VODs). Free-form
-    # timecodes (e.g. "1:23:00") parsed + validated server-side; blank = whole.
+    # Optional time-range trim for any video-capable source. Free-form timecodes
+    # (e.g. "1:23:00") are parsed + validated server-side; blank = whole.
     start: Optional[str] = Field(default=None, max_length=16)
     end: Optional[str] = Field(default=None, max_length=16)
 
@@ -43,5 +43,5 @@ class PrepareRequest(BaseModel):
 
 
 class PreviewRequest(BaseModel):
-    """Open an HLS preview-proxy session for a long-form URL (VOD scrub-to-trim)."""
+    """Open a same-origin scrub-preview session for a video-capable URL."""
     url: str = Field(..., min_length=1, max_length=2048)
