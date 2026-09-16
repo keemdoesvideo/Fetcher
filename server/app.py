@@ -220,16 +220,23 @@ def _run_job(job, url: str, mode: str, preferences, client_key: str) -> None:
 async def detect(url: str = ""):
     provider = downloader.detect(url)
     if provider is None:
-        return {"supported": False, "provider": None, "modes": [], "longForm": False}
+        return {
+            "supported": False,
+            "provider": None,
+            "modes": [],
+            "longForm": False,
+            "preview": False,
+        }
     return {
         "supported": True,
         "provider": provider.name,
         "modes": sorted(provider.MODES),
         "longForm": provider.long_form(url),
+        "preview": provider.supports("video"),
     }
 
 
-# --- HLS preview proxy (VOD scrub-to-trim) --------------------------------
+# --- Video preview proxy (scrub-to-trim) -----------------------------------
 @app.post("/api/preview")
 def preview_open(req: PreviewRequest, request: Request):
     client_key = _client_key(request)
@@ -246,14 +253,18 @@ def preview_open(req: PreviewRequest, request: Request):
         )
     try:
         provider = downloader.resolve_provider(req.url)
-        if not provider.long_form(req.url):
+        if not provider.supports("video"):
             raise errors.FetcherError(
-                errors.MEDIA_UNAVAILABLE, detail="preview is only for long-form sources"
+                errors.MEDIA_UNAVAILABLE, detail="source has no video preview"
             )
-        info = preview.resolve(req.url)
+        info = preview.resolve(req.url, provider=provider)
     except errors.FetcherError as err:
         return _error_response(err)
-    info["playlist"] = f"/api/preview/{info['previewId']}/index.m3u8"
+
+    if info.get("kind") == "hls":
+        info["source"] = f"/api/preview/{info['previewId']}/index.m3u8"
+    else:
+        info["source"] = f"/api/preview/{info['previewId']}/media"
     return info
 
 
@@ -277,6 +288,20 @@ def preview_segment(pid: str, name: str):
     chunks, media_type = result
     return StreamingResponse(
         chunks, media_type=media_type, headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/api/preview/{pid}/media")
+def preview_media(pid: str, request: Request):
+    result = preview.proxy_media(pid, request.headers.get("range"))
+    if result is None:
+        return _error_response(errors.FetcherError(errors.JOB_NOT_FOUND))
+    chunks, media_type, status_code, headers = result
+    return StreamingResponse(
+        chunks,
+        media_type=media_type,
+        status_code=status_code,
+        headers=headers,
     )
 
 
