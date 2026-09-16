@@ -6,7 +6,7 @@
  * videos use a same-origin byte-range proxy for lightweight seeking.
  *
  *   FetcherTrimmer.mount(mountEl);      // once, on load
- *   FetcherTrimmer.open(url);           // when a video-capable URL is detected
+ *   FetcherTrimmer.open(url, provider); // when a video-capable URL is detected
  *   FetcherTrimmer.close();             // when it isn't / on fetch
  *   FetcherTrimmer.isOpen();            // bool
  *   FetcherTrimmer.getSelection();      // {start,end} seconds, or null (= whole)
@@ -241,8 +241,11 @@
   // --- public API --------------------------------------------------------
   function mount(el) { mountEl = el; build(); }
 
-  function open(url) {
+  function open(url, provider) {
     if (!mountEl) return;
+    provider = String(provider || '').toLowerCase();
+    if (provider) mountEl.setAttribute('data-provider', provider);
+    else mountEl.removeAttribute('data-provider');
     if (currentUrl === url && mountEl.classList.contains('open')) return;  // already showing this
     currentUrl = url; ready = false;
     duration = 0; startT = 0; endT = 0; curT = 0; dragging = null;
@@ -326,6 +329,7 @@
   function close() {
     if (!mountEl) return;
     mountEl.classList.remove('open');
+    mountEl.removeAttribute('data-provider');
     currentUrl = null; ready = false;
     teardown();
   }
