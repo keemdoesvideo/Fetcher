@@ -40,14 +40,30 @@ JS_RUNTIMES: list[str] = [
     if r.strip()
 ]
 
-# --- Login cookies (opt-in; only used by providers that need it, e.g. Instagram)
-# yt-dlp's supported mechanisms — nothing is stored in the repo. Set ONE of:
+# --- Login cookies ----------------------------------------------------------
+# Instagram can require authentication. These are opt-in and are only applied
+# by providers that declare USES_COOKIES (currently Instagram).
+#
 #   FETCHER_COOKIES_FROM_BROWSER = chrome | firefox | edge | brave  (optionally
-#       "chrome:Profile 1" for a specific profile) — reads the session from a
-#       browser you're already logged into.
-#   FETCHER_COOKIES_FILE = C:\path\to\cookies.txt  — an exported cookies file.
+#       "chrome:Profile 1" for a specific profile)
+#   FETCHER_COOKIES_FILE = C:\\path\\to\\cookies.txt
+#
+# Nothing is stored in the repo.
 COOKIES_FROM_BROWSER: str | None = os.environ.get("FETCHER_COOKIES_FROM_BROWSER") or None
 COOKIES_FILE: str | None = os.environ.get("FETCHER_COOKIES_FILE") or None
+
+# YouTube has its own *separate* authenticated fallback. It is tried only after
+# the normal extraction path and Fetcher's anonymous bot-check fallback clients
+# have failed. Keeping this separate is important for public/self-hosted copies:
+# a server must never silently reuse the host owner's personal YouTube session.
+# Leave these unset for normal/public installs. Private/local examples:
+#   FETCHER_YOUTUBE_COOKIES_FROM_BROWSER = chrome
+#   FETCHER_YOUTUBE_COOKIES_FROM_BROWSER = chrome:Profile 1
+#   FETCHER_YOUTUBE_COOKIES_FILE = C:\\path\\to\\youtube-cookies.txt
+YOUTUBE_COOKIES_FROM_BROWSER: str | None = (
+    os.environ.get("FETCHER_YOUTUBE_COOKIES_FROM_BROWSER") or None
+)
+YOUTUBE_COOKIES_FILE: str | None = os.environ.get("FETCHER_YOUTUBE_COOKIES_FILE") or None
 
 # --- Job lifecycle ---------------------------------------------------------
 # How long a prepared job may sit before the stale sweeper reclaims it. Covers

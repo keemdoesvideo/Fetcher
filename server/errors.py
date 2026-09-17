@@ -34,7 +34,7 @@ FRIENDLY = {
     VIDEO_UNAVAILABLE: "that video isn't available — it may be private or removed",
     RESTRICTED: "that one's age- or login-restricted, so fetcher can't reach it",
     LOGIN_REQUIRED: "that site is asking for a logged-in session, so fetcher can't reach it right now",
-    BOT_CHECK: "youtube wants to verify fetcher isn't a bot — this video needs extra setup",
+    BOT_CHECK: "youtube asked for extra verification — fetcher tried its fallback routes, but this one is still blocked",
     EXTRACTION_FAILED: "fetcher couldn't read that video — give it another try",
     MEDIA_UNAVAILABLE: "that quality isn't available for this video",
     MODE_UNSUPPORTED: "this link is audio-only — switch to audio and try again",
