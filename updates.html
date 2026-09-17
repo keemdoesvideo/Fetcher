@@ -25,7 +25,6 @@
 .updates h1{font-size:27px;font-weight:600;letter-spacing:-.02em;margin-bottom:12px;}
 .updates-lead{font-size:14.5px;line-height:1.6;color:var(--ink-soft);}
 
-/* Timeline: a vertical line down the left with a dot per release. */
 .timeline{margin-top:32px;}
 .update-entry{
   position:relative;padding:0 0 32px 30px;
@@ -68,7 +67,6 @@
 <body>
 <div class="app">
 
-  <!-- Sidebar (identical shell to the other pages; 'updates' marked current) -->
   <nav class="rail" id="rail" aria-label="Primary">
     <div class="mark" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
@@ -112,7 +110,6 @@
     </div>
   </nav>
 
-  <!-- Main -->
   <main class="main">
     <div class="updates">
       <span class="updates-eyebrow">project fetcher</span>
@@ -123,12 +120,26 @@
         <div class="update-entry latest">
           <span class="update-dot" aria-hidden="true"></span>
           <div class="update-head">
-            <span class="update-version">v0.3</span>
+            <span class="update-version">v0.4</span>
             <span class="update-tag">latest</span>
+            <span class="update-date">17 sep 2026</span>
+          </div>
+          <ul class="update-list">
+            <li>the scrubber got smarter — short, quick downloads stay delightfully out of the way, while long or especially chunky videos still get the full trim-before-fetch treatment</li>
+            <li>audio has its own little timeline now: anything over ten minutes can show a real waveform, play back, scrub, and pick an in/out range without opening a video player</li>
+            <li>youtube long-form previews now share fetcher's sturdier youtube route, including the same challenge-solving and fallback setup used for normal downloads</li>
+            <li>no more dramatic “preview failed” cards for links that simply don't need a preview — fetcher just keeps things tidy and lets you fetch</li>
+          </ul>
+        </div>
+
+        <div class="update-entry">
+          <span class="update-dot" aria-hidden="true"></span>
+          <div class="update-head">
+            <span class="update-version">v0.3</span>
             <span class="update-date">16 sep 2026</span>
           </div>
           <ul class="update-list">
-            <li>the preview scrubber now follows you everywhere — any supported video link can be previewed, scrubbed, and trimmed before you fetch it</li>
+            <li>the preview scrubber learned the supported video services, with trimming before a fetch when a preview is useful</li>
             <li>the scrubber dresses for the occasion: youtube gets a red rim, twitch purple, x blue, instagram pink, and tiktok black</li>
             <li>long fetches are much harder to lose — active downloads survive tab naps and reloads, and fetcher can reconnect to a job already in progress</li>
             <li>big vods get more breathing room too, including multi-hour youtube videos that need extra time to download and merge</li>
