@@ -3,6 +3,12 @@
 # and YouTube/TikTok extraction changes frequently.
 fastapi>=0.111,<1.0
 uvicorn[standard]>=0.30,<1.0
-yt-dlp>=2026.8.19
+yt-dlp[default]>=2026.8.19
+
+# YouTube increasingly requires Proof-of-Origin (PO) tokens. The Python plugin
+# discovers the local BgUtils provider (HTTP server or script) and supplies
+# tokens to yt-dlp when the mweb fallback is used. Keep the plugin/server major
+# versions matched on the host (currently 2.x).
+bgutil-ytdlp-pot-provider>=2.0,<3.0
 
 # FFmpeg is NOT a pip package — install it separately (see README.md).
