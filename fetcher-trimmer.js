@@ -2,10 +2,9 @@
  * fetcher-trimmer.js
  * Smart inline scrub-to-trim viewer.
  *
- * Fetcher still calls open() whenever a video-capable provider is detected, but
- * this module first asks the backend whether a trimmer is useful. Short/light
- * video stays out of the way. Audio only gets a trimmer at 10+ minutes, where
- * the panel becomes an audio player with a real source-derived waveform.
+ * Short/light media stays out of the way. Long/heavy video gets the video
+ * viewer, while 10+ minute audio gets an audio-only scrubber with a real
+ * source-derived waveform loaded asynchronously after the panel opens.
  */
 (function (global) {
   'use strict';
@@ -53,10 +52,12 @@
   }
 
   function markedUrl(url, mode) {
-    var sep = url.indexOf('#') === -1 ? '#' : '&';
-    return url + sep +
-      '__fetcher_mode=' + encodeURIComponent(mode) +
+    var parts = String(url || '').split('#');
+    var base = parts.shift();
+    var existing = parts.join('#');
+    var hints = '__fetcher_mode=' + encodeURIComponent(mode) +
       '&__fetcher_vq=' + encodeURIComponent(currentVideoQuality());
+    return base + '#' + (existing ? existing + '&' : '') + hints;
   }
 
   function ensureHls(cb) {
@@ -219,12 +220,20 @@
       }
     });
 
-    // Changing Video/Audio should immediately re-evaluate the same pasted URL.
+    // Do not rely on querying aria-pressed after a mode click. Pass the button's
+    // requested mode directly and collapse any stale video/audio panel while the
+    // new smart-preview decision is being resolved.
     Array.prototype.slice.call(document.querySelectorAll('.seg-btn')).forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!candidateUrl) return;
+        if (!candidateUrl || btn.disabled) return;
+        var requestedMode = btn.dataset.mode === 'audio' ? 'audio' : 'video';
+        var url = candidateUrl;
+        var provider = candidateProvider;
+        if (isOpen() && activeMode !== requestedMode) hidePanel(true);
         window.setTimeout(function () {
-          if (candidateUrl) inspectAndMaybeOpen(candidateUrl, candidateProvider, true);
+          if (candidateUrl === url) {
+            inspectAndMaybeOpen(url, provider, true, requestedMode);
+          }
         }, 0);
       });
     });
@@ -300,7 +309,7 @@
 
   function showError(msg) {
     if (!dom) return;
-    if (activeMode === 'audio') return; // keep the waveform/timestamps useful
+    if (activeMode === 'audio') return;
     dom.loading.hidden = false;
     dom.loading.classList.add('err');
     dom.loadingText.textContent = msg;
@@ -378,7 +387,7 @@
 
     dom.loading.hidden = false;
     dom.loading.classList.remove('err');
-    dom.loadingText.textContent = mode === 'audio' ? 'drawing waveform…' : 'loading preview…';
+    dom.loadingText.textContent = mode === 'audio' ? 'preparing audio…' : 'loading preview…';
     dom.title.textContent = info.title || (mode === 'audio' ? 'audio trim' : 'preview');
     dom.badge.textContent = mode === 'audio' ? 'audio trim' : 'long video';
     dom.selDur.textContent = '';
@@ -389,14 +398,41 @@
     requestAnimationFrame(drawWaveform);
   }
 
-  function inspectAndMaybeOpen(url, provider, force) {
+  function loadWaveform(url, requestSeq) {
+    if (!url) return;
+    dom.badge.textContent = 'drawing waveform…';
+    fetch(url)
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          return { ok: r.ok, data: d };
+        });
+      })
+      .then(function (result) {
+        if (requestSeq !== inspectSeq || activeMode !== 'audio' || !isOpen()) return;
+        if (result.ok && Array.isArray(result.data.peaks)) {
+          waveform = result.data.peaks;
+          drawWaveform();
+        }
+        dom.badge.textContent = 'audio trim';
+      })
+      .catch(function () {
+        if (requestSeq === inspectSeq && activeMode === 'audio') {
+          dom.badge.textContent = 'audio trim';
+        }
+      });
+  }
+
+  function inspectAndMaybeOpen(url, provider, force, requestedMode) {
     if (!mountEl || !url) return;
-    var mode = currentMode();
+    var mode = requestedMode === 'audio' ? 'audio' :
+      (requestedMode === 'video' ? 'video' : currentMode());
     if (!force && activeUrl === url && activeMode === mode && isOpen()) return;
 
     var seq = ++inspectSeq;
     candidateUrl = url;
     candidateProvider = String(provider || '').toLowerCase();
+
+    if (isOpen() && activeMode && activeMode !== mode) hidePanel(true);
 
     fetch('/api/preview', {
       method: 'POST',
@@ -411,8 +447,6 @@
       .then(function (result) {
         if (seq !== inspectSeq || candidateUrl !== url) return;
         var info = result.data || {};
-        // Previewing is optional. Unsupported, short, or inspection-failed media
-        // should simply behave like classic Fetcher with no error card.
         if (!result.ok || !info.show) {
           hidePanel(true);
           return;
@@ -425,11 +459,12 @@
         if (mode === 'audio') {
           playDirect(info.source, true);
           dom.loading.hidden = true;
+          loadWaveform(info.waveformUrl, seq);
           return;
         }
         if (info.kind === 'hls') {
           ensureHls(function () {
-            if (activeUrl === url) playHls(info.source);
+            if (activeUrl === url && seq === inspectSeq) playHls(info.source);
           });
         } else {
           playDirect(info.source, false);
@@ -480,14 +515,13 @@
     v.load();
   }
 
-  // --- public API --------------------------------------------------------
   function mount(el) {
     mountEl = el;
     build();
   }
 
   function open(url, provider) {
-    inspectAndMaybeOpen(url, provider, false);
+    inspectAndMaybeOpen(url, provider, false, currentMode());
   }
 
   function close() {
