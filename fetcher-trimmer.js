@@ -1,17 +1,11 @@
 /*
  * fetcher-trimmer.js
- * Inline scrub-to-trim viewer. Mounts above the URL bar and expands into view
- * for any supported video-capable link; collapses on fetch. HLS sources use
- * hls.js through Fetcher's same-origin segment proxy, while ordinary hosted
- * videos use a same-origin byte-range proxy for lightweight seeking.
+ * Smart inline scrub-to-trim viewer.
  *
- *   FetcherTrimmer.mount(mountEl);      // once, on load
- *   FetcherTrimmer.open(url, provider); // when a video-capable URL is detected
- *   FetcherTrimmer.close();             // when it isn't / on fetch
- *   FetcherTrimmer.isOpen();            // bool
- *   FetcherTrimmer.getSelection();      // {start,end} seconds, or null (= whole)
- *
- * hls.js is fetched lazily only when the resolved preview source is HLS.
+ * Fetcher still calls open() whenever a video-capable provider is detected, but
+ * this module first asks the backend whether a trimmer is useful. Short/light
+ * video stays out of the way. Audio only gets a trimmer at 10+ minutes, where
+ * the panel becomes an audio player with a real source-derived waveform.
  */
 (function (global) {
   'use strict';
@@ -19,7 +13,8 @@
   var mountEl = null, dom = null, hls = null;
   var duration = 0, startT = 0, endT = 0, curT = 0;
   var dragging = null, seekPending = false;
-  var currentUrl = null, ready = false;
+  var candidateUrl = null, candidateProvider = '', activeUrl = null;
+  var activeMode = null, ready = false, inspectSeq = 0, waveform = [];
 
   function fmt(s) {
     s = Math.max(0, Math.floor(s || 0));
@@ -27,6 +22,7 @@
     var mm = h ? String(m).padStart(2, '0') : String(m);
     return (h ? h + ':' : '') + mm + ':' + String(sec).padStart(2, '0');
   }
+
   function parse(v) {
     if (v == null) return null;
     v = String(v).trim();
@@ -40,6 +36,27 @@
       total = total * 60 + n;
     }
     return total;
+  }
+
+  function currentMode() {
+    var active = document.querySelector('.seg-btn[aria-pressed="true"]');
+    return active && active.dataset.mode === 'audio' ? 'audio' : 'video';
+  }
+
+  function currentVideoQuality() {
+    try {
+      if (global.FetcherPrefs && global.FetcherPrefs.get) {
+        return global.FetcherPrefs.get('fetcher.videoQuality') || 'best';
+      }
+    } catch (e) {}
+    return 'best';
+  }
+
+  function markedUrl(url, mode) {
+    var sep = url.indexOf('#') === -1 ? '#' : '&';
+    return url + sep +
+      '__fetcher_mode=' + encodeURIComponent(mode) +
+      '&__fetcher_vq=' + encodeURIComponent(currentVideoQuality());
   }
 
   function ensureHls(cb) {
@@ -58,6 +75,7 @@
         '<div class="trim-head">' +
           '<span class="trim-head-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M17 4v16M3 8h4M17 8h4M3 16h4M17 16h4M4 4h16v16H4z"/></svg></span>' +
           '<span class="trim-title">preview</span>' +
+          '<span class="trim-badge"></span>' +
         '</div>' +
         '<div class="trim-video-wrap">' +
           '<video class="trim-video" playsinline preload="metadata"></video>' +
@@ -71,6 +89,7 @@
           '<span class="trim-time"><span class="trim-cur">0:00</span> / <span class="trim-dur">0:00</span></span>' +
         '</div>' +
         '<div class="trim-timeline"><div class="trim-track">' +
+          '<canvas class="trim-waveform" aria-hidden="true"></canvas>' +
           '<div class="trim-range"></div><div class="trim-playhead"></div>' +
           '<div class="trim-handle trim-handle-start" data-handle="start" role="slider" tabindex="0" aria-label="Start point"></div>' +
           '<div class="trim-handle trim-handle-end" data-handle="end" role="slider" tabindex="0" aria-label="End point"></div>' +
@@ -87,14 +106,17 @@
       '</div>';
 
     dom = {
-      video: inner.querySelector('.trim-video'),
+      media: inner.querySelector('.trim-video'),
+      videoWrap: inner.querySelector('.trim-video-wrap'),
       loading: inner.querySelector('.trim-loading'),
       loadingText: inner.querySelector('.trim-loading-text'),
       title: inner.querySelector('.trim-title'),
+      badge: inner.querySelector('.trim-badge'),
       play: inner.querySelector('.trim-play'),
       cur: inner.querySelector('.trim-cur'),
       dur: inner.querySelector('.trim-dur'),
       track: inner.querySelector('.trim-track'),
+      waveform: inner.querySelector('.trim-waveform'),
       range: inner.querySelector('.trim-range'),
       playhead: inner.querySelector('.trim-playhead'),
       hStart: inner.querySelector('.trim-handle-start'),
@@ -105,23 +127,29 @@
     };
 
     dom.play.addEventListener('click', function () {
-      if (dom.video.paused) { var p = dom.video.play(); if (p && p.catch) p.catch(function () {}); }
-      else dom.video.pause();
+      if (dom.media.paused) {
+        var p = dom.media.play();
+        if (p && p.catch) p.catch(function () {});
+      } else dom.media.pause();
     });
-    dom.video.addEventListener('play', function () { dom.play.classList.add('playing'); });
-    dom.video.addEventListener('pause', function () { dom.play.classList.remove('playing'); });
-    dom.video.addEventListener('timeupdate', function () {
-      curT = dom.video.currentTime; dom.cur.textContent = fmt(curT); position();
+    dom.media.addEventListener('play', function () { dom.play.classList.add('playing'); });
+    dom.media.addEventListener('pause', function () { dom.play.classList.remove('playing'); });
+    dom.media.addEventListener('timeupdate', function () {
+      curT = dom.media.currentTime;
+      dom.cur.textContent = fmt(curT);
+      position();
     });
 
     dom.track.addEventListener('pointerdown', function (e) {
       if (e.target.hasAttribute('data-handle')) return;
       seekTo(timeAt(e.clientX));
     });
+
     [dom.hStart, dom.hEnd].forEach(function (h) {
       var which = h.getAttribute('data-handle');
       h.addEventListener('pointerdown', function (e) {
-        dragging = which; h.classList.add('dragging');
+        dragging = which;
+        h.classList.add('dragging');
         try { h.setPointerCapture(e.pointerId); } catch (x) {}
         e.preventDefault();
       });
@@ -131,7 +159,11 @@
         previewSeek(which === 'start' ? startT : endT);
       });
       var stop = function (e) {
-        if (dragging === which) { dragging = null; h.classList.remove('dragging'); try { h.releasePointerCapture(e.pointerId); } catch (x) {} }
+        if (dragging === which) {
+          dragging = null;
+          h.classList.remove('dragging');
+          try { h.releasePointerCapture(e.pointerId); } catch (x) {}
+        }
       };
       h.addEventListener('pointerup', stop);
       h.addEventListener('pointercancel', stop);
@@ -140,38 +172,45 @@
     function commit(input, which) {
       input.addEventListener('change', function () {
         var t = parse(input.value);
-        if (t == null) { input.value = fmt(which === 'start' ? startT : endT); return; }
-        setEdge(which, t); previewSeek(which === 'start' ? startT : endT);
+        if (t == null) {
+          input.value = fmt(which === 'start' ? startT : endT);
+          return;
+        }
+        setEdge(which, t);
+        previewSeek(which === 'start' ? startT : endT);
       });
     }
     commit(dom.inStart, 'start');
     commit(dom.inEnd, 'end');
 
-    // Keyboard shortcuts (only while the viewer is open, and never while typing
-    // in a field): play/pause, seek, mark in/out, jump to edges. When a handle
-    // itself is focused, the arrows nudge that handle instead of seeking.
     document.addEventListener('keydown', function (e) {
       if (!isOpen()) return;
       var t = e.target, tag = t.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || t.isContentEditable) return;
-      var onHandle = (t === dom.hStart) ? 'start' : (t === dom.hEnd) ? 'end' : null;
+      var onHandle = t === dom.hStart ? 'start' : (t === dom.hEnd ? 'end' : null);
       var step = e.shiftKey ? 5 : 1;
       switch (e.key) {
         case ' ': case 'Spacebar':
-          if (tag === 'BUTTON') return;   // let a focused button's own space work
+          if (tag === 'BUTTON') return;
           e.preventDefault();
-          if (dom.video.paused) { var p = dom.video.play(); if (p && p.catch) p.catch(function () {}); }
-          else dom.video.pause();
+          if (dom.media.paused) {
+            var p = dom.media.play();
+            if (p && p.catch) p.catch(function () {});
+          } else dom.media.pause();
           break;
         case 'ArrowRight':
           e.preventDefault();
-          if (onHandle) { setEdge(onHandle, (onHandle === 'start' ? startT : endT) + step); previewSeek(onHandle === 'start' ? startT : endT); }
-          else seekTo(Math.min(duration, curT + step));
+          if (onHandle) {
+            setEdge(onHandle, (onHandle === 'start' ? startT : endT) + step);
+            previewSeek(onHandle === 'start' ? startT : endT);
+          } else seekTo(Math.min(duration, curT + step));
           break;
         case 'ArrowLeft':
           e.preventDefault();
-          if (onHandle) { setEdge(onHandle, (onHandle === 'start' ? startT : endT) - step); previewSeek(onHandle === 'start' ? startT : endT); }
-          else seekTo(Math.max(0, curT - step));
+          if (onHandle) {
+            setEdge(onHandle, (onHandle === 'start' ? startT : endT) - step);
+            previewSeek(onHandle === 'start' ? startT : endT);
+          } else seekTo(Math.max(0, curT - step));
           break;
         case 'i': case 'I': e.preventDefault(); setEdge('start', curT); break;
         case 'o': case 'O': e.preventDefault(); setEdge('end', curT); break;
@@ -180,7 +219,22 @@
       }
     });
 
-    global.addEventListener('resize', function () { if (isOpen()) position(); });
+    // Changing Video/Audio should immediately re-evaluate the same pasted URL.
+    Array.prototype.slice.call(document.querySelectorAll('.seg-btn')).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!candidateUrl) return;
+        window.setTimeout(function () {
+          if (candidateUrl) inspectAndMaybeOpen(candidateUrl, candidateProvider, true);
+        }, 0);
+      });
+    });
+
+    global.addEventListener('resize', function () {
+      if (isOpen()) {
+        position();
+        drawWaveform();
+      }
+    });
   }
 
   function setEdge(which, t) {
@@ -196,7 +250,9 @@
     var r = dom.track.getBoundingClientRect();
     return Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * duration;
   }
+
   function position() {
+    if (!dom) return;
     var xs = xFor(startT), xe = xFor(endT);
     dom.hStart.style.left = xs + 'px';
     dom.hEnd.style.left = xe + 'px';
@@ -207,19 +263,32 @@
     if (document.activeElement !== dom.inEnd) dom.inEnd.value = fmt(endT);
     dom.selDur.textContent = '(' + fmt(Math.max(0, endT - startT)) + ')';
   }
+
   function previewSeek(t) {
-    if (seekPending) { previewSeek._next = t; return; }
+    if (seekPending) {
+      previewSeek._next = t;
+      return;
+    }
     seekPending = true;
     requestAnimationFrame(function () {
       seekPending = false;
-      try { dom.video.currentTime = t; } catch (e) {}
-      if (previewSeek._next != null) { var n = previewSeek._next; previewSeek._next = null; previewSeek(n); }
+      try { dom.media.currentTime = t; } catch (e) {}
+      if (previewSeek._next != null) {
+        var n = previewSeek._next;
+        previewSeek._next = null;
+        previewSeek(n);
+      }
     });
   }
-  function seekTo(t) { curT = t; try { dom.video.currentTime = t; } catch (e) {} position(); }
+
+  function seekTo(t) {
+    curT = t;
+    try { dom.media.currentTime = t; } catch (e) {}
+    position();
+  }
 
   function syncNativeDuration() {
-    var nativeDuration = dom && dom.video ? Number(dom.video.duration) : 0;
+    var nativeDuration = dom && dom.media ? Number(dom.media.duration) : 0;
     if ((!duration || duration <= 0) && isFinite(nativeDuration) && nativeDuration > 0) {
       duration = nativeDuration;
       endT = duration;
@@ -231,68 +300,153 @@
 
   function showError(msg) {
     if (!dom) return;
-    dom.loading.hidden = false; dom.loading.classList.add('err'); dom.loadingText.textContent = msg;
+    if (activeMode === 'audio') return; // keep the waveform/timestamps useful
+    dom.loading.hidden = false;
+    dom.loading.classList.add('err');
+    dom.loadingText.textContent = msg;
   }
+
   function teardown() {
-    if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
-    if (dom) { try { dom.video.pause(); } catch (e) {} dom.video.removeAttribute('src'); dom.video.load(); }
+    if (hls) {
+      try { hls.destroy(); } catch (e) {}
+      hls = null;
+    }
+    if (dom) {
+      try { dom.media.pause(); } catch (e) {}
+      dom.media.removeAttribute('src');
+      dom.media.load();
+      dom.play.classList.remove('playing');
+    }
   }
 
-  // --- public API --------------------------------------------------------
-  function mount(el) { mountEl = el; build(); }
-
-  function open(url, provider) {
+  function hidePanel(keepCandidate) {
     if (!mountEl) return;
-    provider = String(provider || '').toLowerCase();
+    mountEl.classList.remove('open');
+    mountEl.removeAttribute('data-kind');
+    if (!keepCandidate) {
+      mountEl.removeAttribute('data-provider');
+      candidateUrl = null;
+      candidateProvider = '';
+    }
+    activeUrl = null;
+    activeMode = null;
+    ready = false;
+    waveform = [];
+    teardown();
+  }
+
+  function drawWaveform() {
+    if (!dom || !dom.waveform || activeMode !== 'audio') return;
+    var canvas = dom.waveform;
+    var rect = canvas.getBoundingClientRect();
+    var ratio = global.devicePixelRatio || 1;
+    var w = Math.max(1, Math.round(rect.width * ratio));
+    var h = Math.max(1, Math.round(rect.height * ratio));
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    if (!waveform || !waveform.length) return;
+
+    var style = getComputedStyle(mountEl);
+    var color = style.getPropertyValue('--trim-provider-rim').trim() || style.getPropertyValue('--accent').trim() || '#777';
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.58;
+    var mid = h / 2;
+    var step = w / waveform.length;
+    var barW = Math.max(1 * ratio, step * 0.58);
+    for (var i = 0; i < waveform.length; i++) {
+      var amp = Math.max(0.04, Number(waveform[i]) || 0);
+      var barH = Math.max(2 * ratio, amp * h * 0.82);
+      ctx.fillRect(i * step + (step - barW) / 2, mid - barH / 2, barW, barH);
+    }
+  }
+
+  function resetForInfo(info, mode, provider) {
+    activeMode = mode;
+    duration = Number(info.duration) || 0;
+    startT = 0;
+    endT = duration;
+    curT = 0;
+    dragging = null;
+    ready = duration > 0;
+    waveform = Array.isArray(info.waveform) ? info.waveform : [];
+
+    mountEl.setAttribute('data-kind', mode);
     if (provider) mountEl.setAttribute('data-provider', provider);
     else mountEl.removeAttribute('data-provider');
-    if (currentUrl === url && mountEl.classList.contains('open')) return;  // already showing this
-    currentUrl = url; ready = false;
-    duration = 0; startT = 0; endT = 0; curT = 0; dragging = null;
-    teardown();
-    dom.loading.hidden = false; dom.loading.classList.remove('err');
-    dom.loadingText.textContent = 'loading preview…';
-    dom.title.textContent = 'preview'; dom.play.classList.remove('playing');
-    dom.selDur.textContent = ''; dom.dur.textContent = '0:00';
+
+    dom.loading.hidden = false;
+    dom.loading.classList.remove('err');
+    dom.loadingText.textContent = mode === 'audio' ? 'drawing waveform…' : 'loading preview…';
+    dom.title.textContent = info.title || (mode === 'audio' ? 'audio trim' : 'preview');
+    dom.badge.textContent = mode === 'audio' ? 'audio trim' : 'long video';
+    dom.selDur.textContent = '';
+    dom.cur.textContent = '0:00';
+    dom.dur.textContent = fmt(duration);
     mountEl.classList.add('open');
+    position();
+    requestAnimationFrame(drawWaveform);
+  }
+
+  function inspectAndMaybeOpen(url, provider, force) {
+    if (!mountEl || !url) return;
+    var mode = currentMode();
+    if (!force && activeUrl === url && activeMode === mode && isOpen()) return;
+
+    var seq = ++inspectSeq;
+    candidateUrl = url;
+    candidateProvider = String(provider || '').toLowerCase();
 
     fetch('/api/preview', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: url })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: markedUrl(url, mode) })
     })
       .then(function (r) {
         return r.json().catch(function () { return {}; }).then(function (d) {
-          if (!r.ok) throw new Error((d.error && d.error.message) || 'preview failed');
-          return d;
+          return { ok: r.ok, data: d };
         });
       })
-      .then(function (info) {
-        if (currentUrl !== url) return;                 // URL changed while loading
-        dom.title.textContent = info.title || 'preview';
-        duration = Number(info.duration) || 0;
-        endT = duration;
-        dom.dur.textContent = fmt(duration);
-        ready = duration > 0;
-        position();
+      .then(function (result) {
+        if (seq !== inspectSeq || candidateUrl !== url) return;
+        var info = result.data || {};
+        // Previewing is optional. Unsupported, short, or inspection-failed media
+        // should simply behave like classic Fetcher with no error card.
+        if (!result.ok || !info.show) {
+          hidePanel(true);
+          return;
+        }
 
+        teardown();
+        activeUrl = url;
+        resetForInfo(info, mode, candidateProvider);
+
+        if (mode === 'audio') {
+          playDirect(info.source, true);
+          dom.loading.hidden = true;
+          return;
+        }
         if (info.kind === 'hls') {
           ensureHls(function () {
-            if (currentUrl === url) playHls(info.source);
+            if (activeUrl === url) playHls(info.source);
           });
         } else {
-          playDirect(info.source);
+          playDirect(info.source, false);
         }
       })
-      .catch(function (err) { showError((err && err.message) || 'couldn’t load the preview'); });
+      .catch(function () {
+        if (seq === inspectSeq) hidePanel(true);
+      });
   }
 
   function playHls(playlist) {
-    var v = dom.video;
+    var v = dom.media;
     if (global.Hls && global.Hls.isSupported()) {
       hls = new global.Hls({ maxBufferLength: 20 });
       hls.on(global.Hls.Events.MANIFEST_PARSED, function () { dom.loading.hidden = true; });
       hls.on(global.Hls.Events.ERROR, function (e, data) {
-        if (data && data.fatal) showError('preview stream error — you can still set times below');
+        if (data && data.fatal) showError('preview stream unavailable — you can still trim by time below');
       });
       v.addEventListener('loadedmetadata', syncNativeDuration, { once: true });
       hls.loadSource(playlist);
@@ -305,43 +459,57 @@
       }, { once: true });
       v.load();
     } else {
-      showError('this browser can’t preview HLS');
+      showError('this browser can’t preview HLS — you can still trim by time below');
     }
   }
 
-  function playDirect(source) {
-    var v = dom.video;
+  function playDirect(source, audioOnly) {
+    var v = dom.media;
     if (!source) {
-      showError('couldn’t load the preview');
+      if (!audioOnly) showError('preview unavailable — you can still trim by time below');
       return;
     }
     v.src = source;
     v.addEventListener('loadedmetadata', function () {
       syncNativeDuration();
-      dom.loading.hidden = true;
+      if (!audioOnly) dom.loading.hidden = true;
     }, { once: true });
     v.addEventListener('error', function () {
-      showError('preview stream error — you can still set times below');
+      if (!audioOnly) showError('preview stream unavailable — you can still trim by time below');
     }, { once: true });
     v.load();
   }
 
-  function close() {
-    if (!mountEl) return;
-    mountEl.classList.remove('open');
-    mountEl.removeAttribute('data-provider');
-    currentUrl = null; ready = false;
-    teardown();
+  // --- public API --------------------------------------------------------
+  function mount(el) {
+    mountEl = el;
+    build();
   }
 
-  function isOpen() { return !!(mountEl && mountEl.classList.contains('open')); }
+  function open(url, provider) {
+    inspectAndMaybeOpen(url, provider, false);
+  }
+
+  function close() {
+    inspectSeq++;
+    hidePanel(false);
+  }
+
+  function isOpen() {
+    return !!(mountEl && mountEl.classList.contains('open'));
+  }
 
   function getSelection() {
     if (!ready || !duration) return null;
-    // Treat "handles at the extremes" as the whole VOD (no trim).
     if (startT <= 1 && endT >= duration - 1) return null;
     return { start: startT, end: endT };
   }
 
-  global.FetcherTrimmer = { mount: mount, open: open, close: close, isOpen: isOpen, getSelection: getSelection };
+  global.FetcherTrimmer = {
+    mount: mount,
+    open: open,
+    close: close,
+    isOpen: isOpen,
+    getSelection: getSelection
+  };
 })(window);
