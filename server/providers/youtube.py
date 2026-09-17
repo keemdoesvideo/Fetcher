@@ -1,15 +1,14 @@
 """YouTube provider.
 
 YouTube gets a little more defensive than the other yt-dlp-backed providers.
-The normal extraction path is always tried first. If YouTube responds with its
-"sign in to confirm you're not a bot" challenge, Fetcher transparently retries
-with alternate official yt-dlp player clients. The final anonymous fallback is
-mweb, which can use an installed PO Token Provider (BgUtils) plus yt-dlp's EJS
-challenge solver when YouTube requires them.
+When a dedicated YouTube service session is configured, Fetcher uses it first so
+an already bot-gated server IP does not waste time repeating several anonymous
+failures on every fetch. If that session is unavailable or stops working, Fetcher
+still falls back through the normal anonymous route and alternate yt-dlp player
+clients, including mweb + the installed PO Token provider.
 
-An authenticated browser/cookie retry is also available as an explicit server
-configuration for private/local installs. It is never enabled implicitly: a
-public Fetcher instance must not silently borrow the host owner's YouTube login.
+The authenticated route is only enabled by explicit/private server configuration;
+public/self-hosted copies without that configuration remain anonymous-first.
 """
 
 from __future__ import annotations
@@ -29,10 +28,8 @@ class YouTubeProvider(YtdlpProvider):
     # Exactly the hosts we allow — no arbitrary yt-dlp sites slip through.
     ALLOWED_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"}
 
-    # Try the cheapest anonymous recovery routes first. android_vr and
-    # web_embedded can work without PO tokens for some videos. mweb is the
-    # stronger final anonymous route and lets yt-dlp invoke an installed PO
-    # Token Provider (BgUtils) when YouTube requires a GVS token.
+    # Anonymous recovery routes kept as a safety net if the configured dedicated
+    # service session expires or is temporarily unusable.
     BOT_CHECK_CLIENTS = ("android_vr", "web_embedded", "mweb")
     _RETRYABLE_FALLBACK_CODES = {
         errors.BOT_CHECK,
@@ -77,6 +74,10 @@ class YouTubeProvider(YtdlpProvider):
 
         return opts, ydl_logger
 
+    def _configured_session(self, job: Job) -> None:
+        job._youtube_cookie_browser = config.YOUTUBE_COOKIES_FROM_BROWSER
+        job._youtube_cookie_file = config.YOUTUBE_COOKIES_FILE
+
     def prepare(
         self,
         url: str,
@@ -84,25 +85,60 @@ class YouTubeProvider(YtdlpProvider):
         preferences: Preferences,
         job: Job,
     ) -> ProviderResult:
-        """Try normal YouTube extraction, then recover from bot verification.
+        """Use a configured service session first, then retain anonymous recovery.
 
-        The fallback chain is deliberately narrow: it only runs after a real
-        BOT_CHECK classification, so ordinary successful downloads keep their
-        existing format/client behaviour. Authenticated cookies are tried last
-        and only when the host owner explicitly configured them.
+        Fetcher's hosted Mac currently has a dedicated YouTube-only session. On a
+        static IP that YouTube already challenges, trying anonymous/default plus
+        three alternate clients before that known-good session adds substantial
+        latency to every fetch. Prefer the explicitly configured session; if it
+        fails with a retryable YouTube error, fall back to the anonymous chain.
         """
         self._clear_retry_state(job)
+        last_error: errors.FetcherError | None = None
+        has_configured_session = bool(
+            config.YOUTUBE_COOKIES_FROM_BROWSER or config.YOUTUBE_COOKIES_FILE
+        )
+
+        if has_configured_session:
+            if job.cancel_event.is_set():
+                raise JobCancelled()
+            self._reset_for_retry(job, stage="verifying:service-session")
+            self._configured_session(job)
+            try:
+                result = super().prepare(url, mode, preferences, job)
+                self.log.info("YouTube configured service session succeeded")
+                return result
+            except errors.FetcherError as exc:
+                last_error = exc
+                self.log.info(
+                    "YouTube configured service session failed with %s; trying anonymous routes: %s",
+                    exc.code,
+                    exc.detail or exc.message,
+                )
+                if exc.code not in self._RETRYABLE_FALLBACK_CODES:
+                    raise
+            finally:
+                self._clear_retry_state(job)
+
+        # Keep a plain/default anonymous attempt as a fallback. This is still the
+        # only path on public installs with no dedicated YouTube session.
+        self._reset_for_retry(job, stage="verifying:default")
         try:
             return super().prepare(url, mode, preferences, job)
         except errors.FetcherError as exc:
+            last_error = exc
             if exc.code != errors.BOT_CHECK:
-                raise
-            bot_error = exc
+                # If a configured session already failed with a retryable error,
+                # allow the alternate anonymous clients below to have a chance at
+                # recovery for extraction/login/media failures too.
+                if not has_configured_session or exc.code not in self._RETRYABLE_FALLBACK_CODES:
+                    raise
+        finally:
+            self._clear_retry_state(job)
 
         self.log.warning(
-            "YouTube requested bot verification; trying anonymous fallback clients"
+            "YouTube verification failed; trying anonymous fallback clients"
         )
-        last_error: errors.FetcherError = bot_error
 
         for client in self.BOT_CHECK_CLIENTS:
             if job.cancel_event.is_set():
@@ -124,37 +160,14 @@ class YouTubeProvider(YtdlpProvider):
             finally:
                 self._clear_retry_state(job)
 
-        # Private/local operators can opt into a logged-in browser session for
-        # stubborn videos. This is intentionally a separate YouTube setting so
-        # Instagram cookies are never silently reused here.
-        if config.YOUTUBE_COOKIES_FROM_BROWSER or config.YOUTUBE_COOKIES_FILE:
-            if job.cancel_event.is_set():
-                raise JobCancelled()
-            self._reset_for_retry(job, stage="verifying:browser-session")
-            job._youtube_cookie_browser = config.YOUTUBE_COOKIES_FROM_BROWSER
-            job._youtube_cookie_file = config.YOUTUBE_COOKIES_FILE
-            try:
-                return super().prepare(url, mode, preferences, job)
-            except errors.FetcherError as exc:
-                last_error = exc
-                self.log.info(
-                    "YouTube configured browser-session fallback failed with %s: %s",
-                    exc.code,
-                    exc.detail or exc.message,
-                )
-                if exc.code not in self._RETRYABLE_FALLBACK_CODES:
-                    raise
-            finally:
-                self._clear_retry_state(job)
-
-        # Keep the stable BOT_CHECK contract for the UI, but preserve the final
-        # technical failure in server logs to make future YouTube changes easier
-        # to diagnose.
+        # Do not repeat the configured session at the end: when configured it was
+        # already the first/fast path above. Preserve the stable BOT_CHECK contract
+        # for the UI while keeping the final technical failure in server logs.
         raise errors.FetcherError(
             errors.BOT_CHECK,
             detail=(
-                "YouTube bot verification remained after normal + fallback attempts; "
-                f"last retry: {last_error.detail or last_error.message}"
+                "YouTube verification remained after configured + anonymous attempts; "
+                f"last retry: {(last_error.detail or last_error.message) if last_error else 'unknown'}"
             ),
         )
 
