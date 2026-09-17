@@ -1,11 +1,10 @@
 /*
  * fetcher-trimmer.css
- * Inline scrub-to-trim viewer that expands above the URL bar for any supported
- * video link. The shell keeps Fetcher's native design but picks up a subtle
- * provider-coloured rim (YouTube, Twitch, X, Instagram or TikTok).
+ * Smart inline scrub-to-trim viewer. Long/heavy video gets the existing player;
+ * long audio becomes a compact waveform trimmer. Provider rims stay playful but
+ * subtle: YouTube red, Twitch purple, X blue, Instagram pink, TikTok black.
  */
 
-/* Mount = a smooth 0fr->1fr height reveal (no fixed pixel height needed). */
 .trim-mount{
   display:grid;
   grid-template-rows:0fr;
@@ -30,8 +29,6 @@
 }
 .trim-mount.open .trim-panel{opacity:1;transform:none;}
 
-/* Provider rims: intentionally just a thin coloured edge + tiny halo so the
-   scrubber still belongs to Fetcher instead of turning into a branded embed. */
 .trim-mount[data-provider="youtube"]{--trim-provider-rim:#ff0033;}
 .trim-mount[data-provider="twitch"]{--trim-provider-rim:#9146ff;}
 .trim-mount[data-provider="x"]{--trim-provider-rim:#1d9bf0;}
@@ -55,6 +52,11 @@
   font-size:12.5px;font-weight:500;color:var(--ink-soft);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;
 }
+.trim-badge{
+  flex:0 0 auto;font-size:9.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.055em;color:var(--ink-faint);background:var(--rail);
+  border:1px solid var(--border);padding:3px 7px;border-radius:999px;
+}
 
 .trim-video-wrap{
   position:relative;background:#000;
@@ -66,9 +68,30 @@
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   color:#e9e9ea;font-size:13px;gap:9px;background:#000;
 }
-.trim-loading.err{color:#ff9b9b;}
+.trim-loading.err{color:#ffb0b0;}
 .trim-loading[hidden]{display:none;}
 .trim-loading .spin-ring{border-color:rgba(255,255,255,.3);border-top-color:#fff;}
+
+/* Audio mode keeps the same controls and trim semantics but removes the black
+   video stage entirely. The real waveform lives inside the enlarged timeline. */
+.trim-mount[data-kind="audio"] .trim-video-wrap{display:none;}
+.trim-mount[data-kind="audio"] .trim-head-icon{color:var(--audio);}
+.trim-mount[data-kind="audio"] .trim-controls{padding-top:13px;}
+.trim-mount[data-kind="audio"] .trim-timeline{padding-top:8px;}
+.trim-mount[data-kind="audio"] .trim-track{height:78px;background:color-mix(in srgb,var(--rail) 82%,transparent);}
+.trim-mount[data-kind="audio"] .trim-track::before{height:1px;opacity:.35;}
+.trim-mount[data-kind="audio"] .trim-range{
+  top:0;height:100%;transform:none;border-radius:8px;
+  background:color-mix(in srgb,var(--trim-provider-rim,var(--accent)) 12%,transparent);
+  opacity:1;
+}
+.trim-mount[data-kind="audio"] .trim-playhead{top:7px;bottom:7px;z-index:3;}
+.trim-mount[data-kind="audio"] .trim-handle{height:58px;z-index:4;}
+.trim-waveform{
+  display:none;position:absolute;inset:8px 7px;width:calc(100% - 14px);height:calc(100% - 16px);
+  pointer-events:none;z-index:1;
+}
+.trim-mount[data-kind="audio"] .trim-waveform{display:block;}
 
 .trim-controls{
   display:flex;align-items:center;gap:11px;
@@ -78,9 +101,9 @@
   display:flex;align-items:center;justify-content:center;
   width:32px;height:32px;border-radius:50%;flex:0 0 auto;
   border:1px solid var(--border);background:var(--bg);color:var(--ink);cursor:pointer;
-  transition:border-color var(--dur-fast) var(--ease);
+  transition:border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
 }
-.trim-play:hover{border-color:var(--border-strong);}
+.trim-play:hover{border-color:var(--border-strong);transform:translateY(-1px);}
 .trim-play svg{width:14px;height:14px;}
 .trim-play .icon-pause{display:none;}
 .trim-play.playing .icon-play{display:none;}
@@ -88,11 +111,10 @@
 .trim-time{font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
 .trim-cur{color:var(--ink);}
 
-/* Timeline */
 .trim-timeline{padding:10px 14px 2px;}
 .trim-track{
   position:relative;height:32px;cursor:pointer;
-  border-radius:8px;background:var(--rail);touch-action:none;
+  border-radius:8px;background:var(--rail);touch-action:none;overflow:visible;
 }
 .trim-track::before{
   content:"";position:absolute;left:0;right:0;top:50%;height:6px;transform:translateY(-50%);
@@ -100,11 +122,11 @@
 }
 .trim-range{
   position:absolute;top:50%;height:6px;transform:translateY(-50%);
-  border-radius:999px;background:var(--accent);opacity:.55;
+  border-radius:999px;background:var(--accent);opacity:.55;z-index:1;
 }
 .trim-playhead{
   position:absolute;top:4px;bottom:4px;width:2px;margin-left:-1px;
-  background:var(--ink);border-radius:2px;pointer-events:none;opacity:.8;
+  background:var(--ink);border-radius:2px;pointer-events:none;opacity:.8;z-index:2;
 }
 .trim-handle{
   position:absolute;top:50%;width:13px;height:24px;margin-left:-6.5px;transform:translateY(-50%);
@@ -112,11 +134,7 @@
   cursor:ew-resize;touch-action:none;box-shadow:var(--shadow-sm);z-index:2;
   transition:border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
 }
-/* Keep the visible handle compact, but make it forgiving to grab. The transparent
-   pseudo-element participates in pointer hit-testing without changing layout. */
-.trim-handle::before{
-  content:"";position:absolute;inset:-8px;background:transparent;
-}
+.trim-handle::before{content:"";position:absolute;inset:-8px;background:transparent;}
 .trim-handle::after{
   content:"";position:absolute;left:50%;top:50%;width:2px;height:10px;
   transform:translate(-50%,-50%);background:var(--ink-faint);border-radius:2px;
@@ -141,3 +159,9 @@
 .trim-dash{color:var(--ink-faint);}
 .trim-sel-dur{color:var(--ink-faint);}
 .trim-hint{font-size:11.5px;color:var(--ink-faint);}
+
+@media (max-width:640px){
+  .trim-hint{display:none;}
+  .trim-badge{font-size:9px;}
+  .trim-mount[data-kind="audio"] .trim-track{height:66px;}
+}
