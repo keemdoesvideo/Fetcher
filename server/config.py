@@ -56,14 +56,27 @@ COOKIES_FILE: str | None = os.environ.get("FETCHER_COOKIES_FILE") or None
 # the normal extraction path and Fetcher's anonymous bot-check fallback clients
 # have failed. Keeping this separate is important for public/self-hosted copies:
 # a server must never silently reuse the host owner's personal YouTube session.
-# Leave these unset for normal/public installs. Private/local examples:
+#
+# Operators can configure the cookie source explicitly with environment
+# variables. For the bundled macOS service layout we also recognise one
+# deliberately-created local cookie file under ~/ServiceData/Fetcher. That file
+# is outside the repo, must already exist, and should be chmod 600. This lets a
+# non-admin service account use a dedicated YouTube fallback without editing a
+# root-owned LaunchDaemon plist.
+#
+# Private/local examples:
 #   FETCHER_YOUTUBE_COOKIES_FROM_BROWSER = chrome
 #   FETCHER_YOUTUBE_COOKIES_FROM_BROWSER = chrome:Profile 1
 #   FETCHER_YOUTUBE_COOKIES_FILE = C:\\path\\to\\youtube-cookies.txt
 YOUTUBE_COOKIES_FROM_BROWSER: str | None = (
     os.environ.get("FETCHER_YOUTUBE_COOKIES_FROM_BROWSER") or None
 )
-YOUTUBE_COOKIES_FILE: str | None = os.environ.get("FETCHER_YOUTUBE_COOKIES_FILE") or None
+
+_youtube_cookie_env = os.environ.get("FETCHER_YOUTUBE_COOKIES_FILE") or None
+_youtube_cookie_local = Path.home() / "ServiceData" / "Fetcher" / "youtube-cookies.txt"
+YOUTUBE_COOKIES_FILE: str | None = _youtube_cookie_env
+if YOUTUBE_COOKIES_FILE is None and _youtube_cookie_local.is_file():
+    YOUTUBE_COOKIES_FILE = str(_youtube_cookie_local)
 
 # --- Job lifecycle ---------------------------------------------------------
 # How long a prepared job may sit before the stale sweeper reclaims it. Covers
