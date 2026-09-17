@@ -232,11 +232,11 @@ async def detect(url: str = ""):
         "provider": provider.name,
         "modes": sorted(provider.MODES),
         "longForm": provider.long_form(url),
-        "preview": provider.supports("video"),
+        "preview": provider.supports("video") or provider.supports("audio"),
     }
 
 
-# --- Video preview proxy (scrub-to-trim) -----------------------------------
+# --- Smart preview proxy (video + audio trim) ------------------------------
 @app.post("/api/preview")
 def preview_open(req: PreviewRequest, request: Request):
     client_key = _client_key(request)
@@ -253,19 +253,47 @@ def preview_open(req: PreviewRequest, request: Request):
         )
     try:
         provider = downloader.resolve_provider(req.url)
-        if not provider.supports("video"):
+        if not (provider.supports("video") or provider.supports("audio")):
             raise errors.FetcherError(
-                errors.MEDIA_UNAVAILABLE, detail="source has no video preview"
+                errors.MEDIA_UNAVAILABLE, detail="source has no previewable media"
             )
         info = preview.resolve(req.url, provider=provider)
     except errors.FetcherError as err:
         return _error_response(err)
 
+    # A short/light item intentionally has no preview session. Return the smart
+    # decision directly instead of trying to manufacture a source URL from a
+    # non-existent previewId (which previously turned "hide it" into a 500).
+    if not info.get("show"):
+        return info
+
     if info.get("kind") == "hls":
         info["source"] = f"/api/preview/{info['previewId']}/index.m3u8"
     else:
         info["source"] = f"/api/preview/{info['previewId']}/media"
+    if info.get("kind") == "audio":
+        info["waveformUrl"] = f"/api/preview/{info['previewId']}/waveform"
     return info
+
+
+@app.get("/api/preview/{pid}/waveform")
+def preview_waveform(pid: str, request: Request):
+    client_key = _client_key(request)
+    if not _preview_window.allow(client_key):
+        return JSONResponse(
+            status_code=429,
+            headers={"Retry-After": "30"},
+            content={
+                "error": {
+                    "code": "busy",
+                    "message": "too many preview requests at once. give fetcher a moment.",
+                }
+            },
+        )
+    peaks = preview.waveform(pid)
+    if peaks is None:
+        return _error_response(errors.FetcherError(errors.JOB_NOT_FOUND))
+    return {"peaks": peaks}
 
 
 @app.get("/api/preview/{pid}/index.m3u8")
