@@ -3,7 +3,9 @@
 YouTube gets a little more defensive than the other yt-dlp-backed providers.
 The normal extraction path is always tried first. If YouTube responds with its
 "sign in to confirm you're not a bot" challenge, Fetcher transparently retries
-with official yt-dlp player clients that currently do not require a PO Token.
+with alternate official yt-dlp player clients. The final anonymous fallback is
+mweb, which can use an installed PO Token Provider (BgUtils) plus yt-dlp's EJS
+challenge solver when YouTube requires them.
 
 An authenticated browser/cookie retry is also available as an explicit server
 configuration for private/local installs. It is never enabled implicitly: a
@@ -27,11 +29,11 @@ class YouTubeProvider(YtdlpProvider):
     # Exactly the hosts we allow — no arbitrary yt-dlp sites slip through.
     ALLOWED_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"}
 
-    # Current yt-dlp guidance lists these clients as not requiring a PO Token.
-    # android_vr covers the broad case; web_embedded is a useful second route
-    # for videos that permit embedding. The normal/default client still gets
-    # first choice so this does not change successful downloads.
-    BOT_CHECK_CLIENTS = ("android_vr", "web_embedded")
+    # Try the cheapest anonymous recovery routes first. android_vr and
+    # web_embedded can work without PO tokens for some videos. mweb is the
+    # stronger final anonymous route and lets yt-dlp invoke an installed PO
+    # Token Provider (BgUtils) when YouTube requires a GVS token.
+    BOT_CHECK_CLIENTS = ("android_vr", "web_embedded", "mweb")
     _RETRYABLE_FALLBACK_CODES = {
         errors.BOT_CHECK,
         errors.EXTRACTION_FAILED,
