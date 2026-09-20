@@ -333,13 +333,21 @@
 
   function finishSuccess(filename) {
     stopPolling();
+    var finishedJobId = currentJobId;
     setProgress(100, false);
     setStatus('success', 'fetched!');
-    startDownload(currentJobId, filename);
     clearActiveJob();
     if (lastFetch) recordHistory(lastFetch.url, filename, lastFetch.mode);
     maybeCelebrateFirstFetch();
-    wait(1400).then(function () {
+
+    // Give the success state a real paint before handing a potentially huge file
+    // to the browser. Without this, long VODs could appear to jump straight from
+    // "sniffing" to an empty URL field while the browser download started.
+    wait(350).then(function () {
+      startDownload(finishedJobId, filename);
+    });
+
+    wait(3000).then(function () {
       clearStatus();
       hideProgress();
       setBusy(false);
@@ -384,7 +392,7 @@
             break;
           case 'downloading':
             setStatus('fetching', 'bringing it back…');
-            setProgress(data.progress || 0, false);
+            setProgress(data.progress || 0, !(Number(data.progress) > 0));
             break;
           case 'processing':
             setStatus('fetching', 'almost there…');
@@ -750,8 +758,6 @@
 
     card.setAttribute('aria-describedby', 'welcome-copy');
 
-    /* Repair the one old failure mode: previous builds could set the seen flag
-       even when the claim request failed, leaving no visitor number behind. */
     try {
       if (localStorage.getItem(K_SEEN) && !localStorage.getItem(K_NUM)) localStorage.removeItem(K_SEEN);
     } catch (e) {}
@@ -864,9 +870,7 @@
         } catch (e) {}
         if (data && data.withinFirst) showWelcome(data.number, data.capacity || 100);
       })
-      .catch(function () {
-        /* Deliberately leave K_SEEN unset: a transient server failure retries next visit. */
-      });
+      .catch(function () {});
   })();
 
   /* -----------------------------------------------------------------------
