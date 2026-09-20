@@ -68,6 +68,11 @@ class ChatExportRequest(ChatCaptureRequest):
     resolution: Literal["1080p", "720p"] = "1080p"
     fps: Literal[30, 60] = 30
 
+    # Overall chat presentation. These change placement/entry motion while
+    # keeping the same message content, Twitch badges and third-party cosmetics.
+    chatLook: Literal["bubble", "fade-stack", "ticker", "staggered", "emote-cloud"] = "bubble"
+    entryAnimation: Literal["slide", "fade", "pop", "float", "instant"] = "slide"
+
     # Visual parity controls. 20 reference pixels at 1080p maps to the spacing
     # Fetcher's original browser preview used on its desktop stage.
     bubbleWidth: Literal["uniform", "auto"] = "uniform"
