@@ -59,11 +59,32 @@ def _fallback_label(base, badge: dict) -> str:
     return str(base._BADGES.get(set_id) or badge.get("title") or "").strip()
 
 
+def _apply_paint(pil, prepared, message, assets, style, name_font, badge_font, base):
+    # Imported lazily so badge rendering remains independent of optional 7TV
+    # paint support and continues to work even if the cosmetics API is empty.
+    from . import chat_paint_render
+
+    return chat_paint_render.redraw_username(
+        pil,
+        prepared,
+        message,
+        assets,
+        style,
+        name_font,
+        badge_font,
+        base,
+    )
+
+
 def redraw_name_row(pil, prepared, message: dict, assets: dict, style, name_font, badge_font, base):
-    """Replace temporary text badges with Twitch's real badge images."""
+    """Replace temporary text badges with Twitch artwork, then apply 7TV paint."""
     badges = [badge for badge in (message.get("badges") or []) if isinstance(badge, dict)]
     if not any(badge.get("imageUrl") for badge in badges):
-        return prepared
+        # Even with no artwork badges, this hook is the single name-row pass used
+        # by the export shim, so apply any resolved 7TV username paint here.
+        return _apply_paint(
+            pil, prepared, message, assets, style, name_font, badge_font, base
+        )
 
     image = prepared.base
     draw = pil.ImageDraw.Draw(image)
@@ -121,4 +142,6 @@ def redraw_name_row(pil, prepared, message: dict, assets: dict, style, name_font
     user_name = str((message.get("user") or {}).get("displayName") or "viewer")
     user_color = base._safe_color((message.get("user") or {}).get("color") or "")
     draw.text((cursor_x, origin_y), user_name, font=name_font, fill=user_color)
-    return prepared
+    return _apply_paint(
+        pil, prepared, message, assets, style, name_font, badge_font, base
+    )
