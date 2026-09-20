@@ -11,7 +11,7 @@ import logging
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from . import chat_capture, errors, limits, timecode
+from . import chat_capture, chat_emotes, errors, limits, timecode
 from .models import ChatCaptureRequest
 
 log = logging.getLogger("fetcher.chat")
@@ -30,6 +30,38 @@ def _client_key(request: Request) -> str:
 def _error(err: errors.FetcherError) -> JSONResponse:
     log.info("chat error %s: %s", err.code, err.detail or err.message)
     return JSONResponse(status_code=err.http_status, content=err.to_public())
+
+
+def _enrich_emotes(payload: dict) -> dict:
+    """Add third-party Twitch emotes without making chat depend on those APIs."""
+    video_id = str(payload.get("vodId") or "")
+    if not video_id:
+        return payload
+    try:
+        channel = chat_emotes.twitch_channel_for_vod(
+            video_id, chat_capture._TWITCH_CLIENT_ID
+        )
+        channel_id = str(channel.get("id") or "")
+        if not channel_id:
+            return payload
+        catalog, providers = chat_emotes.catalog_for_channel(channel_id)
+        resolved = chat_emotes.enrich_messages(payload.get("messages") or [], catalog)
+        payload["channel"] = channel
+        payload["emoteProviders"] = providers
+        payload["thirdPartyEmotes"] = resolved
+        log.info(
+            "chat emotes vod=%s channel=%s catalog=%s resolved=%s providers=%s",
+            video_id,
+            channel.get("login") or channel_id,
+            len(catalog),
+            resolved,
+            ",".join(providers) or "none",
+        )
+    except Exception:
+        # Native Twitch replay chat is the core feature; third-party emote APIs
+        # are optional decoration and must never make the capture fail.
+        log.exception("third-party emote enrichment failed for vod=%s", video_id)
+    return payload
 
 
 def register(app) -> None:
@@ -59,7 +91,8 @@ def register(app) -> None:
                     errors.INVALID_SECTION,
                     message="choose both a start and end time for chat capture",
                 )
-            return chat_capture.fetch_twitch_chat(req.url, section[0], section[1])
+            payload = chat_capture.fetch_twitch_chat(req.url, section[0], section[1])
+            return _enrich_emotes(payload)
         except ValueError as exc:
             return _error(errors.FetcherError(errors.INVALID_SECTION, detail=str(exc)))
         except errors.FetcherError as err:
