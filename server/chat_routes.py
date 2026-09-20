@@ -13,6 +13,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from . import (
+    chat_7tv_badges,
     chat_badges,
     chat_capture,
     chat_edits,
@@ -141,6 +142,22 @@ def _enrich_paints(payload: dict) -> dict:
     return payload
 
 
+def _enrich_7tv_badges(payload: dict) -> dict:
+    """Resolve equipped 7TV cosmetic badges for visible replay messages."""
+    try:
+        payload = chat_7tv_badges.apply(payload)
+        log.info(
+            "7TV badges messages=%s users=%s",
+            payload.get("sevenTvBadges", 0),
+            payload.get("sevenTvBadgeUsers", 0),
+        )
+    except Exception:
+        # Cosmetic badges are optional fidelity. Native Twitch badges and chat
+        # remain untouched if 7TV is unavailable or changes its cosmetics API.
+        log.exception("7TV badge enrichment failed")
+    return payload
+
+
 def _prepare_payload(payload: dict, req: ChatCaptureRequest) -> dict:
     payload = _enrich_emotes(payload)
     payload = _enrich_badges(payload)
@@ -151,9 +168,10 @@ def _prepare_payload(payload: dict, req: ChatCaptureRequest) -> dict:
         highlighted_ids=req.highlightedMessageIds,
         only_message_id=req.onlyMessageId,
     )
-    # Resolve paints after filters/edits so hidden or soloed-away chatters do not
-    # generate needless third-party cosmetic lookups.
+    # Resolve cosmetics after filters/edits so hidden or soloed-away chatters do
+    # not generate needless third-party cosmetic lookups.
     payload = _enrich_paints(payload)
+    payload = _enrich_7tv_badges(payload)
     # Finished Twitch VODs expose system events mostly as replay-chat text. Turn
     # those messages into structured events before preview/export so both paths
     # share the same event classification and badge labels.
