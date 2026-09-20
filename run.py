@@ -34,6 +34,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-presets.js": "application/javascript; charset=utf-8",
     "fetcher-chat-zerowidth.js": "application/javascript; charset=utf-8",
     "fetcher-chat-badges.js": "application/javascript; charset=utf-8",
+    "fetcher-chat-paints.js": "application/javascript; charset=utf-8",
 })
 # These helpers are harmless on non-chat pages (they exit immediately), which
 # lets us ship the extra controls without duplicating the shared HTML injector.
@@ -63,6 +64,8 @@ if "fetcher-chat-zerowidth.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-zerowidth.js"></script>'
 if "fetcher-chat-badges.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-badges.js"></script>'
+if "fetcher-chat-paints.js" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-paints.js"></script>'
 register_chat_routes(app_module.app)
 register_chat_activity_routes(app_module.app)
 register_chat_search_routes(app_module.app)
