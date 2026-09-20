@@ -12,6 +12,7 @@ import uvicorn
 
 from server import config
 import server.app as app_module
+from server.chat_activity_routes import register as register_chat_activity_routes
 from server.chat_routes import register as register_chat_routes
 
 # Chat is still a beta surface, so its routes/assets live outside the core app
@@ -21,6 +22,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat.js": "application/javascript; charset=utf-8",
     "fetcher-chat-enhance.js": "application/javascript; charset=utf-8",
     "fetcher-chat-parity.js": "application/javascript; charset=utf-8",
+    "fetcher-chat-insights.js": "application/javascript; charset=utf-8",
 })
 # These helpers are harmless on non-chat pages (they exit immediately), which
 # lets us ship the extra controls without duplicating the shared HTML injector.
@@ -28,7 +30,10 @@ if "fetcher-chat-enhance.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-enhance.js"></script>'
 if "fetcher-chat-parity.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-parity.js"></script>'
+if "fetcher-chat-insights.js" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-insights.js"></script>'
 register_chat_routes(app_module.app)
+register_chat_activity_routes(app_module.app)
 
 if __name__ == "__main__":
     uvicorn.run(
