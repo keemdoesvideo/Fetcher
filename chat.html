@@ -157,7 +157,7 @@
               </label>
             </div>
 
-            <p class="chat-export-hint" id="chat-export-hint">ProRes keeps real transparency and is the best choice for Resolve. 60 seconds max at 30 fps while export is in beta.</p>
+            <p class="chat-export-hint" id="chat-export-hint">ProRes 4444 keeps real transparency. Chat exports can be up to 20 minutes; finished server copies are deleted after download and abandoned exports are swept automatically.</p>
             <button class="chat-export-btn" id="chat-export-btn" type="button">export overlay</button>
 
             <div class="chat-export-progress" id="chat-export-progress" hidden>
@@ -170,7 +170,7 @@
             </div>
           </div>
 
-          <div class="chat-card chat-notice chat-export-note"><strong>same timeline.</strong> Export re-reads the selected Twitch section, resolves Twitch + 7TV + BTTV + FFZ emotes, and renders the same seven-message / 12-second overlay behaviour as the preview.</div>
+          <div class="chat-card chat-notice chat-export-note"><strong>temporary by design.</strong> Export re-reads the selected Twitch section and renders the overlay in a per-job temp folder. The server copy is removed after the browser transfer; abandoned exports are reclaimed by the stale-file sweeper.</div>
         </aside>
       </section>
     </div>
