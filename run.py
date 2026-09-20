@@ -1,9 +1,9 @@
-"""Convenience launcher: `python run.py` starts the Fetcher dev server.
+"""Convenience launcher: `python run.py` starts the Fetcher service.
 
-Equivalent to `python -m uvicorn server.app:app --host 127.0.0.1 --port 8765`.
-Set FETCHER_HOST / FETCHER_PORT to override. --reload is intentionally off here
-(it interferes with the background sweeper); use the uvicorn command with
---reload while iterating on backend code.
+Equivalent to serving ``server.app:app`` on the configured host/port, with the
+small beta feature registrars attached first. --reload is intentionally off here
+(it interferes with the background sweeper); use a direct uvicorn command while
+iterating on core backend code.
 """
 
 from __future__ import annotations
@@ -11,10 +11,20 @@ from __future__ import annotations
 import uvicorn
 
 from server import config
+import server.app as app_module
+from server.chat_routes import register as register_chat_routes
+
+# Chat is still a beta surface, so its routes/assets live outside the core app
+# module for now. The production launcher attaches them before Uvicorn starts.
+app_module.ALLOWED_ASSETS.update({
+    "fetcher-chat.css": "text/css; charset=utf-8",
+    "fetcher-chat.js": "application/javascript; charset=utf-8",
+})
+register_chat_routes(app_module.app)
 
 if __name__ == "__main__":
     uvicorn.run(
-        "server.app:app",
+        app_module.app,
         host=config.HOST,
         port=config.PORT,
         reload=False,
