@@ -91,7 +91,7 @@ def _message_image(pil, item, t: float, message_ttl: float, animation: str):
         image.alpha_composite(frame, (placement.x, placement.y))
 
     age = max(0.0, t - item.at)
-    enter_seconds = 0.26
+    enter_seconds = chat_export_plus.base._ENTER_SECONDS
     progress = min(1.0, age / enter_seconds) if enter_seconds else 1.0
     eased = chat_export_plus.base._ease_out(progress)
     opacity = 1.0
@@ -100,8 +100,12 @@ def _message_image(pil, item, t: float, message_ttl: float, animation: str):
 
     animation = normalise_animation(animation)
     if animation == "slide":
+        # This is Fetcher's original validated entry motion: a tiny 2.5% scale
+        # plus an 8px rise. Keeping it as the default means the redesign does not
+        # silently change existing exports until the user picks another motion.
         opacity = eased
-        y_offset = round((1.0 - eased) * 14)
+        y_offset = round((1.0 - eased) * 8)
+        scale = 0.975 + 0.025 * eased
     elif animation == "fade":
         opacity = progress
     elif animation == "pop":
