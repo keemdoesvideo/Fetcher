@@ -1,0 +1,18 @@
+/* Keep Chat's source bar at the same compact footprint before and after a VOD opens.
+   The staged mount grows when the trimmer appears; this prevents the URL row from
+   inheriting that wider intrinsic width. */
+.chat-flow-source .chat-source-row,
+.chat-flow-source.fetcher-source-ready .chat-source-row{
+  width:min(320px,calc(100vw - 48px))!important;
+  max-width:320px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+.chat-flow-source .chat-url-wrap{
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+.chat-flow-source .chat-source-note{
+  width:min(320px,calc(100vw - 48px))!important;
+  max-width:320px!important;
+}
