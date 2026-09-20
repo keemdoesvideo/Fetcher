@@ -55,6 +55,12 @@ class ChatCaptureRequest(BaseModel):
     timingMode: Literal["original", "readable"] = "readable"
     hideBots: bool = False
 
+    # Optional editor decisions keyed by Twitch replay-message id. These are
+    # ephemeral request data only; Fetcher never persists chat edits server-side.
+    hiddenMessageIds: list[str] = Field(default_factory=list, max_length=500)
+    highlightedMessageIds: list[str] = Field(default_factory=list, max_length=500)
+    onlyMessageId: Optional[str] = Field(default=None, max_length=256)
+
 
 class ChatExportRequest(ChatCaptureRequest):
     """Render a loaded Twitch replay-chat range as an editing overlay."""
