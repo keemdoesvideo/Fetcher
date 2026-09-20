@@ -420,7 +420,7 @@
 
   function startDownload(jobId, filename) {
     var link = document.createElement('a');
-    link.href = '/api/download/' + encodeURIComponent(jobId);
+    link.href = '/api/chat/download/' + encodeURIComponent(jobId);
     if (filename) link.download = filename;
     link.rel = 'noopener';
     document.body.appendChild(link);
