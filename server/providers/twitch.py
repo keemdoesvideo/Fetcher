@@ -1,14 +1,7 @@
-"""Twitch provider — clips only.
+"""Twitch provider — clips and finished VODs.
 
-Scoped deliberately to Twitch **clips** (short, self-contained). Full VODs are
-hours long (they'd blow the per-job timeout) and live channels aren't a file, so
-both are intentionally out of scope: a VOD/live URL simply doesn't match and is
-reported as unsupported.
-
-This is the first provider whose match is path-aware, not just host-based —
-clips.twitch.tv is always a clip, while on twitch.tv/www/m we only accept
-`/clip/` paths. It also excludes Twitch's "portrait-*" vertical renders in favour
-of the standard landscape clip.
+Twitch clips are short progressive files, while VODs are long-form HLS media.
+Live channels are intentionally unsupported because they are not finished files.
 """
 
 from __future__ import annotations
@@ -16,7 +9,10 @@ from __future__ import annotations
 import re
 from urllib.parse import urlsplit
 
+from .. import jobs as jobstate
+from ..jobs import Job
 from ..models import Preferences
+from .base import ProviderResult
 from .ytdlp_base import HEIGHT_CAP, YtdlpProvider, normalize_url
 
 
@@ -45,6 +41,26 @@ class TwitchProvider(YtdlpProvider):
     def long_form(self, url: str) -> bool:
         # A whole VOD can run to hours / many GB; clips are short.
         return self._is_vod(url)
+
+    def prepare(
+        self,
+        url: str,
+        mode: str,
+        preferences: Preferences,
+        job: Job,
+    ) -> ProviderResult:
+        # yt-dlp resolves Twitch VOD metadata and the HLS playlist inside the same
+        # extract_info(download=True) call that performs the actual fetch. On very
+        # long/trimmed VODs that means progress hooks may not fire for a while,
+        # leaving the UI stuck on "sniffing it out…" even though the real media
+        # operation is underway. Mark VODs as an active download up front; the
+        # normal hooks will replace the indeterminate state with a percentage when
+        # yt-dlp provides byte/fragment totals.
+        if self._is_vod(url):
+            job.status = jobstate.DOWNLOADING
+            job.stage = "downloading"
+            job.progress = 0.0
+        return super().prepare(url, mode, preferences, job)
 
     def _video_format(self, preferences: Preferences) -> str:
         cap = HEIGHT_CAP.get((preferences.videoQuality or "best").lower())
