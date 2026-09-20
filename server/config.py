@@ -100,9 +100,17 @@ JOB_TTL_SECONDS: int = int(os.environ.get("FETCHER_JOB_TTL", str(30 * 60)))
 
 # Chat overlays can be extremely large (especially ProRes 4444). They are
 # deleted immediately after a completed browser transfer; this shorter TTL is
-# the fallback for abandoned exports whose download never starts/completes.
+# the fallback for abandoned exports whose download never starts.
 CHAT_EXPORT_TTL_SECONDS: int = int(
     os.environ.get("FETCHER_CHAT_EXPORT_TTL", str(15 * 60))
+)
+
+# Once a browser has started receiving a file, stale cleanup must not cut that
+# transfer off just because the ready-file TTL elapsed. Background response
+# cleanup normally removes it immediately after transfer; this long ceiling is
+# only a crash/disconnect safety net if that callback never runs.
+DELIVERY_TTL_SECONDS: int = int(
+    os.environ.get("FETCHER_DELIVERY_TTL", str(6 * 60 * 60))
 )
 
 # How often the background sweeper runs.
