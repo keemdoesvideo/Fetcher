@@ -98,6 +98,13 @@ if YOUTUBE_COOKIES_FILE is None and _youtube_cookie_local.is_file():
 # abandoned downloads (user closed the tab before the browser fetched the file).
 JOB_TTL_SECONDS: int = int(os.environ.get("FETCHER_JOB_TTL", str(30 * 60)))
 
+# Chat overlays can be extremely large (especially ProRes 4444). They are
+# deleted immediately after a completed browser transfer; this shorter TTL is
+# the fallback for abandoned exports whose download never starts/completes.
+CHAT_EXPORT_TTL_SECONDS: int = int(
+    os.environ.get("FETCHER_CHAT_EXPORT_TTL", str(15 * 60))
+)
+
 # How often the background sweeper runs.
 SWEEP_INTERVAL_SECONDS: int = int(os.environ.get("FETCHER_SWEEP_INTERVAL", str(5 * 60)))
 
