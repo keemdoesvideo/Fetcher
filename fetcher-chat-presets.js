@@ -51,7 +51,7 @@
     '<div class="chat-presets-head"><div><span class="chat-presets-kicker">workflow</span><h2>saved presets</h2></div></div>',
     '<div class="chat-presets-save"><input id="chat-preset-name" type="text" maxlength="40" placeholder="TikTok chat, clean overlay…"><button class="chat-presets-btn primary" id="chat-preset-save" type="button">save current</button></div>',
     '<div class="chat-presets-row"><select class="chat-presets-select" id="chat-preset-select" aria-label="Saved chat preset"><option value="">no saved presets</option></select><button class="chat-presets-btn" id="chat-preset-apply" type="button">apply</button><button class="chat-presets-btn" id="chat-preset-delete" type="button">delete</button></div>',
-    '<p class="chat-presets-note" id="chat-preset-note">Presets stay in this browser and restore chat, canvas, sound and export settings in one click.</p>'
+    '<p class="chat-presets-note" id="chat-preset-note">Presets stay in this browser and restore look, timing, canvas, sound and export settings in one click.</p>'
   ].join('');
 
   var styleCard = side.querySelector('.chat-custom-card');
@@ -101,6 +101,10 @@
       else if (field.type === 'sound') settings[field.id] = el.value === 'custom' ? 'off' : el.value;
       else settings[field.id] = el.value;
     });
+    if (window.FetcherChatLooks) {
+      settings.__chatLook = window.FetcherChatLooks.getLook();
+      settings.__entryAnimation = window.FetcherChatLooks.getEntry();
+    }
     return settings;
   }
 
@@ -118,6 +122,10 @@
       if (!Object.prototype.hasOwnProperty.call(settings, field.id)) return;
       setControl(document.getElementById(field.id), settings[field.id], field.type);
     });
+    if (window.FetcherChatLooks) {
+      if (settings.__chatLook) window.FetcherChatLooks.setLook(String(settings.__chatLook));
+      if (settings.__entryAnimation) window.FetcherChatLooks.setEntry(String(settings.__entryAnimation));
+    }
   }
 
   function refresh(selectedName) {
