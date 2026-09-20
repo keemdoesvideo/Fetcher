@@ -12,7 +12,17 @@ import threading
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from . import chat_capture, chat_emotes, chat_export, chat_export_plus, errors, limits, timecode
+from . import (
+    chat_capture,
+    chat_emotes,
+    chat_export,
+    chat_export_plus,
+    chat_filters,
+    chat_timing,
+    errors,
+    limits,
+    timecode,
+)
 from . import jobs as jobstate
 from .jobs import JobCancelled, store
 from .models import ChatCaptureRequest, ChatExportRequest
@@ -71,6 +81,13 @@ def _enrich_emotes(payload: dict) -> dict:
     return payload
 
 
+def _prepare_payload(payload: dict, req: ChatCaptureRequest) -> dict:
+    payload = _enrich_emotes(payload)
+    payload = chat_filters.apply(payload, hide_bots=req.hideBots)
+    payload = chat_timing.apply(payload, req.timingMode)
+    return payload
+
+
 def _section(req: ChatCaptureRequest) -> tuple[float, float]:
     try:
         section = timecode.parse_section(req.start, req.end)
@@ -95,7 +112,7 @@ def _render_worker(job, req: ChatExportRequest, section: tuple[float, float]) ->
 
         job.stage = "resolving emotes"
         job.progress = 3.0
-        payload = _enrich_emotes(payload)
+        payload = _prepare_payload(payload, req)
         output, filename, media_type = chat_export_plus.render(
             payload,
             job,
@@ -149,7 +166,7 @@ def register(app) -> None:
         try:
             section = _section(req)
             payload = chat_capture.fetch_twitch_chat(req.url, section[0], section[1])
-            return _enrich_emotes(payload)
+            return _prepare_payload(payload, req)
         except errors.FetcherError as err:
             return _error(err)
 
