@@ -59,6 +59,9 @@ class Job:
     section: Optional[tuple[float, float]] = None
     # Per-job prepare timeout (long-form full downloads get a longer one).
     timeout: Optional[float] = None
+    # Optional terminal-retention override. Large ephemeral outputs such as chat
+    # overlays can use a shorter abandoned-file window than normal media jobs.
+    retention_seconds: Optional[int] = None
 
     # Cancellation / timeout signalling.
     cancel_event: threading.Event = field(default_factory=threading.Event)
@@ -142,14 +145,19 @@ class JobStore:
 
         Active downloads are deliberately never swept. Long-form media can take
         well over the retention window to prepare, and deleting an in-flight
-        working directory corrupts the running yt-dlp/FFmpeg job.
+        working directory corrupts the running yt-dlp/FFmpeg job. A job may opt
+        into a shorter terminal-retention window for large ephemeral outputs.
         """
         now = time.time()
         with self._lock:
             stale = [
                 j for j in self._jobs.values()
                 if j.status in TERMINAL
-                and now - (j.finished_at or j.created_at) > ttl_seconds
+                and now - (j.finished_at or j.created_at) > (
+                    j.retention_seconds
+                    if j.retention_seconds is not None
+                    else ttl_seconds
+                )
             ]
             for job in stale:
                 self._jobs.pop(job.id, None)
