@@ -29,6 +29,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-index-resilience.js": "application/javascript; charset=utf-8",
     "fetcher-chat-fullsearch.js": "application/javascript; charset=utf-8",
     "fetcher-chat-fullsearch-bridge.js": "application/javascript; charset=utf-8",
+    "fetcher-chat-events.js": "application/javascript; charset=utf-8",
 })
 # These helpers are harmless on non-chat pages (they exit immediately), which
 # lets us ship the extra controls without duplicating the shared HTML injector.
@@ -48,6 +49,8 @@ if "fetcher-chat-fullsearch.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-fullsearch.js"></script>'
 if "fetcher-chat-fullsearch-bridge.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-fullsearch-bridge.js"></script>'
+if "fetcher-chat-events.js" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-events.js"></script>'
 register_chat_routes(app_module.app)
 register_chat_activity_routes(app_module.app)
 register_chat_search_routes(app_module.app)
