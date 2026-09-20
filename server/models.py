@@ -72,6 +72,7 @@ class ChatExportRequest(ChatCaptureRequest):
     # keeping the same message content, Twitch badges and third-party cosmetics.
     chatLook: Literal["bubble", "fade-stack", "ticker", "staggered", "spotlight", "emote-cloud"] = "bubble"
     entryAnimation: Literal["slide", "fade", "pop", "float", "instant"] = "slide"
+    chatFont: Literal["system", "arial", "helvetica", "verdana", "georgia", "courier"] = "system"
 
     # Visual parity controls. 20 reference pixels at 1080p maps to the spacing
     # Fetcher's original browser preview used on its desktop stage.
