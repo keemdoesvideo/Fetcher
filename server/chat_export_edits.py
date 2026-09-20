@@ -1,9 +1,9 @@
-"""Small render shim for per-message edits, Twitch events and tight canvases.
+"""Render shim for message edits, Twitch events and alternate chat canvases.
 
-``chat_export_plus`` owns the proven renderer. Rather than duplicate that large
-module, this wrapper temporarily teaches it Fetcher's synthetic event badges,
-decorates user-highlighted messages, and can shrink the encoded frame around the
-largest chat stack needed by the selected clip. Chat exports are serialized by
+``chat_export_plus`` owns the proven renderer. This wrapper temporarily teaches
+it Fetcher's synthetic event badges, decorates user-highlighted messages, and
+can either shrink the encoded frame around the chat or reshape the normal full
+frame for common social-video aspect ratios. Chat exports are serialized by
 ``chat_routes`` so these short-lived patches cannot overlap another render.
 """
 
@@ -43,8 +43,6 @@ def _decorated_prepare(original):
         glow_width = max(3, round(style.width / 640))
         line_width = max(2, round(style.width / 960))
 
-        # A soft outer accent plus a crisp purple edge keeps manually highlighted
-        # chat obvious without changing the text/emote artwork underneath it.
         try:
             draw.rounded_rectangle(
                 rect,
@@ -77,6 +75,37 @@ def _even(value: float) -> int:
     return max(2, int(math.ceil(float(value) / 2.0) * 2))
 
 
+def _reshape_style(style, aspect: str) -> None:
+    """Turn the normal landscape style into a social-video full frame.
+
+    Font, badge and emote sizes stay at the selected 1080p/720p scale. Only the
+    canvas and available bubble width change, so a vertical export does not make
+    chat text mysteriously tiny just because its frame is narrow.
+    """
+    if aspect == "16:9":
+        return
+
+    short_edge = int(style.height)
+    if aspect == "9:16":
+        width, height = short_edge, round(short_edge * 16 / 9)
+    elif aspect == "4:5":
+        width, height = short_edge, round(short_edge * 5 / 4)
+    elif aspect == "1:1":
+        width, height = short_edge, short_edge
+    else:
+        return
+
+    width = _even(width)
+    height = _even(height)
+    side_margin = max(12, round(width * 0.05))
+
+    style.width = width
+    style.height = height
+    style.stack_left = side_margin
+    style.stack_bottom = max(12, round(height * 0.05))
+    style.stack_width = max(180, min(int(style.stack_width), width - side_margin * 2))
+
+
 def _tighten_style(style, prepared, *, bubble_gap: int, message_ttl: float, max_visible: int, padding: int) -> None:
     """Resize a render style around the largest stack this clip can actually show.
 
@@ -96,9 +125,6 @@ def _tighten_style(style, prepared, *, bubble_gap: int, message_ttl: float, max_
 
     max_width = max(int(item.base.width) for item in prepared)
 
-    # Find the largest stack that can truly coexist at any message arrival time.
-    # This is tighter than blindly summing the N tallest bubbles, while remaining
-    # deterministic and O(n) for busy clips.
     active = deque()
     active_height = 0
     max_stack_height = 0
@@ -126,8 +152,22 @@ def _tighten_style(style, prepared, *, bubble_gap: int, message_ttl: float, max_
     style.stack_bottom = pad + motion_pad
 
 
-def _prepared_with_canvas(original, *, canvas_mode: str, bubble_gap: int, message_ttl: float, max_visible: int, padding: int):
+def _prepared_with_canvas(
+    original,
+    *,
+    canvas_mode: str,
+    canvas_aspect: str,
+    bubble_gap: int,
+    message_ttl: float,
+    max_visible: int,
+    padding: int,
+):
     def prepare_messages(pil, payload, assets, style, job, bubble_width):
+        # Full-frame social presets must reshape before message layout so wrapping
+        # respects the narrower vertical/square canvas. Tight mode deliberately
+        # keeps the proven landscape chat sizing, then crops around the result.
+        if canvas_mode == "full":
+            _reshape_style(style, canvas_aspect)
         prepared = original(pil, payload, assets, style, job, bubble_width)
         if canvas_mode == "tight":
             _tighten_style(
@@ -148,6 +188,9 @@ def render(*args, **kwargs):
     canvas_mode = str(kwargs.pop("canvas_mode", "full") or "full").lower()
     if canvas_mode not in {"full", "tight"}:
         canvas_mode = "full"
+    canvas_aspect = str(kwargs.pop("canvas_aspect", "16:9") or "16:9")
+    if canvas_aspect not in {"16:9", "9:16", "4:5", "1:1"}:
+        canvas_aspect = "16:9"
     canvas_padding = max(0, min(160, int(kwargs.pop("canvas_padding", 32))))
     bubble_gap = int(kwargs.get("bubble_gap", 20))
     message_ttl = float(kwargs.get("message_ttl", 12.0))
@@ -161,6 +204,7 @@ def render(*args, **kwargs):
         chat_export_plus._prepare_messages = _prepared_with_canvas(
             original_prepare_messages,
             canvas_mode=canvas_mode,
+            canvas_aspect=canvas_aspect,
             bubble_gap=bubble_gap,
             message_ttl=message_ttl,
             max_visible=max_visible,
@@ -168,13 +212,19 @@ def render(*args, **kwargs):
         )
         try:
             result = chat_export_plus.render(*args, **kwargs)
-            if canvas_mode == "tight" and isinstance(result, tuple) and len(result) == 3:
+            if isinstance(result, tuple) and len(result) == 3:
                 output, filename, media_type = result
-                dot = filename.rfind(".")
-                if dot > 0:
-                    filename = filename[:dot] + "-tight" + filename[dot:]
-                else:
-                    filename += "-tight"
+                suffix = ""
+                if canvas_mode == "tight":
+                    suffix = "-tight"
+                elif canvas_aspect != "16:9":
+                    suffix = "-" + canvas_aspect.replace(":", "x")
+                if suffix:
+                    dot = filename.rfind(".")
+                    if dot > 0:
+                        filename = filename[:dot] + suffix + filename[dot:]
+                    else:
+                        filename += suffix
                 return output, filename, media_type
             return result
         finally:
