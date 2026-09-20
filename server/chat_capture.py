@@ -39,8 +39,10 @@ _TWITCH_CHAT_HASH = os.environ.get(
 )
 _VOD_RE = re.compile(r"^/videos/(?P<id>\d+)(?:/|$)", re.IGNORECASE)
 _MAX_RANGE_SECONDS = 30 * 60
-_MAX_MESSAGES = 4000
-_MAX_PAGES = 100
+# Longer overlay exports need more headroom than the original beta slice. Keep
+# finite caps so a huge event chat cannot consume unbounded memory/API pages.
+_MAX_MESSAGES = 20_000
+_MAX_PAGES = 500
 
 
 def _vod_id(url: str) -> str:
@@ -229,9 +231,9 @@ def _normalize_comment(node: dict, start: float) -> dict | None:
 def fetch_twitch_chat(url: str, start: float, end: float) -> dict:
     """Fetch and normalize replay chat for ``start <= t <= end``.
 
-    The caller validates the timecode syntax. We enforce a bounded preview
-    window here because this endpoint is interactive and the hosted instance is
-    shared; export can later use a separate queued render path with its own limits.
+    The caller validates the timecode syntax. Windows stay bounded because this
+    endpoint is interactive and the hosted instance is shared; the higher
+    message/page caps leave enough headroom for genuinely useful long exports.
     """
     video_id = _vod_id(url)
     start = max(0.0, float(start))
