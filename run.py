@@ -26,6 +26,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-insights.js": "application/javascript; charset=utf-8",
     "fetcher-chat-scrubheat.js": "application/javascript; charset=utf-8",
     "fetcher-chat-editor.js": "application/javascript; charset=utf-8",
+    "fetcher-chat-index-resilience.js": "application/javascript; charset=utf-8",
     "fetcher-chat-fullsearch.js": "application/javascript; charset=utf-8",
     "fetcher-chat-fullsearch-bridge.js": "application/javascript; charset=utf-8",
 })
@@ -41,6 +42,8 @@ if "fetcher-chat-scrubheat.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-scrubheat.js"></script>'
 if "fetcher-chat-editor.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-editor.js"></script>'
+if "fetcher-chat-index-resilience.js" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-index-resilience.js"></script>'
 if "fetcher-chat-fullsearch.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-fullsearch.js"></script>'
 if "fetcher-chat-fullsearch-bridge.js" not in app_module._LAUNCH_HEAD:
