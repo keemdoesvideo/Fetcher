@@ -2,10 +2,11 @@
 
 ``chat_export_plus`` owns the proven renderer. This wrapper temporarily teaches
 it Fetcher's synthetic event badges, decorates user-highlighted messages,
-composites 7TV zero-width modifiers over their base emote, and can either shrink
-the encoded frame around the chat or reshape the normal full frame for common
-social-video aspect ratios. Chat exports are serialized by ``chat_routes`` so
-these short-lived patches cannot overlap another render.
+composites 7TV zero-width modifiers over their base emote, renders real Twitch
+badge artwork, and can either shrink the encoded frame around the chat or reshape
+the normal full frame for common social-video aspect ratios. Chat exports are
+serialized by ``chat_routes`` so these short-lived patches cannot overlap another
+render.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from collections import deque
 import math
 import threading
 
-from . import chat_export_plus
+from . import chat_badge_render, chat_export_plus
 
 _lock = threading.Lock()
 
@@ -280,6 +281,14 @@ def _decorated_prepare(original):
             if event_type and label:
                 chat_export_plus.base._BADGES[f"event-{event_type}"] = label
 
+        # The proven layout measures text badges. Register a short placeholder for
+        # artwork-only badge sets so uncommon Twitch badges still reserve enough
+        # room in auto-width bubbles; the placeholder is replaced after layout.
+        chat_badge_render.register_fallback_labels(
+            message,
+            chat_export_plus.base._BADGES,
+        )
+
         if _has_zero_width(message):
             prepared = _prepare_zero_width(
                 pil, message, assets, style, body_font, name_font, badge_font, bubble_width
@@ -288,6 +297,17 @@ def _decorated_prepare(original):
             prepared = original(
                 pil, message, assets, style, body_font, name_font, badge_font, bubble_width
             )
+
+        prepared = chat_badge_render.redraw_name_row(
+            pil,
+            prepared,
+            message,
+            assets,
+            style,
+            name_font,
+            badge_font,
+            chat_export_plus.base,
+        )
         return _decorate_highlight(pil, prepared, message, style)
 
     return prepare
@@ -412,6 +432,7 @@ def render(*args, **kwargs):
     with _lock:
         original_prepare = chat_export_plus._prepare_message
         original_prepare_messages = chat_export_plus._prepare_messages
+        original_collect_urls = chat_export_plus.base._collect_emote_urls
         original_badges = dict(chat_export_plus.base._BADGES)
         chat_export_plus._prepare_message = _decorated_prepare(original_prepare)
         chat_export_plus._prepare_messages = _prepared_with_canvas(
@@ -422,6 +443,10 @@ def render(*args, **kwargs):
             message_ttl=message_ttl,
             max_visible=max_visible,
             padding=canvas_padding,
+        )
+        chat_export_plus.base._collect_emote_urls = chat_badge_render.collector_with_badges(
+            original_collect_urls,
+            chat_export_plus.base,
         )
         try:
             result = chat_export_plus.render(*args, **kwargs)
@@ -443,5 +468,6 @@ def render(*args, **kwargs):
         finally:
             chat_export_plus._prepare_message = original_prepare
             chat_export_plus._prepare_messages = original_prepare_messages
+            chat_export_plus.base._collect_emote_urls = original_collect_urls
             chat_export_plus.base._BADGES.clear()
             chat_export_plus.base._BADGES.update(original_badges)
