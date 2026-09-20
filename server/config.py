@@ -20,6 +20,21 @@ TEMP_ROOT: Path = Path(
     os.environ.get("FETCHER_TEMP_ROOT", str(PROJECT_ROOT / ".fetcher-tmp"))
 )
 
+# Finished full-VOD chat indexes are useful beyond one process lifetime. Keep
+# them outside the per-job temp tree so a Fetcher restart does not force the same
+# Twitch VOD to be indexed again. On the hosted Mac, FETCHER_TEMP_ROOT points at
+# ~/ServiceData/Fetcher/tmp, so the default below naturally becomes the sibling
+# ~/ServiceData/Fetcher/chat-index directory. Local development stays inside the
+# already-gitignored .fetcher-data folder.
+_default_chat_index_root = (
+    TEMP_ROOT.parent / "chat-index"
+    if os.environ.get("FETCHER_TEMP_ROOT")
+    else PROJECT_ROOT / ".fetcher-data" / "chat-index"
+)
+CHAT_INDEX_ROOT: Path = Path(
+    os.environ.get("FETCHER_CHAT_INDEX_ROOT", str(_default_chat_index_root))
+)
+
 # --- Server ----------------------------------------------------------------
 HOST: str = os.environ.get("FETCHER_HOST", "127.0.0.1")
 PORT: int = int(os.environ.get("FETCHER_PORT", "8765"))
