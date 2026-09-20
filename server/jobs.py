@@ -27,11 +27,13 @@ class JobCancelled(Exception):
 
 # Job status values the frontend polls on. 'preparing' is the brief window
 # before the first byte; 'downloading'/'processing' carry a progress %; the rest
-# are terminal.
+# are terminal except DELIVERING, which means FileResponse is actively streaming
+# the finished file to the browser.
 PREPARING = "preparing"
 DOWNLOADING = "downloading"
 PROCESSING = "processing"   # FFmpeg merge (video) / convert (audio)
 READY = "ready"
+DELIVERING = "delivering"
 ERROR = "error"
 CANCELLED = "cancelled"
 
@@ -62,6 +64,12 @@ class Job:
     # Optional terminal-retention override. Large ephemeral outputs such as chat
     # overlays can use a shorter abandoned-file window than normal media jobs.
     retention_seconds: Optional[int] = None
+    # Delivery starts only after a ready file is requested by the browser. The
+    # background response cleanup normally removes the directory immediately
+    # after transfer; these fields keep the stale sweeper from interrupting a
+    # slow large-file transfer and still provide a crash/disconnect backstop.
+    delivery_started_at: Optional[float] = None
+    delivery_timeout_seconds: Optional[int] = None
 
     # Cancellation / timeout signalling.
     cancel_event: threading.Event = field(default_factory=threading.Event)
@@ -120,6 +128,25 @@ class JobStore:
         job.status = READY
         job.finished_at = time.time()
 
+    def begin_delivery(self, job: Job) -> bool:
+        """Atomically lease a ready file to one browser download.
+
+        READY jobs are eligible for abandoned-file cleanup. DELIVERING jobs are
+        protected from that short TTL while bytes are in flight, then removed by
+        the response background task. A much longer delivery timeout remains as
+        a safety net if the server/client disappears mid-transfer.
+        """
+        with self._lock:
+            current = self._jobs.get(job.id)
+            if current is not job or not job.ready:
+                return False
+            job.status = DELIVERING
+            job.stage = "sending file"
+            job.delivery_started_at = time.time()
+            if job.delivery_timeout_seconds is None:
+                job.delivery_timeout_seconds = config.DELIVERY_TTL_SECONDS
+            return True
+
     def mark_failed(self, job: Job, status: str, code: Optional[str] = None,
                     message: Optional[str] = None) -> None:
         """Terminal failure/cancel: record the outcome and delete any partial
@@ -141,24 +168,34 @@ class JobStore:
 
     # --- maintenance -------------------------------------------------------
     def sweep_stale(self, ttl_seconds: int) -> int:
-        """Remove abandoned terminal jobs after their TTL.
+        """Remove abandoned terminal jobs and stuck delivery leases.
 
-        Active downloads are deliberately never swept. Long-form media can take
-        well over the retention window to prepare, and deleting an in-flight
-        working directory corrupts the running yt-dlp/FFmpeg job. A job may opt
-        into a shorter terminal-retention window for large ephemeral outputs.
+        Active prepare/render jobs are deliberately never swept. A READY job may
+        use a shorter retention override; a DELIVERING job is protected from that
+        short TTL and only reclaimed after its much longer delivery backstop.
         """
         now = time.time()
         with self._lock:
-            stale = [
-                j for j in self._jobs.values()
-                if j.status in TERMINAL
-                and now - (j.finished_at or j.created_at) > (
-                    j.retention_seconds
-                    if j.retention_seconds is not None
-                    else ttl_seconds
-                )
-            ]
+            stale = []
+            for job in self._jobs.values():
+                if job.status in TERMINAL:
+                    ttl = (
+                        job.retention_seconds
+                        if job.retention_seconds is not None
+                        else ttl_seconds
+                    )
+                    if now - (job.finished_at or job.created_at) > ttl:
+                        stale.append(job)
+                    continue
+                if job.status == DELIVERING:
+                    delivery_ttl = (
+                        job.delivery_timeout_seconds
+                        if job.delivery_timeout_seconds is not None
+                        else config.DELIVERY_TTL_SECONDS
+                    )
+                    if now - (job.delivery_started_at or now) > delivery_ttl:
+                        stale.append(job)
+
             for job in stale:
                 self._jobs.pop(job.id, None)
         for job in stale:
