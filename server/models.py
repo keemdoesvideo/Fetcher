@@ -52,3 +52,10 @@ class ChatCaptureRequest(BaseModel):
     url: str = Field(..., min_length=1, max_length=2048)
     start: str = Field(..., min_length=1, max_length=16)
     end: str = Field(..., min_length=1, max_length=16)
+
+
+class ChatExportRequest(ChatCaptureRequest):
+    """Render a loaded Twitch replay-chat range as an editing overlay."""
+    format: Literal["prores", "webm", "greenscreen"] = "prores"
+    resolution: Literal["1080p", "720p"] = "1080p"
+    fps: Literal[30, 60] = 30
