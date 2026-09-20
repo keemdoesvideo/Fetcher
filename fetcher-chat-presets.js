@@ -16,6 +16,7 @@
     { id: 'chat-hide-bots', type: 'checked' },
     { id: 'chat-bubble-width', type: 'value' },
     { id: 'chat-bubble-gap', type: 'value' },
+    { id: 'chat-font', type: 'value' },
     { id: 'chat-sound-preset', type: 'sound' },
     { id: 'chat-sound-volume', type: 'value' },
     { id: 'chat-sound-gap', type: 'value' },
@@ -51,7 +52,7 @@
     '<div class="chat-presets-head"><div><span class="chat-presets-kicker">workflow</span><h2>saved presets</h2></div></div>',
     '<div class="chat-presets-save"><input id="chat-preset-name" type="text" maxlength="40" placeholder="TikTok chat, clean overlay…"><button class="chat-presets-btn primary" id="chat-preset-save" type="button">save current</button></div>',
     '<div class="chat-presets-row"><select class="chat-presets-select" id="chat-preset-select" aria-label="Saved chat preset"><option value="">no saved presets</option></select><button class="chat-presets-btn" id="chat-preset-apply" type="button">apply</button><button class="chat-presets-btn" id="chat-preset-delete" type="button">delete</button></div>',
-    '<p class="chat-presets-note" id="chat-preset-note">Presets stay in this browser and restore look, timing, canvas, sound and export settings in one click.</p>'
+    '<p class="chat-presets-note" id="chat-preset-note">Presets stay in this browser and restore look, timing, font, canvas, sound and export settings in one click.</p>'
   ].join('');
 
   var styleCard = side.querySelector('.chat-custom-card');
@@ -112,7 +113,6 @@
     if (!el) return;
     if (type === 'checked') el.checked = !!value;
     else el.value = String(value);
-    // Existing enhancement scripts listen to both depending on the control.
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
