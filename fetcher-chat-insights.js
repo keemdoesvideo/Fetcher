@@ -129,6 +129,9 @@
       start.dispatchEvent(new Event('change', { bubbles: true }));
       end.value = fmt(Math.min(duration, seconds + 20));
       end.dispatchEvent(new Event('change', { bubbles: true }));
+      if (video) {
+        try { video.currentTime = seconds; } catch (e) {}
+      }
     }
     trimMount.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -233,9 +236,8 @@
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'chat-search-result';
-      var user = message.user || {};
       button.innerHTML = '<span class="chat-search-time">' + fmt(message.offset || 0) + '</span><span class="chat-search-copy"><strong></strong><span></span></span>';
-      button.querySelector('strong').textContent = user.displayName || user.login || 'viewer';
+      button.querySelector('strong').textContent = (message.user && message.user.displayName) || (message.user && message.user.login) || 'viewer';
       button.querySelector('.chat-search-copy span').textContent = message.text || '(emote)';
       button.addEventListener('click', function () { seekMessage(message); });
       searchResults.appendChild(button);
