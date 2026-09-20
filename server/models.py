@@ -70,7 +70,7 @@ class ChatExportRequest(ChatCaptureRequest):
 
     # Overall chat presentation. These change placement/entry motion while
     # keeping the same message content, Twitch badges and third-party cosmetics.
-    chatLook: Literal["bubble", "fade-stack", "ticker", "staggered", "emote-cloud"] = "bubble"
+    chatLook: Literal["bubble", "fade-stack", "ticker", "staggered", "spotlight", "emote-cloud"] = "bubble"
     entryAnimation: Literal["slide", "fade", "pop", "float", "instant"] = "slide"
 
     # Visual parity controls. 20 reference pixels at 1080p maps to the spacing
