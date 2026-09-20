@@ -45,3 +45,10 @@ class PrepareRequest(BaseModel):
 class PreviewRequest(BaseModel):
     """Open a same-origin scrub-preview session for a video-capable URL."""
     url: str = Field(..., min_length=1, max_length=2048)
+
+
+class ChatCaptureRequest(BaseModel):
+    """Read replay-chat messages from a selected VOD time range."""
+    url: str = Field(..., min_length=1, max_length=2048)
+    start: str = Field(..., min_length=1, max_length=16)
+    end: str = Field(..., min_length=1, max_length=16)
