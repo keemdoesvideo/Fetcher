@@ -19,9 +19,13 @@
 .chat-flow-source-inner{max-width:1040px;margin:auto;}
 .chat-flow-source .chat-source{width:min(940px,100%);margin:auto;padding:0;border:0;background:transparent;box-shadow:none;max-height:calc(100dvh - 42px);overflow:auto;scrollbar-width:none;}
 .chat-flow-source .chat-source::-webkit-scrollbar{display:none;}
-.chat-flow-source .chat-source-row{width:min(640px,100%);margin:0 auto;gap:0;}
-.chat-flow-source .chat-url-wrap{border-width:1.5px;border-radius:var(--r-lg);padding-left:15px;background:var(--surface);box-shadow:var(--shadow-sm);}
-.chat-flow-source .chat-paste{padding:9px 13px;border-radius:11px;}
+/* Exact Save-page input footprint: 640px stage width + the same outer row geometry. */
+.chat-flow-source .chat-source-row{width:100%;max-width:640px;margin:0 auto;gap:0;}
+.chat-flow-source .chat-url-wrap{width:100%;box-sizing:border-box;display:flex;align-items:center;gap:11px;border:1.5px solid var(--ink)!important;border-radius:var(--r-lg)!important;padding:10px 15px!important;background:var(--surface)!important;box-shadow:var(--shadow-sm);}
+.chat-flow-source .chat-url-wrap:focus-within{box-shadow:0 0 0 4px var(--accent-tint)!important;border-color:var(--ink)!important;}
+.chat-flow-source .chat-url-icon{width:16px;height:16px;}
+.chat-flow-source #chat-url{padding:0!important;font-size:14.5px!important;}
+.chat-flow-source .chat-paste{height:30px;padding:0 14px;border-radius:11px;display:flex;align-items:center;}
 .chat-flow-source .chat-source-state{display:none!important;}
 .chat-flow-source .chat-source-note{display:none;margin:9px auto 0;width:min(640px,100%);}
 .chat-flow-source .chat-source-note.error{display:block!important;}
