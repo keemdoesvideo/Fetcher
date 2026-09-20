@@ -17,7 +17,6 @@ import logging
 import math
 import threading
 import time
-import urllib.error
 import urllib.request
 
 log = logging.getLogger("fetcher.chat.paints")
@@ -36,7 +35,7 @@ _user_cache: dict[str, tuple[float, str | None]] = {}
 _paint_cache: dict[str, tuple[float, dict | None]] = {}
 
 
-def _post(query: str, variables: dict | None = None) -> dict:
+def _post(query: str, variables: dict | None = None, *, allow_partial: bool = False) -> dict:
     body = json.dumps(
         {"query": query, "variables": variables or {}},
         separators=(",", ":"),
@@ -55,10 +54,14 @@ def _post(query: str, variables: dict | None = None) -> dict:
         parsed = json.loads(response.read().decode("utf-8", "replace"))
     if not isinstance(parsed, dict):
         raise ValueError("7TV returned an invalid response")
-    if parsed.get("errors"):
-        raise ValueError("7TV GraphQL rejected the cosmetics lookup")
     data = parsed.get("data")
-    return data if isinstance(data, dict) else {}
+    if parsed.get("errors") and not allow_partial:
+        raise ValueError("7TV GraphQL rejected the cosmetics lookup")
+    if not isinstance(data, dict):
+        if parsed.get("errors"):
+            raise ValueError("7TV GraphQL returned no usable cosmetics data")
+        return {}
+    return data
 
 
 def _chunks(values: list[str], size: int):
@@ -245,7 +248,10 @@ def _fetch_user_ids(user_ids: list[str]) -> None:
             )
         query = "query FetcherPaintUsers{" + " ".join(fields) + "}"
         try:
-            data = _post(query)
+            # Many ordinary Twitch chatters do not have 7TV accounts. GraphQL can
+            # report those aliases as errors while still returning valid siblings,
+            # so keep the partial data instead of discarding the whole batch.
+            data = _post(query, allow_partial=True)
         except Exception as exc:
             log.info("7TV user-paint batch unavailable: %s", exc)
             continue
