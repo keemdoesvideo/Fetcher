@@ -59,3 +59,18 @@ class ChatExportRequest(ChatCaptureRequest):
     format: Literal["prores", "webm", "greenscreen"] = "prores"
     resolution: Literal["1080p", "720p"] = "1080p"
     fps: Literal[30, 60] = 30
+
+    # Visual parity controls. 20 reference pixels at 1080p maps to the spacing
+    # Fetcher's original browser preview used on its desktop stage.
+    bubbleWidth: Literal["uniform", "auto"] = "uniform"
+    bubbleGap: int = Field(default=20, ge=8, le=40)
+    messageLifetime: float = Field(default=12.0, ge=4.0, le=30.0)
+    maxVisible: int = Field(default=7, ge=3, le=12)
+
+    # Optional message cue. Custom sounds are sent as a small data URL so the
+    # public instance never needs persistent uploads; the renderer caps decoded
+    # input to 2 MB / 2 seconds.
+    soundPreset: Literal["off", "pop", "tick", "bubble", "custom"] = "off"
+    soundVolume: int = Field(default=65, ge=0, le=100)
+    soundMinGapMs: int = Field(default=120, ge=0, le=1000)
+    soundData: Optional[str] = Field(default=None, max_length=3_000_000)
