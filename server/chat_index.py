@@ -28,6 +28,13 @@ _MAX_PAGES = 6_000
 _TTL_SECONDS = 60 * 60
 _MAX_CACHED = 4
 
+# Twitch's replay-chat GraphQL endpoint can briefly rate-limit or drop a page
+# during long indexes. A full VOD should not make the user keep pressing the
+# index button just because one request hiccupped, so page reads retry in-place
+# and the worker keeps its current cursor/messages while waiting.
+_PAGE_RETRIES = 8
+_PAGE_PACE_SECONDS = 0.20
+
 
 @dataclass
 class IndexEntry:
@@ -40,6 +47,8 @@ class IndexEntry:
     truncated: bool = False
     error: str = ""
     messages: list[dict] = field(default_factory=list)
+    retrying: bool = False
+    retry_attempt: int = 0
     created_at: float = field(default_factory=time.monotonic)
     updated_at: float = field(default_factory=time.monotonic)
 
@@ -78,6 +87,8 @@ def _public(entry: IndexEntry) -> dict:
         "lastOffset": round(entry.last_offset, 3),
         "duration": round(entry.duration, 3),
         "truncated": entry.truncated,
+        "retrying": entry.retrying,
+        "retryAttempt": entry.retry_attempt,
         "error": entry.error or None,
         "expiresIn": _TTL_SECONDS if entry.status == "ready" else None,
     }
@@ -103,6 +114,68 @@ def _compact(node: dict) -> dict | None:
     }
 
 
+def _retry_delay(err: errors.FetcherError, attempt: int) -> float:
+    """Back off harder for Twitch rate limits, gently for ordinary network blips."""
+    detail = str(err.detail or "").lower()
+    if "http 429" in detail or "rate" in detail or "too many" in detail:
+        return min(45.0, 8.0 * attempt)
+    return min(20.0, 0.75 * (2 ** max(0, attempt - 1)))
+
+
+def _request_page_resilient(
+    entry: IndexEntry,
+    *,
+    offset: float,
+    cursor: str | None,
+    page_num: int,
+) -> dict:
+    """Read one Twitch page, transparently surviving temporary endpoint failures."""
+    last_error: errors.FetcherError | None = None
+    for attempt in range(1, _PAGE_RETRIES + 1):
+        try:
+            envelope = chat_capture._request_page(
+                entry.vod_id,
+                offset=offset,
+                cursor=cursor,
+            )
+            with _lock:
+                if _entries.get(entry.vod_id) is entry:
+                    entry.retrying = False
+                    entry.retry_attempt = 0
+                    entry.error = ""
+                    _touch(entry)
+            return envelope
+        except errors.FetcherError as err:
+            last_error = err
+            # A missing/removed VOD will not heal by waiting; everything else
+            # coming from replay-chat extraction is allowed several retries.
+            if err.code == errors.VIDEO_UNAVAILABLE or attempt >= _PAGE_RETRIES:
+                raise
+
+            delay = _retry_delay(err, attempt)
+            with _lock:
+                if _entries.get(entry.vod_id) is not entry:
+                    raise
+                entry.retrying = True
+                entry.retry_attempt = attempt
+                _touch(entry)
+            log.info(
+                "chat index page retry vod=%s page=%s attempt=%s/%s delay=%.1fs detail=%s",
+                entry.vod_id,
+                page_num,
+                attempt,
+                _PAGE_RETRIES,
+                delay,
+                err.detail or err.message,
+            )
+            time.sleep(delay)
+
+    # Defensive fallback; the loop either returns or raises on its final attempt.
+    if last_error is not None:
+        raise last_error
+    raise errors.FetcherError(errors.EXTRACTION_FAILED)
+
+
 def _worker(entry: IndexEntry) -> None:
     with _build_gate:
         with _lock:
@@ -111,6 +184,9 @@ def _worker(entry: IndexEntry) -> None:
                 return
             entry.status = "building"
             entry.progress = 0.0
+            entry.retrying = False
+            entry.retry_attempt = 0
+            entry.error = ""
             _touch(entry)
 
         cursor: str | None = None
@@ -122,10 +198,11 @@ def _worker(entry: IndexEntry) -> None:
 
         try:
             for page_num in range(1, _MAX_PAGES + 1):
-                envelope = chat_capture._request_page(
-                    entry.vod_id,
+                envelope = _request_page_resilient(
+                    entry,
                     offset=0.0,
                     cursor=cursor,
+                    page_num=page_num,
                 )
                 data = envelope.get("data") if isinstance(envelope.get("data"), dict) else {}
                 video = data.get("video") if isinstance(data.get("video"), dict) else None
@@ -197,6 +274,11 @@ def _worker(entry: IndexEntry) -> None:
                     break
                 seen_cursors.add(page_last_cursor)
                 cursor = page_last_cursor
+
+                # Keep long index runs polite to Twitch instead of firing pages
+                # as quickly as Python can loop. This substantially reduces the
+                # transient failures that previously made users manually resume.
+                time.sleep(_PAGE_PACE_SECONDS)
             else:
                 truncated = True
 
@@ -209,6 +291,8 @@ def _worker(entry: IndexEntry) -> None:
                 entry.last_offset = last_offset
                 entry.progress = 100.0
                 entry.truncated = truncated
+                entry.retrying = False
+                entry.retry_attempt = 0
                 entry.status = "ready"
                 _touch(entry)
             log.info(
@@ -222,6 +306,8 @@ def _worker(entry: IndexEntry) -> None:
             with _lock:
                 if _entries.get(entry.vod_id) is entry:
                     entry.status = "error"
+                    entry.retrying = False
+                    entry.retry_attempt = 0
                     entry.error = err.message
                     _touch(entry)
             log.info("chat index failed vod=%s: %s", entry.vod_id, err.detail or err.message)
@@ -229,6 +315,8 @@ def _worker(entry: IndexEntry) -> None:
             with _lock:
                 if _entries.get(entry.vod_id) is entry:
                     entry.status = "error"
+                    entry.retrying = False
+                    entry.retry_attempt = 0
                     entry.error = "fetcher couldn't finish indexing that Twitch chat"
                     _touch(entry)
             log.exception("chat index failed vod=%s: %s", entry.vod_id, exc)
