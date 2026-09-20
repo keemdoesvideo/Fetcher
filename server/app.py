@@ -355,9 +355,15 @@ async def prepare(req: PrepareRequest, request: Request):
         job = store.create()
         job.mode = req.mode
         job.section = section
+        # Long-form providers (YouTube uploads and Twitch VODs) keep the long
+        # ceiling even when the user selects a range. A multi-hour VOD trimmed
+        # down to a still-large section can easily exceed the normal six-minute
+        # job budget while downloading/merging HLS fragments. The previous
+        # section-is-None condition accidentally gave every trimmed VOD the short
+        # timeout, causing valid jobs to cancel mid-merge.
         job.timeout = (
             config.LONG_TIMEOUT_SECONDS
-            if (section is None and provider.long_form(req.url))
+            if provider.long_form(req.url)
             else config.PREPARE_TIMEOUT_SECONDS
         )
         worker = threading.Thread(
