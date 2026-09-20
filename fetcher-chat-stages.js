@@ -277,9 +277,18 @@
     }
     var wrap = trimMount.querySelector('.trim-video-wrap');
     if (!searchLaunch || !wrap) return;
-    if (searchLaunch.parentNode !== wrap) wrap.appendChild(searchLaunch);
-    searchLaunch.classList.add('chat-player-search');
-    searchLaunch.innerHTML = '<span class="chat-player-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.4-3.4"></path></svg></span><span>search VOD</span>';
+
+    // This function is called from a MutationObserver watching the trimmer. Keep
+    // every DOM write idempotent. Replacing innerHTML on every callback creates
+    // another child-list mutation, which calls this function again forever and
+    // locks the browser as soon as a VOD preview opens.
+    if (searchLaunch.parentNode !== wrap) {
+      wrap.appendChild(searchLaunch);
+    }
+    if (!searchLaunch.classList.contains('chat-player-search')) {
+      searchLaunch.classList.add('chat-player-search');
+      searchLaunch.innerHTML = '<span class="chat-player-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.4-3.4"></path></svg></span><span>search VOD</span>';
+    }
   }
 
   function syncSourceUi() {
