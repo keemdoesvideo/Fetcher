@@ -51,6 +51,7 @@
   var exportBusy = false;
   var exportJobId = null;
   var exportPollTimer = 0;
+  var MAX_EXPORT_SECONDS = 20 * 60;
 
   if (window.FetcherTrimmer && trimMount) {
     window.FetcherTrimmer.mount(trimMount);
@@ -351,22 +352,17 @@
      Export
   --------------------------------------------------------------------- */
   function exportLimit() {
-    var format = exportFormat.value;
-    var fps = Number(exportFps.value || 30);
-    var limit = format === 'prores' ? 60 : 120;
-    if (fps === 60) limit /= 2;
-    return limit;
+    return MAX_EXPORT_SECONDS;
   }
 
   function updateExportHint() {
     var format = exportFormat.value;
     var fps = Number(exportFps.value || 30);
-    var limit = exportLimit();
     var lead;
     if (format === 'prores') lead = 'ProRes 4444 keeps real transparency and is the best choice for Resolve.';
     else if (format === 'webm') lead = 'Transparent WebM keeps alpha in a much smaller file.';
     else lead = 'Green-screen MP4 is the compatibility fallback when alpha video is awkward.';
-    exportHint.textContent = lead + ' ' + (limit === 30 ? '30 seconds' : (limit === 60 ? '1 minute' : '2 minutes')) + ' max at ' + fps + ' fps while export is in beta.';
+    exportHint.textContent = lead + ' Up to 20 minutes per export at ' + fps + ' fps. Long renders can take a while, and ProRes files can be very large. Fetcher deletes the server copy after download and sweeps abandoned exports automatically.';
   }
 
   function setExportBusy(on) {
@@ -452,7 +448,7 @@
           clearTimeout(exportPollTimer);
           exportProgress.classList.remove('error');
           exportProgress.classList.add('success');
-          exportStatus.textContent = 'exported! download starting…';
+          exportStatus.textContent = 'exported! download starting — server copy cleans up after transfer…';
           exportPct.textContent = '100%';
           exportFill.style.width = '100%';
           setExportBusy(false);
@@ -485,7 +481,7 @@
     var duration = Number(data.duration || 0);
     var limit = exportLimit();
     if (duration > limit + 0.01) {
-      showExportError('this selection is too long for those export settings — trim it to ' + (limit === 30 ? '30 seconds' : (limit === 60 ? '1 minute' : '2 minutes')) + ' or choose a lighter setting');
+      showExportError('chat exports can be up to 20 minutes at a time — trim this selection and try again');
       return;
     }
 
