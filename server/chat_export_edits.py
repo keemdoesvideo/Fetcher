@@ -1,10 +1,11 @@
-"""Render shim for message edits, Twitch events and alternate chat canvases.
+"""Render shim for edits, Twitch events, social canvases and 7TV overlays.
 
 ``chat_export_plus`` owns the proven renderer. This wrapper temporarily teaches
-it Fetcher's synthetic event badges, decorates user-highlighted messages, and
-can either shrink the encoded frame around the chat or reshape the normal full
-frame for common social-video aspect ratios. Chat exports are serialized by
-``chat_routes`` so these short-lived patches cannot overlap another render.
+it Fetcher's synthetic event badges, decorates user-highlighted messages,
+composites 7TV zero-width modifiers over their base emote, and can either shrink
+the encoded frame around the chat or reshape the normal full frame for common
+social-video aspect ratios. Chat exports are serialized by ``chat_routes`` so
+these short-lived patches cannot overlap another render.
 """
 
 from __future__ import annotations
@@ -18,11 +19,260 @@ from . import chat_export_plus
 _lock = threading.Lock()
 
 
+def _has_zero_width(message: dict) -> bool:
+    return any(
+        isinstance(fragment, dict)
+        and fragment.get("emoteUrl")
+        and fragment.get("zeroWidth")
+        for fragment in (message.get("fragments") or [])
+    )
+
+
+def _prepare_zero_width(
+    pil,
+    message: dict,
+    assets: dict,
+    style,
+    body_font,
+    name_font,
+    badge_font,
+    bubble_width: str,
+):
+    """Lay out one message with 7TV zero-width modifiers sharing the base slot."""
+    base = chat_export_plus.base
+    dummy = pil.Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+    measure = pil.ImageDraw.Draw(dummy)
+    inner_max = max(180, style.stack_width - 2 * style.pad_x - 2 * style.shadow_pad)
+    line_h = max(style.emote_height, round(style.font_size * 1.35))
+    name_h = round(style.name_size * 1.25)
+    badge_h = max(round(style.badge_size * 1.55), round(name_h * 0.72))
+    gap_after_name = max(3, round(style.font_size * 0.18))
+
+    badges = []
+    badge_gap = max(3, round(style.font_size * 0.18))
+    name_x = 0
+    for badge in message.get("badges") or []:
+        if not isinstance(badge, dict):
+            continue
+        label = base._BADGES.get(str(badge.get("setId") or ""))
+        if not label:
+            continue
+        bw = base._text_width(measure, label, badge_font) + max(8, round(style.badge_size * 0.7))
+        badges.append((label, bw))
+        name_x += bw + badge_gap
+
+    user_name = str((message.get("user") or {}).get("displayName") or "viewer")
+    user_w = base._text_width(measure, user_name, name_font)
+    name_row_w = name_x + user_w
+
+    # Body tokens are (kind, payload, x, line-index, width). Zero-width emotes
+    # reuse the previous emote's visual slot and therefore never advance ``x``.
+    tokens = []
+    x = 0
+    line = 0
+    line_widths = [0]
+    emote_margin = max(2, round(style.font_size * 0.08))
+    last_emote_slot = None
+    pending_space = ""
+
+    def new_line():
+        nonlocal x, line, last_emote_slot
+        line += 1
+        x = 0
+        line_widths.append(0)
+        last_emote_slot = None
+
+    def flush_space():
+        nonlocal x, pending_space, last_emote_slot
+        if not pending_space:
+            return
+        width = base._text_width(measure, pending_space, body_font)
+        if x == 0:
+            pending_space = ""
+            return
+        if x + width > inner_max:
+            new_line()
+            pending_space = ""
+            return
+        tokens.append(("text", pending_space, x, line, width))
+        x += width
+        line_widths[line] = max(line_widths[line], x)
+        pending_space = ""
+        last_emote_slot = None
+
+    for fragment in message.get("fragments") or []:
+        if not isinstance(fragment, dict):
+            continue
+
+        emote_url = base._normalise_url(fragment.get("emoteUrl") or "")
+        asset = assets.get(emote_url) if emote_url else None
+        if asset:
+            if fragment.get("zeroWidth") and last_emote_slot is not None:
+                # A 7TV zero-width modifier overlays the previous emote and does
+                # not consume the typed separator or any horizontal layout space.
+                pending_space = ""
+                slot_x, slot_line, slot_width = last_emote_slot
+                overlay_w = asset.frames[0].width
+                overlay_x = slot_x + round((slot_width - overlay_w) / 2)
+                overlay_x = max(0, overlay_x)
+                tokens.append(("emote", asset, overlay_x, slot_line, 0))
+                line_widths[slot_line] = max(
+                    line_widths[slot_line], overlay_x + overlay_w
+                )
+                continue
+
+            flush_space()
+            token_w = asset.frames[0].width + emote_margin * 2
+            if x and x + token_w > inner_max:
+                new_line()
+            content_x = x + emote_margin
+            tokens.append(("emote", asset, content_x, line, token_w))
+            last_emote_slot = (content_x, line, asset.frames[0].width)
+            x += token_w
+            line_widths[line] = max(line_widths[line], x)
+            continue
+
+        text = str(fragment.get("text") or "")
+        for piece in base._split_text(text):
+            if not piece:
+                continue
+            if piece.isspace():
+                pending_space += piece
+                continue
+
+            flush_space()
+            token_w = base._text_width(measure, piece, body_font)
+            if x and x + token_w > inner_max:
+                new_line()
+            tokens.append(("text", piece, x, line, token_w))
+            x += token_w
+            line_widths[line] = max(line_widths[line], x)
+            last_emote_slot = None
+
+    # Trailing whitespace has no visible value inside the bubble, so unlike a
+    # separator between normal tokens it can safely be omitted.
+    if not tokens:
+        fallback = str(message.get("text") or "")
+        if fallback:
+            tw = min(inner_max, base._text_width(measure, fallback, body_font))
+            tokens.append(("text", fallback, 0, 0, tw))
+            line_widths = [tw]
+
+    body_w = max(line_widths or [0])
+    lines = max(1, len(line_widths))
+    content_w = max(name_row_w, body_w, round(style.font_size * 3.0))
+    if bubble_width == "uniform":
+        box_w = style.stack_width
+    else:
+        box_w = min(style.stack_width, content_w + 2 * style.pad_x)
+    box_h = style.pad_y * 2 + name_h + gap_after_name + lines * line_h
+    canvas_w = box_w + style.shadow_pad * 2
+    canvas_h = box_h + style.shadow_pad * 2
+    image = pil.Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
+    draw = pil.ImageDraw.Draw(image)
+
+    rect = (
+        style.shadow_pad,
+        style.shadow_pad,
+        style.shadow_pad + box_w,
+        style.shadow_pad + box_h,
+    )
+    shadow_offset = max(2, round(style.shadow_pad * 0.45))
+    shadow_rect = (
+        rect[0] + shadow_offset,
+        rect[1] + shadow_offset,
+        rect[2] + shadow_offset,
+        rect[3] + shadow_offset,
+    )
+    draw.rounded_rectangle(shadow_rect, radius=style.radius, fill=(0, 0, 0, 42))
+    draw.rounded_rectangle(
+        rect,
+        radius=style.radius,
+        fill=(18, 18, 22, 220),
+        outline=(255, 255, 255, 22),
+        width=max(1, round(style.width / 1920)),
+    )
+
+    origin_x = style.shadow_pad + style.pad_x
+    origin_y = style.shadow_pad + style.pad_y
+    cursor_x = origin_x
+    badge_bg = (145, 70, 255, 64)
+    badge_fg = (217, 195, 255, 255)
+    for label, bw in badges:
+        top = origin_y + max(0, (name_h - badge_h) // 2)
+        draw.rounded_rectangle(
+            (cursor_x, top, cursor_x + bw, top + badge_h),
+            radius=max(3, round(style.badge_size * 0.3)),
+            fill=badge_bg,
+        )
+        tw = base._text_width(draw, label, badge_font)
+        draw.text(
+            (cursor_x + (bw - tw) / 2, top + max(0, (badge_h - style.badge_size) / 2 - 1)),
+            label,
+            font=badge_font,
+            fill=badge_fg,
+        )
+        cursor_x += bw + badge_gap
+
+    user_color = base._safe_color((message.get("user") or {}).get("color") or "")
+    draw.text((cursor_x, origin_y), user_name, font=name_font, fill=user_color)
+
+    body_y = origin_y + name_h + gap_after_name
+    placements = []
+    for kind, payload, tx, line_index, _token_w in tokens:
+        y = body_y + line_index * line_h
+        if kind == "text":
+            draw.text((origin_x + tx, y), str(payload), font=body_font, fill=(255, 255, 255, 255))
+        else:
+            asset = payload
+            ey = y + max(0, (line_h - asset.frames[0].height) // 2)
+            placements.append(base.EmotePlacement(asset=asset, x=origin_x + tx, y=ey))
+
+    try:
+        at = float(message.get("at") or 0.0)
+    except (TypeError, ValueError):
+        at = 0.0
+    return chat_export_plus._Prepared(at=max(0.0, at), base=image, emotes=placements)
+
+
+def _decorate_highlight(pil, prepared, message: dict, style):
+    if not message.get("_fetcherHighlight"):
+        return prepared
+
+    image = prepared.base
+    draw = pil.ImageDraw.Draw(image)
+    pad = max(1, int(style.shadow_pad))
+    rect = (pad, pad, max(pad + 1, image.width - pad), max(pad + 1, image.height - pad))
+    glow_width = max(3, round(style.width / 640))
+    line_width = max(2, round(style.width / 960))
+
+    try:
+        draw.rounded_rectangle(
+            rect,
+            radius=style.radius,
+            outline=(145, 70, 255, 74),
+            width=glow_width,
+        )
+        inset = max(1, line_width)
+        inner = (
+            rect[0] + inset,
+            rect[1] + inset,
+            rect[2] - inset,
+            rect[3] - inset,
+        )
+        draw.rounded_rectangle(
+            inner,
+            radius=max(2, style.radius - inset),
+            outline=(190, 143, 255, 235),
+            width=line_width,
+        )
+    except Exception:
+        pass
+    return prepared
+
+
 def _decorated_prepare(original):
     def prepare(pil, message, assets, style, body_font, name_font, badge_font, bubble_width):
-        # Event messages carry a synthetic badge such as ``event-bits``. Register
-        # its actual per-message label immediately before layout so amounts like
-        # "500 BITS" or "5× GIFT" survive into the exported overlay.
         event = message.get("event") if isinstance(message.get("event"), dict) else None
         if event:
             event_type = str(event.get("type") or "").strip()
@@ -30,42 +280,15 @@ def _decorated_prepare(original):
             if event_type and label:
                 chat_export_plus.base._BADGES[f"event-{event_type}"] = label
 
-        prepared = original(
-            pil, message, assets, style, body_font, name_font, badge_font, bubble_width
-        )
-        if not message.get("_fetcherHighlight"):
-            return prepared
-
-        image = prepared.base
-        draw = pil.ImageDraw.Draw(image)
-        pad = max(1, int(style.shadow_pad))
-        rect = (pad, pad, max(pad + 1, image.width - pad), max(pad + 1, image.height - pad))
-        glow_width = max(3, round(style.width / 640))
-        line_width = max(2, round(style.width / 960))
-
-        try:
-            draw.rounded_rectangle(
-                rect,
-                radius=style.radius,
-                outline=(145, 70, 255, 74),
-                width=glow_width,
+        if _has_zero_width(message):
+            prepared = _prepare_zero_width(
+                pil, message, assets, style, body_font, name_font, badge_font, bubble_width
             )
-            inset = max(1, line_width)
-            inner = (
-                rect[0] + inset,
-                rect[1] + inset,
-                rect[2] - inset,
-                rect[3] - inset,
+        else:
+            prepared = original(
+                pil, message, assets, style, body_font, name_font, badge_font, bubble_width
             )
-            draw.rounded_rectangle(
-                inner,
-                radius=max(2, style.radius - inset),
-                outline=(190, 143, 255, 235),
-                width=line_width,
-            )
-        except Exception:
-            pass
-        return prepared
+        return _decorate_highlight(pil, prepared, message, style)
 
     return prepare
 
@@ -107,12 +330,7 @@ def _reshape_style(style, aspect: str) -> None:
 
 
 def _tighten_style(style, prepared, *, bubble_gap: int, message_ttl: float, max_visible: int, padding: int) -> None:
-    """Resize a render style around the largest stack this clip can actually show.
-
-    Message artwork is prepared using the normal 1080p/720p reference style first,
-    so font/emote/bubble sizes remain identical to full-frame exports. Only the
-    final encoded canvas and stack origin change.
-    """
+    """Resize a render style around the largest stack this clip can actually show."""
     if not prepared:
         return
 
@@ -143,8 +361,6 @@ def _tighten_style(style, prepared, *, bubble_gap: int, message_ttl: float, max_
         stack_height = active_height + (effective_gap * (count - 1) if count > 1 else 0)
         max_stack_height = max(max_stack_height, stack_height)
 
-    # Entry animation can shift a bubble down by up to 8 px. Keep that motion
-    # inside the frame even when the user chooses zero extra padding.
     motion_pad = 8
     style.width = _even(max_width + pad * 2)
     style.height = _even(max_stack_height + pad * 2 + motion_pad)
@@ -163,9 +379,6 @@ def _prepared_with_canvas(
     padding: int,
 ):
     def prepare_messages(pil, payload, assets, style, job, bubble_width):
-        # Full-frame social presets must reshape before message layout so wrapping
-        # respects the narrower vertical/square canvas. Tight mode deliberately
-        # keeps the proven landscape chat sizing, then crops around the result.
         if canvas_mode == "full":
             _reshape_style(style, canvas_aspect)
         prepared = original(pil, payload, assets, style, job, bubble_width)
