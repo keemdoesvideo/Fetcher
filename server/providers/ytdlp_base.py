@@ -166,6 +166,21 @@ class YtdlpProvider(Provider):
                 done = d.get("downloaded_bytes") or 0
                 if total:
                     job.progress = max(0.0, min(100.0, done / total * 100.0))
+                else:
+                    # HLS/fragmented media (notably Twitch VOD sections) often
+                    # has no meaningful byte total. yt-dlp can still expose the
+                    # fragment position, which gives the UI a useful percentage
+                    # instead of sitting at 0% for the entire download.
+                    frag_index = d.get("fragment_index")
+                    frag_count = d.get("fragment_count")
+                    try:
+                        if frag_index is not None and frag_count:
+                            job.progress = max(
+                                0.0,
+                                min(100.0, float(frag_index) / float(frag_count) * 100.0),
+                            )
+                    except (TypeError, ValueError, ZeroDivisionError):
+                        pass
             elif status == "finished":
                 job.status = jobstate.PROCESSING
                 job.stage = "processing"
