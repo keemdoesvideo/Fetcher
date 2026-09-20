@@ -7,15 +7,22 @@ core download API while it is experimental.
 from __future__ import annotations
 
 import logging
+import threading
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from . import chat_capture, chat_emotes, errors, limits, timecode
-from .models import ChatCaptureRequest
+from . import chat_capture, chat_emotes, chat_export, errors, limits, timecode
+from . import jobs as jobstate
+from .jobs import JobCancelled, store
+from .models import ChatCaptureRequest, ChatExportRequest
 
 log = logging.getLogger("fetcher.chat")
 _chat_window = limits.RequestWindow(max_requests=12, window_seconds=5 * 60)
+_export_window = limits.RequestWindow(max_requests=6, window_seconds=10 * 60)
+# Overlay rendering is CPU/IO heavy and can make multi-GB ProRes files. Keep one
+# render active at a time on the hosted Mac instead of letting visitors pile on.
+_render_gate = threading.BoundedSemaphore(1)
 
 
 def _client_key(request: Request) -> str:
@@ -64,6 +71,53 @@ def _enrich_emotes(payload: dict) -> dict:
     return payload
 
 
+def _section(req: ChatCaptureRequest) -> tuple[float, float]:
+    try:
+        section = timecode.parse_section(req.start, req.end)
+    except ValueError as exc:
+        raise errors.FetcherError(errors.INVALID_SECTION, detail=str(exc)) from exc
+    if section is None or section[1] >= 10 ** 9:
+        raise errors.FetcherError(
+            errors.INVALID_SECTION,
+            message="choose both a start and end time for chat capture",
+        )
+    return section
+
+
+def _render_worker(job, req: ChatExportRequest, section: tuple[float, float]) -> None:
+    try:
+        job.status = jobstate.PROCESSING
+        job.stage = "reading chat"
+        job.progress = 1.0
+        payload = chat_capture.fetch_twitch_chat(req.url, section[0], section[1])
+        if job.cancel_event.is_set():
+            raise JobCancelled()
+
+        job.stage = "resolving emotes"
+        job.progress = 3.0
+        payload = _enrich_emotes(payload)
+        output, filename, media_type = chat_export.render(
+            payload,
+            job,
+            req.format,
+            req.resolution,
+            req.fps,
+        )
+        store.finalize(job, output, filename, media_type, title="Twitch chat overlay")
+        log.info("chat export job %s ready: %s", job.id, filename)
+    except JobCancelled:
+        log.info("chat export job %s cancelled", job.id)
+        store.mark_failed(job, jobstate.CANCELLED)
+    except errors.FetcherError as err:
+        log.info("chat export job %s error %s: %s", job.id, err.code, err.detail or err.message)
+        store.mark_failed(job, jobstate.ERROR, err.code, err.message)
+    except Exception as exc:
+        log.exception("chat export job %s failed", job.id)
+        store.mark_failed(job, jobstate.ERROR, errors.BACKEND_ERROR, errors.FRIENDLY[errors.BACKEND_ERROR])
+    finally:
+        _render_gate.release()
+
+
 def register(app) -> None:
     """Attach beta chat endpoints to the main FastAPI app once."""
     if getattr(app.state, "fetcher_chat_registered", False):
@@ -85,15 +139,66 @@ def register(app) -> None:
                 },
             )
         try:
-            section = timecode.parse_section(req.start, req.end)
-            if section is None or section[1] >= 10 ** 9:
-                raise errors.FetcherError(
-                    errors.INVALID_SECTION,
-                    message="choose both a start and end time for chat capture",
-                )
+            section = _section(req)
             payload = chat_capture.fetch_twitch_chat(req.url, section[0], section[1])
             return _enrich_emotes(payload)
-        except ValueError as exc:
-            return _error(errors.FetcherError(errors.INVALID_SECTION, detail=str(exc)))
         except errors.FetcherError as err:
             return _error(err)
+
+    @app.post("/api/chat/export")
+    def twitch_chat_export(req: ChatExportRequest, request: Request):
+        key = _client_key(request)
+        if not _export_window.allow(key):
+            return JSONResponse(
+                status_code=429,
+                headers={"Retry-After": "60"},
+                content={
+                    "error": {
+                        "code": "busy",
+                        "message": "easy there — give chat export a minute before starting another render.",
+                    }
+                },
+            )
+        try:
+            section = _section(req)
+            duration = section[1] - section[0]
+            chat_export.validate_request(req.format, req.resolution, req.fps, duration)
+        except errors.FetcherError as err:
+            return _error(err)
+
+        if not _render_gate.acquire(blocking=False):
+            return JSONResponse(
+                status_code=503,
+                headers={"Retry-After": "20"},
+                content={
+                    "error": {
+                        "code": "busy",
+                        "message": "another chat overlay is rendering right now — try again in a moment.",
+                    }
+                },
+            )
+
+        try:
+            job = store.create()
+            job.mode = "video"
+            job.section = section
+            job.status = jobstate.PROCESSING
+            job.stage = "queued"
+            thread = threading.Thread(
+                target=_render_worker,
+                args=(job, req, section),
+                name=f"fetcher-chat-export-{job.id[:8]}",
+                daemon=True,
+            )
+            thread.start()
+        except Exception:
+            _render_gate.release()
+            log.exception("failed to start chat export")
+            return _error(errors.FetcherError(errors.BACKEND_ERROR))
+
+        return {
+            "jobId": job.id,
+            "format": req.format,
+            "resolution": req.resolution,
+            "fps": req.fps,
+        }
