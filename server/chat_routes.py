@@ -10,7 +10,8 @@ import logging
 import threading
 
 from fastapi import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from starlette.background import BackgroundTask
 
 from . import (
     chat_7tv_badges,
@@ -318,10 +319,11 @@ def register(app) -> None:
             job = store.create()
             job.mode = "video"
             job.section = section
-            # Download responses already remove a finished job directory as a
-            # background task. This shorter TTL is the safety net if the browser
-            # disappears before/during that transfer.
+            # The download route removes the per-job directory after transfer.
+            # This shorter READY TTL handles the case where the browser never
+            # starts the download at all.
             job.retention_seconds = config.CHAT_EXPORT_TTL_SECONDS
+            job.delivery_timeout_seconds = config.DELIVERY_TTL_SECONDS
             job.status = jobstate.PROCESSING
             job.stage = "queued"
             thread = threading.Thread(
@@ -344,3 +346,24 @@ def register(app) -> None:
             "maxDurationSeconds": chat_export_policy.MAX_CHAT_EXPORT_SECONDS,
             "abandonedTtlSeconds": config.CHAT_EXPORT_TTL_SECONDS,
         }
+
+    @app.get("/api/chat/download/{job_id}")
+    def twitch_chat_download(job_id: str):
+        """Stream one ready chat export, then delete the server-side copy."""
+        job = store.get(job_id)
+        if job is None or not job.ready:
+            return _error(errors.FetcherError(errors.JOB_NOT_FOUND))
+        if not store.begin_delivery(job):
+            return _error(errors.FetcherError(errors.JOB_NOT_FOUND))
+
+        # BackgroundTask runs after FileResponse finishes sending the file. The
+        # DELIVERING lease prevents the stale sweeper from cutting a slow transfer
+        # off; if that callback never runs, the longer delivery TTL reclaims it.
+        cleanup = BackgroundTask(store.remove, job.id)
+        return FileResponse(
+            path=str(job.filepath),
+            media_type=job.media_type or "application/octet-stream",
+            filename=job.filename,
+            headers={"Cache-Control": "no-store"},
+            background=cleanup,
+        )
