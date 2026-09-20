@@ -1,24 +1,30 @@
 """On-demand full-VOD Twitch chat indexing for clip search.
 
 The normal chat preview deliberately reads only a short selected window. This
-module builds a compact, temporary index for the whole finished VOD so editors
-can search messages, usernames and emote codes without re-reading Twitch on
-every keystroke.
+module builds a compact index for the whole finished VOD so editors can search
+messages, usernames and emote codes without re-reading Twitch on every
+keystroke.
 
-Indexes are in-memory only, expire automatically, and are built one at a time to
-avoid hammering Twitch or the hosted Mac. The index stores only the fields needed
-for search/results; emote image data and badges stay in the normal section loader.
+Active indexes are kept in memory for fast search. Completed indexes are also
+saved as compressed JSON outside the repo so a Fetcher restart, process crash,
+or one-hour memory-cache expiry does not make the same VOD get indexed again.
+The index stores only fields needed for search/results; emote image data and
+badges stay in the normal section loader.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import gzip
+import json
 import logging
+import os
+from pathlib import Path
 import re
 import threading
 import time
 
-from . import chat_capture, errors
+from . import chat_capture, config, errors
 
 log = logging.getLogger("fetcher.chat.index")
 
@@ -27,6 +33,13 @@ _MAX_MESSAGES = 150_000
 _MAX_PAGES = 6_000
 _TTL_SECONDS = 60 * 60
 _MAX_CACHED = 4
+
+# Completed indexes live longer on disk than in RAM. Twitch VOD replay chat is
+# immutable enough for clip-search purposes, while a modest age/cap prevents the
+# hosted Mac from accumulating indexes forever.
+_DISK_SCHEMA = 1
+_DISK_TTL_SECONDS = 7 * 24 * 60 * 60
+_MAX_DISK_INDEXES = 8
 
 # Twitch's replay-chat GraphQL endpoint can briefly rate-limit or drop a page
 # during long indexes. A full VOD should not make the user keep pressing the
@@ -49,6 +62,7 @@ class IndexEntry:
     messages: list[dict] = field(default_factory=list)
     retrying: bool = False
     retry_attempt: int = 0
+    persisted_at: float = 0.0
     created_at: float = field(default_factory=time.monotonic)
     updated_at: float = field(default_factory=time.monotonic)
 
@@ -56,6 +70,140 @@ class IndexEntry:
 _entries: dict[str, IndexEntry] = {}
 _lock = threading.RLock()
 _build_gate = threading.BoundedSemaphore(1)
+
+
+def _disk_path(video_id: str) -> Path:
+    clean = re.sub(r"\D", "", str(video_id or ""))
+    return config.CHAT_INDEX_ROOT / f"{clean}.json.gz"
+
+
+def _cleanup_disk() -> None:
+    root = config.CHAT_INDEX_ROOT
+    try:
+        if not root.exists():
+            return
+        now = time.time()
+        files: list[tuple[float, Path]] = []
+        for path in root.glob("*.json.gz"):
+            try:
+                mtime = path.stat().st_mtime
+            except OSError:
+                continue
+            if now - mtime > _DISK_TTL_SECONDS:
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
+                continue
+            files.append((mtime, path))
+        files.sort(key=lambda item: item[0], reverse=True)
+        for _mtime, path in files[_MAX_DISK_INDEXES:]:
+            try:
+                path.unlink()
+            except OSError:
+                pass
+    except OSError as exc:
+        log.info("chat index disk cleanup skipped: %s", exc)
+
+
+def _persist_ready(entry: IndexEntry) -> None:
+    if entry.status != "ready" or not entry.messages:
+        return
+    path = _disk_path(entry.vod_id)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    payload = {
+        "schema": _DISK_SCHEMA,
+        "savedAt": time.time(),
+        "vodId": entry.vod_id,
+        "duration": entry.duration,
+        "lastOffset": entry.last_offset,
+        "truncated": entry.truncated,
+        "messages": entry.messages,
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(tmp, "wt", encoding="utf-8", compresslevel=5) as handle:
+            json.dump(payload, handle, ensure_ascii=False, separators=(",", ":"))
+        os.replace(tmp, path)
+        saved_at = float(payload["savedAt"])
+        with _lock:
+            if _entries.get(entry.vod_id) is entry:
+                entry.persisted_at = saved_at
+                _touch(entry)
+        log.info(
+            "chat index persisted vod=%s messages=%s path=%s",
+            entry.vod_id,
+            entry.message_count,
+            path,
+        )
+        _cleanup_disk()
+    except OSError as exc:
+        log.warning("chat index persistence failed vod=%s: %s", entry.vod_id, exc)
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def _load_persisted(video_id: str, expected_duration: float | None = None) -> IndexEntry | None:
+    path = _disk_path(video_id)
+    try:
+        stat = path.stat()
+    except OSError:
+        return None
+    if time.time() - stat.st_mtime > _DISK_TTL_SECONDS:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        return None
+
+    try:
+        with gzip.open(path, "rt", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if not isinstance(payload, dict) or int(payload.get("schema") or 0) != _DISK_SCHEMA:
+            raise ValueError("unsupported schema")
+        if str(payload.get("vodId") or "") != str(video_id):
+            raise ValueError("VOD id mismatch")
+        duration = float(payload.get("duration") or 0.0)
+        if duration <= 1 or duration > _MAX_DURATION:
+            raise ValueError("invalid duration")
+        if expected_duration is not None:
+            tolerance = max(8.0, duration * 0.01)
+            if abs(duration - float(expected_duration)) > tolerance:
+                return None
+        raw_messages = payload.get("messages")
+        if not isinstance(raw_messages, list):
+            raise ValueError("messages missing")
+        messages = [item for item in raw_messages[:_MAX_MESSAGES] if isinstance(item, dict)]
+        if not messages:
+            return None
+        saved_at = float(payload.get("savedAt") or stat.st_mtime)
+        entry = IndexEntry(
+            vod_id=str(video_id),
+            duration=duration,
+            status="ready",
+            progress=100.0,
+            message_count=len(messages),
+            last_offset=float(payload.get("lastOffset") or messages[-1].get("offset") or 0.0),
+            truncated=bool(payload.get("truncated")),
+            messages=messages,
+            persisted_at=saved_at,
+        )
+        log.info(
+            "chat index restored vod=%s messages=%s age=%.0fs",
+            video_id,
+            len(messages),
+            max(0.0, time.time() - saved_at),
+        )
+        return entry
+    except (OSError, ValueError, TypeError, json.JSONDecodeError, EOFError) as exc:
+        log.info("chat index cache unreadable vod=%s: %s", video_id, exc)
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        return None
 
 
 def _cleanup() -> None:
@@ -76,9 +224,14 @@ def _cleanup() -> None:
         )
         for entry in ready[_MAX_CACHED:]:
             _entries.pop(entry.vod_id, None)
+    _cleanup_disk()
 
 
 def _public(entry: IndexEntry) -> dict:
+    persistent = entry.status == "ready" and entry.persisted_at > 0
+    disk_expires = None
+    if persistent:
+        disk_expires = max(0, int(_DISK_TTL_SECONDS - (time.time() - entry.persisted_at)))
     return {
         "vodId": entry.vod_id,
         "status": entry.status,
@@ -89,8 +242,9 @@ def _public(entry: IndexEntry) -> dict:
         "truncated": entry.truncated,
         "retrying": entry.retrying,
         "retryAttempt": entry.retry_attempt,
+        "persistent": persistent,
+        "expiresIn": disk_expires if persistent else (_TTL_SECONDS if entry.status == "ready" else None),
         "error": entry.error or None,
-        "expiresIn": _TTL_SECONDS if entry.status == "ready" else None,
     }
 
 
@@ -147,8 +301,6 @@ def _request_page_resilient(
             return envelope
         except errors.FetcherError as err:
             last_error = err
-            # A missing/removed VOD will not heal by waiting; everything else
-            # coming from replay-chat extraction is allowed several retries.
             if err.code == errors.VIDEO_UNAVAILABLE or attempt >= _PAGE_RETRIES:
                 raise
 
@@ -170,7 +322,6 @@ def _request_page_resilient(
             )
             time.sleep(delay)
 
-    # Defensive fallback; the loop either returns or raises on its final attempt.
     if last_error is not None:
         raise last_error
     raise errors.FetcherError(errors.EXTRACTION_FAILED)
@@ -179,7 +330,6 @@ def _request_page_resilient(
 def _worker(entry: IndexEntry) -> None:
     with _build_gate:
         with _lock:
-            # Entry may have been replaced while this thread was queued.
             if _entries.get(entry.vod_id) is not entry:
                 return
             entry.status = "building"
@@ -274,10 +424,6 @@ def _worker(entry: IndexEntry) -> None:
                     break
                 seen_cursors.add(page_last_cursor)
                 cursor = page_last_cursor
-
-                # Keep long index runs polite to Twitch instead of firing pages
-                # as quickly as Python can loop. This substantially reduces the
-                # transient failures that previously made users manually resume.
                 time.sleep(_PAGE_PACE_SECONDS)
             else:
                 truncated = True
@@ -295,6 +441,7 @@ def _worker(entry: IndexEntry) -> None:
                 entry.retry_attempt = 0
                 entry.status = "ready"
                 _touch(entry)
+            _persist_ready(entry)
             log.info(
                 "chat index ready vod=%s messages=%s last=%.1f truncated=%s",
                 entry.vod_id,
@@ -322,6 +469,17 @@ def _worker(entry: IndexEntry) -> None:
             log.exception("chat index failed vod=%s: %s", entry.vod_id, exc)
 
 
+def _install_restored(entry: IndexEntry) -> IndexEntry:
+    with _lock:
+        existing = _entries.get(entry.vod_id)
+        if existing and existing.status in {"queued", "building", "ready"}:
+            _touch(existing)
+            return existing
+        _entries[entry.vod_id] = entry
+        _touch(entry)
+        return entry
+
+
 def start(url: str, duration: float) -> dict:
     _cleanup()
     video_id = chat_capture._vod_id(url)
@@ -334,6 +492,16 @@ def start(url: str, duration: float) -> dict:
             errors.INVALID_SECTION,
             message="fetcher couldn't read that VOD duration for full-chat search",
         )
+
+    with _lock:
+        existing = _entries.get(video_id)
+        if existing and existing.status in {"queued", "building", "ready"}:
+            _touch(existing)
+            return _public(existing)
+
+    restored = _load_persisted(video_id, expected_duration=duration)
+    if restored is not None:
+        return _public(_install_restored(restored))
 
     with _lock:
         existing = _entries.get(video_id)
@@ -360,10 +528,14 @@ def status(video_id: str) -> dict | None:
         return None
     with _lock:
         entry = _entries.get(video_id)
-        if not entry:
-            return None
-        _touch(entry)
-        return _public(entry)
+        if entry:
+            _touch(entry)
+            return _public(entry)
+
+    restored = _load_persisted(video_id)
+    if restored is None:
+        return None
+    return _public(_install_restored(restored))
 
 
 def search(url: str, query: str, limit: int = 40) -> dict:
@@ -380,12 +552,19 @@ def search(url: str, query: str, limit: int = 40) -> dict:
 
     with _lock:
         entry = _entries.get(video_id)
-        if not entry:
-            return {"ready": False, "index": None}
+
+    if entry is None:
+        restored = _load_persisted(video_id)
+        if restored is not None:
+            entry = _install_restored(restored)
+
+    if entry is None:
+        return {"ready": False, "index": None}
+
+    with _lock:
         _touch(entry)
         if entry.status != "ready":
             return {"ready": False, "index": _public(entry)}
-        # Copy the list reference while locked; ready indexes are immutable.
         messages = entry.messages
         truncated = entry.truncated
         indexed_messages = entry.message_count
@@ -418,4 +597,5 @@ def search(url: str, query: str, limit: int = 40) -> dict:
         "totalMatches": total,
         "indexedMessages": indexed_messages,
         "truncated": truncated,
+        "persistent": entry.persisted_at > 0,
     }
