@@ -37,6 +37,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-badges.js": "application/javascript; charset=utf-8",
     "fetcher-chat-paints.js": "application/javascript; charset=utf-8",
     "fetcher-chat-looks.js": "application/javascript; charset=utf-8",
+    "fetcher-chat-fonts.js": "application/javascript; charset=utf-8",
     "fetcher-chat-stages.js": "application/javascript; charset=utf-8",
 })
 # These helpers are harmless on non-chat pages (they exit immediately), which
@@ -73,8 +74,10 @@ if "fetcher-chat-paints.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-paints.js"></script>'
 if "fetcher-chat-looks.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-looks.js"></script>'
+if "fetcher-chat-fonts.js" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-fonts.js"></script>'
 # Stages runs last because it gathers the cards created by the helpers above and
-# rearranges those same live controls into the four centered page stages.
+# rearranges those same live controls into the centered page stages.
 if "fetcher-chat-stages.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-stages.js"></script>'
 register_chat_routes(app_module.app)
