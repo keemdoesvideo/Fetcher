@@ -136,6 +136,7 @@ def _render_worker(job, req: ChatExportRequest, section: tuple[float, float]) ->
             message_ttl=req.messageLifetime,
             max_visible=req.maxVisible,
             canvas_mode=req.canvasMode,
+            canvas_aspect=req.canvasAspect,
             canvas_padding=req.canvasPadding,
             sound_preset=req.soundPreset,
             sound_volume=req.soundVolume,
