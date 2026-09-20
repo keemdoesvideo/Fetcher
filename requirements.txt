@@ -4,6 +4,7 @@
 fastapi>=0.111,<1.0
 uvicorn[standard]>=0.30,<1.0
 yt-dlp[default]>=2026.8.19
+Pillow>=10,<13
 
 # YouTube increasingly requires Proof-of-Origin (PO) tokens. The Python plugin
 # discovers the local BgUtils provider (HTTP server or script) and supplies
