@@ -52,6 +52,8 @@ class ChatCaptureRequest(BaseModel):
     url: str = Field(..., min_length=1, max_length=2048)
     start: str = Field(..., min_length=1, max_length=16)
     end: str = Field(..., min_length=1, max_length=16)
+    timingMode: Literal["original", "readable"] = "readable"
+    hideBots: bool = False
 
 
 class ChatExportRequest(ChatCaptureRequest):
