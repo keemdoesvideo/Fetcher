@@ -21,8 +21,8 @@ from . import (
     chat_emotes,
     chat_events,
     chat_export,
-    chat_export_edits,
     chat_export_policy,
+    chat_export_styled,
     chat_filters,
     chat_paints,
     chat_timing,
@@ -212,12 +212,14 @@ def _render_worker(job, req: ChatExportRequest, section: tuple[float, float]) ->
         job.stage = "resolving emotes"
         job.progress = 3.0
         payload = _prepare_payload(payload, req)
-        output, filename, media_type = chat_export_edits.render(
+        output, filename, media_type = chat_export_styled.render(
             payload,
             job,
             req.format,
             req.resolution,
             req.fps,
+            chat_look=req.chatLook,
+            entry_animation=req.entryAnimation,
             bubble_width=req.bubbleWidth,
             bubble_gap=req.bubbleGap,
             message_ttl=req.messageLifetime,
