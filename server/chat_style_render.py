@@ -13,7 +13,7 @@ import hashlib
 from . import chat_export_plus
 
 
-LOOKS = {"bubble", "fade-stack", "ticker", "staggered", "emote-cloud"}
+LOOKS = {"bubble", "fade-stack", "ticker", "staggered", "spotlight", "emote-cloud"}
 ANIMATIONS = {"slide", "fade", "pop", "float", "instant"}
 
 
@@ -100,9 +100,7 @@ def _message_image(pil, item, t: float, message_ttl: float, animation: str):
 
     animation = normalise_animation(animation)
     if animation == "slide":
-        # This is Fetcher's original validated entry motion: a tiny 2.5% scale
-        # plus an 8px rise. Keeping it as the default means the redesign does not
-        # silently change existing exports until the user picks another motion.
+        # Fetcher's original validated motion remains the default.
         opacity = eased
         y_offset = round((1.0 - eased) * 8)
         scale = 0.975 + 0.025 * eased
@@ -143,9 +141,6 @@ def frame_renderer(look: str, animation: str):
             return canvas
 
         if look == "emote-cloud":
-            # Emotes drift independently across the canvas. The exact placement
-            # is deterministic per replay-message id, so preview/export feels
-            # stable instead of random on every render.
             for item in active:
                 image, enter_offset = _message_image(pil, item, t, message_ttl, animation)
                 age = max(0.0, t - item.at)
@@ -165,11 +160,14 @@ def frame_renderer(look: str, animation: str):
                 canvas.alpha_composite(image, (x, y))
             return canvas
 
-        if look == "ticker":
+        if look in {"ticker", "spotlight"}:
             item = active[-1]
             image, enter_offset = _message_image(pil, item, t, message_ttl, animation)
             x = max(0, round((style.width - image.width) / 2))
-            y = max(0, style.height - style.stack_bottom - image.height + enter_offset)
+            if look == "spotlight":
+                y = max(0, round(style.height * 0.62 - image.height / 2 + enter_offset))
+            else:
+                y = max(0, style.height - style.stack_bottom - image.height + enter_offset)
             canvas.alpha_composite(image, (x, y))
             return canvas
 
@@ -185,8 +183,6 @@ def frame_renderer(look: str, animation: str):
             if look == "staggered":
                 x += (index % 3) * max(8, round(style.width * 0.012))
             elif look == "fade-stack":
-                # Old messages stay readable but recede softly so the newest
-                # line naturally gets the viewer's attention.
                 distance = len(rendered) - 1 - index
                 fade = max(0.38, 1.0 - distance * 0.16)
                 image = _opacity(pil, image, fade)
