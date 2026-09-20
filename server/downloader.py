@@ -73,8 +73,18 @@ def prepare_media(url: str, mode: str, preferences: Preferences, job: Job) -> Pr
     # happily play VP9/AV1/HEVC inside MP4 while an NLE such as DaVinci Resolve
     # imports only the audio. Keep H.264/AAC files untouched; convert only the
     # incompatible streams so every video Fetcher hands back is editor-safe.
-    if mode == "video":
+    #
+    # Twitch VOD renditions are already H.264/AAC HLS. Section downloads keep
+    # those streams intact and merely mux the selected segments. Running our
+    # generic compatibility probe over a multi-hour trimmed VOD can force ffprobe
+    # to scan a huge fragmented MP4; if that probe times out, the conservative
+    # fallback unnecessarily re-encodes hours of already-compatible footage and
+    # leaves the UI sitting on "almost there…". Trust Twitch VOD output directly.
+    twitch_vod = provider.name == "twitch" and provider.long_form(normalized)
+    if mode == "video" and not twitch_vod:
         result.filepath = editor_compat.ensure_editor_compatible(result.filepath, job)
+    elif mode == "video" and twitch_vod:
+        log.info("editor compatibility: Twitch VOD output is already H.264/AAC; skipping transcode")
 
     log.info("prepared job=%s file=%s (%s)", job.id, result.filename, result.media_type)
     return result
