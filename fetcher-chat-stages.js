@@ -1,4 +1,4 @@
-/* Centered, page-scroll-free stage flow for the chat workspace. */
+/* Minimal, centered, page-scroll-free stage flow for the chat workspace. */
 (function () {
   'use strict';
 
@@ -7,7 +7,9 @@
   var workspace = document.getElementById('chat-workspace');
   var preview = document.querySelector('.chat-preview-card');
   var side = document.querySelector('.chat-side');
-  if (!shell || !source || !workspace || !preview || !side) return;
+  var trimMount = document.getElementById('chat-trim-mount');
+  var sourceNote = document.getElementById('chat-source-note');
+  if (!shell || !source || !workspace || !preview || !side || !trimMount) return;
 
   workspace.classList.add('chat-stage-signal');
 
@@ -23,65 +25,57 @@
   var flow = document.createElement('div');
   flow.className = 'chat-flow';
   flow.innerHTML = [
-    '<div class="chat-flow-top">',
-      '<div class="chat-flow-brand">',
-        '<span class="chat-flow-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/><path d="M8 8h8M8 11h5"/></svg></span>',
-        '<span class="chat-flow-copy"><strong>chat overlay studio</strong><span>pick the moment · make it yours · export it cleanly</span></span>',
-      '</div>',
-      '<nav class="chat-flow-nav" aria-label="Chat overlay stages">',
-        stageButton('source', '1 · source', false),
-        stageButton('look', '2 · look', true),
-        stageButton('edit', '3 · edit', true),
-        stageButton('export', '4 · export', true),
-      '</nav>',
-    '</div>',
+    '<button class="chat-page-arrow chat-page-arrow-left" type="button" aria-label="Previous page" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>',
+    '<button class="chat-page-arrow chat-page-arrow-right" type="button" aria-label="Next page" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>',
+
     '<section class="chat-flow-stage chat-flow-source active" data-stage="source">',
-      '<div class="chat-flow-stage-inner">',
-        stageHead('01 · source', 'choose the moment', 'Paste a Twitch VOD, use the heatmap/scrubber, then load the slice you actually want.'),
+      '<div class="chat-flow-stage-inner chat-flow-source-inner">',
         '<div class="chat-flow-source-mount"></div>',
       '</div>',
     '</section>',
+
     '<section class="chat-flow-stage" data-stage="look">',
       '<div class="chat-flow-stage-inner">',
-        stageHead('02 · look', 'make the chat feel right', 'Pick the layout and entry motion first. Everything here is reflected in the finished overlay.', 'source', 'edit'),
         '<div class="chat-flow-split">',
           '<div class="chat-flow-preview-slot" data-preview-slot="look"></div>',
           '<div class="chat-flow-toolbox">',
-            '<div class="chat-flow-tabs" data-tabs="look">',
+            '<div class="chat-flow-tabs chat-flow-tabs-large" data-tabs="look">',
               tabButton('look', 'looks', true),
-              tabButton('custom', 'spacing + sound', false),
+              tabButton('spacing', 'spacing', false),
+              tabButton('sound', 'sound', false),
             '</div>',
             '<div class="chat-flow-toolhost" data-toolhost="look"></div>',
+            '<button class="chat-flow-next" type="button" data-unlock-stage="edit">on to edit <span>→</span></button>',
           '</div>',
         '</div>',
-        '<div class="chat-flow-summary"><span class="chat-flow-summary-dot"></span><span id="chat-flow-look-summary">bubble cards · slide up</span></div>',
       '</div>',
     '</section>',
+
     '<section class="chat-flow-stage" data-stage="edit">',
       '<div class="chat-flow-stage-inner">',
-        stageHead('03 · edit', 'clean up the moment', 'Hide distractions, highlight the line that matters, or search the loaded chat without leaving the preview.', 'look', 'export'),
         '<div class="chat-flow-split">',
           '<div class="chat-flow-preview-slot" data-preview-slot="edit"></div>',
           '<div class="chat-flow-toolbox">',
-            '<div class="chat-flow-tabs" data-tabs="edit">',
+            '<div class="chat-flow-tabs chat-flow-tabs-large" data-tabs="edit">',
               tabButton('editor', 'messages', true),
               tabButton('insights', 'find + timing', false),
             '</div>',
             '<div class="chat-flow-toolhost" data-toolhost="edit"></div>',
+            '<button class="chat-flow-next" type="button" data-unlock-stage="export">on to export <span>→</span></button>',
           '</div>',
         '</div>',
       '</div>',
     '</section>',
+
     '<section class="chat-flow-stage" data-stage="export">',
       '<div class="chat-flow-stage-inner">',
-        stageHead('04 · export', 'bake the overlay', 'Choose the delivery settings, save a reusable setup, and send the transparent result straight to your editor.', 'edit', null),
         '<div class="chat-flow-split">',
           '<div class="chat-flow-preview-slot" data-preview-slot="export"></div>',
           '<div class="chat-flow-toolbox">',
-            '<div class="chat-flow-tabs" data-tabs="export">',
+            '<div class="chat-flow-tabs chat-flow-tabs-large" data-tabs="export">',
               tabButton('export', 'export', true),
               tabButton('presets', 'presets', false),
-              tabButton('custom', 'canvas + sound', false),
+              tabButton('canvas', 'canvas + sound', false),
             '</div>',
             '<div class="chat-flow-toolhost" data-toolhost="export"></div>',
           '</div>',
@@ -90,35 +84,23 @@
     '</section>'
   ].join('');
 
-  function stageButton(stage, label, disabled) {
-    return '<button class="chat-flow-step' + (stage === 'source' ? ' active' : '') + '" type="button" data-go-stage="' + stage + '"' + (disabled ? ' disabled' : '') + '>' + label + '</button>';
-  }
-
-  function stageHead(kicker, title, desc, back, next) {
-    var actions = '';
-    if (back || next) {
-      actions = '<div class="chat-flow-actions">' +
-        (back ? '<button class="chat-flow-action" type="button" data-go-stage="' + back + '">back</button>' : '') +
-        (next ? '<button class="chat-flow-action primary" type="button" data-go-stage="' + next + '">continue →</button>' : '') +
-        '</div>';
-    }
-    return '<div class="chat-flow-stage-head"><div class="chat-flow-stage-title"><span>' + kicker + '</span><h1>' + title + '</h1><p>' + desc + '</p></div>' + actions + '</div>';
-  }
-
   function tabButton(tool, label, active) {
     return '<button class="chat-flow-tab' + (active ? ' active' : '') + '" type="button" data-tool="' + tool + '">' + label + '</button>';
   }
 
   shell.appendChild(flow);
-  var sourceMount = flow.querySelector('.chat-flow-source-mount');
-  sourceMount.appendChild(source);
+  flow.querySelector('.chat-flow-source-mount').appendChild(source);
 
+  var stages = ['source', 'look', 'edit', 'export'];
   var activeStage = 'source';
-  var unlocked = !workspace.hidden;
+  var maxUnlocked = workspace.hidden ? 0 : 1;
   var activeTools = { look: 'look', edit: 'editor', export: 'export' };
+  var leftArrow = flow.querySelector('.chat-page-arrow-left');
+  var rightArrow = flow.querySelector('.chat-page-arrow-right');
+  var searchLaunch = document.querySelector('.chat-fullsearch-launch');
 
-  function stageNode(stage) {
-    return flow.querySelector('.chat-flow-stage[data-stage="' + stage + '"]');
+  function indexOfStage(stage) {
+    return stages.indexOf(stage);
   }
 
   function previewSlot(stage) {
@@ -130,14 +112,8 @@
   }
 
   function canVisit(stage) {
-    return stage === 'source' || unlocked;
-  }
-
-  function setUnlocked(on) {
-    unlocked = !!on;
-    Array.prototype.forEach.call(flow.querySelectorAll('.chat-flow-step[data-go-stage]'), function (button) {
-      if (button.dataset.goStage !== 'source') button.disabled = !unlocked;
-    });
+    var index = indexOfStage(stage);
+    return index >= 0 && index <= maxUnlocked;
   }
 
   function placePreview(stage) {
@@ -146,15 +122,86 @@
     if (slot && preview.parentNode !== slot) slot.appendChild(preview);
   }
 
+  function fieldFor(id) {
+    var el = document.getElementById(id);
+    return el ? el.closest('.chat-custom-field') : null;
+  }
+
+  function setVisible(node, visible) {
+    if (node) node.hidden = !visible;
+  }
+
+  function setCustomMode(mode) {
+    var card = cards.custom;
+    if (!card) return;
+    var grids = card.querySelectorAll('.chat-custom-grid');
+    var visualGrid = grids[0] || null;
+    var soundGrid = grids[1] || null;
+    var divider = card.querySelector('.chat-custom-divider');
+    var notes = card.querySelectorAll('.chat-custom-note');
+
+    var bubbleWidth = fieldFor('chat-bubble-width');
+    var bubbleGap = fieldFor('chat-bubble-gap');
+    var canvasMode = fieldFor('chat-canvas-mode');
+    var canvasAspect = fieldFor('chat-canvas-aspect');
+    var canvasPadding = fieldFor('chat-canvas-padding');
+
+    if (visualGrid) visualGrid.hidden = mode === 'sound';
+    if (soundGrid) soundGrid.hidden = mode === 'spacing';
+    if (divider) divider.hidden = true;
+
+    if (mode === 'spacing') {
+      setVisible(bubbleWidth, true);
+      setVisible(bubbleGap, true);
+      setVisible(canvasMode, false);
+      setVisible(canvasAspect, false);
+      setVisible(canvasPadding, false);
+    } else if (mode === 'canvas') {
+      if (visualGrid) visualGrid.hidden = false;
+      if (soundGrid) soundGrid.hidden = false;
+      setVisible(bubbleWidth, false);
+      setVisible(bubbleGap, false);
+      setVisible(canvasMode, true);
+      setVisible(canvasAspect, true);
+      setVisible(canvasPadding, true);
+    } else {
+      setVisible(bubbleWidth, false);
+      setVisible(bubbleGap, false);
+      setVisible(canvasMode, false);
+      setVisible(canvasAspect, false);
+      setVisible(canvasPadding, false);
+    }
+
+    Array.prototype.forEach.call(notes, function (note) {
+      if (mode === 'spacing') {
+        note.hidden = note.id === 'chat-sound-note' || note.id === 'chat-canvas-note';
+      } else if (mode === 'sound') {
+        note.hidden = note.id !== 'chat-sound-note';
+      } else {
+        note.hidden = false;
+      }
+    });
+
+    card.dataset.stageView = mode;
+    card.classList.remove('chat-tool-swap');
+    requestAnimationFrame(function () { card.classList.add('chat-tool-swap'); });
+  }
+
+  function actualTool(tool) {
+    if (tool === 'spacing' || tool === 'sound' || tool === 'canvas') return 'custom';
+    return tool;
+  }
+
   function placeTool(stage, tool) {
     var host = toolHost(stage);
-    var card = cards[tool];
+    var card = cards[actualTool(tool)];
     if (!host || !card) return;
     if (card.parentNode !== host) host.appendChild(card);
     Array.prototype.forEach.call(host.children, function (child) {
       if (child.classList && child.classList.contains('chat-card')) child.hidden = child !== card;
     });
     card.hidden = false;
+    if (actualTool(tool) === 'custom') setCustomMode(tool);
 
     var tabs = flow.querySelector('[data-tabs="' + stage + '"]');
     if (tabs) {
@@ -162,6 +209,15 @@
         button.classList.toggle('active', button.dataset.tool === tool);
       });
     }
+
+    card.classList.remove('chat-tool-swap');
+    requestAnimationFrame(function () { card.classList.add('chat-tool-swap'); });
+  }
+
+  function updateArrows() {
+    var index = indexOfStage(activeStage);
+    leftArrow.hidden = index <= 0;
+    rightArrow.hidden = index < 0 || index >= stages.length - 1 || index + 1 > maxUnlocked;
   }
 
   function showStage(stage) {
@@ -170,69 +226,89 @@
     Array.prototype.forEach.call(flow.querySelectorAll('.chat-flow-stage'), function (node) {
       node.classList.toggle('active', node.dataset.stage === stage);
     });
-    Array.prototype.forEach.call(flow.querySelectorAll('.chat-flow-step'), function (button) {
-      button.classList.toggle('active', button.dataset.goStage === stage);
-    });
     if (stage !== 'source') {
       placePreview(stage);
       placeTool(stage, activeTools[stage]);
     }
+    updateArrows();
   }
 
+  function unlockAndShow(stage) {
+    var index = indexOfStage(stage);
+    if (index < 0) return;
+    maxUnlocked = Math.max(maxUnlocked, index);
+    showStage(stage);
+  }
+
+  function moveBy(delta) {
+    var targetIndex = indexOfStage(activeStage) + delta;
+    if (targetIndex < 0 || targetIndex > maxUnlocked || targetIndex >= stages.length) return;
+    showStage(stages[targetIndex]);
+  }
+
+  leftArrow.addEventListener('click', function () { moveBy(-1); });
+  rightArrow.addEventListener('click', function () { moveBy(1); });
+
   flow.addEventListener('click', function (event) {
-    var go = event.target.closest('[data-go-stage]');
-    if (go) {
-      showStage(go.dataset.goStage);
+    var unlock = event.target.closest('[data-unlock-stage]');
+    if (unlock) {
+      unlockAndShow(unlock.dataset.unlockStage);
       return;
     }
     var tab = event.target.closest('.chat-flow-tab[data-tool]');
-    if (tab) {
-      var tabs = tab.closest('[data-tabs]');
-      if (!tabs) return;
-      var stage = tabs.dataset.tabs;
-      activeTools[stage] = tab.dataset.tool;
-      placeTool(stage, tab.dataset.tool);
-    }
+    if (!tab) return;
+    var tabs = tab.closest('[data-tabs]');
+    if (!tabs) return;
+    var stage = tabs.dataset.tabs;
+    activeTools[stage] = tab.dataset.tool;
+    placeTool(stage, tab.dataset.tool);
   });
 
-  // Loading a chat section is the natural completion of stage one. The core
-  // controller reveals #chat-workspace at that point; use it purely as a signal
-  // and move the user into the look stage automatically.
+  function previewReady() {
+    var video = trimMount.querySelector('.trim-video');
+    var open = trimMount.classList.contains('open');
+    var provider = trimMount.dataset.provider === 'twitch';
+    return !!(open && provider && video);
+  }
+
+  function moveSearchIntoPlayer() {
+    if (!searchLaunch || !searchLaunch.isConnected) {
+      searchLaunch = document.querySelector('.chat-fullsearch-launch') || searchLaunch;
+    }
+    var wrap = trimMount.querySelector('.trim-video-wrap');
+    if (!searchLaunch || !wrap) return;
+    if (searchLaunch.parentNode !== wrap) wrap.appendChild(searchLaunch);
+    searchLaunch.classList.add('chat-player-search');
+    searchLaunch.innerHTML = '<span class="chat-player-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.4-3.4"></path></svg></span><span>search VOD</span>';
+  }
+
+  function syncSourceUi() {
+    var ready = previewReady();
+    source.classList.toggle('fetcher-source-ready', ready);
+    if (ready) moveSearchIntoPlayer();
+    if (sourceNote) sourceNote.hidden = !sourceNote.classList.contains('error');
+  }
+
   new MutationObserver(function () {
-    if (!workspace.hidden && !unlocked) {
-      setUnlocked(true);
+    syncSourceUi();
+  }).observe(trimMount, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-provider', 'data-kind'] });
+
+  if (sourceNote) {
+    new MutationObserver(syncSourceUi).observe(sourceNote, { childList: true, attributes: true, attributeFilter: ['class'] });
+  }
+
+  // Loading a chat section completes the source page and unlocks only the look
+  // page. Later pages remain locked until their explicit large CTA is used.
+  new MutationObserver(function () {
+    if (!workspace.hidden && maxUnlocked < 1) {
+      maxUnlocked = 1;
       showStage('look');
     }
   }).observe(workspace, { attributes: true, attributeFilter: ['hidden'] });
 
-  var lookLabels = {
-    bubble: 'bubble cards',
-    'fade-stack': 'fade stack',
-    ticker: 'ticker',
-    staggered: 'staggered stack',
-    'emote-cloud': 'emote cloud'
-  };
-  var entryLabels = {
-    slide: 'slide up',
-    fade: 'fade',
-    pop: 'pop',
-    float: 'float',
-    instant: 'instant'
-  };
-  var summary = document.getElementById('chat-flow-look-summary');
-  function updateLookSummary(detail) {
-    if (!summary) return;
-    var look = detail && detail.look || (window.FetcherChatLooks && window.FetcherChatLooks.getLook()) || 'bubble';
-    var entry = detail && detail.entry || (window.FetcherChatLooks && window.FetcherChatLooks.getEntry()) || 'slide';
-    summary.textContent = (lookLabels[look] || look) + ' · ' + (entryLabels[entry] || entry);
-  }
-  window.addEventListener('fetcher:chat-look', function (event) { updateLookSummary(event.detail || {}); });
-
-  // The old workspace and side are only implementation anchors now. Keep them in
-  // the DOM for existing helper references, but out of layout.
-  workspace.hidden = workspace.hidden;
+  // The old workspace and side remain implementation anchors for the existing
+  // helper modules, but the staged shell owns visible layout from here on.
   side.hidden = true;
-  setUnlocked(unlocked);
-  updateLookSummary();
-  showStage(unlocked ? 'look' : 'source');
+  syncSourceUi();
+  showStage(maxUnlocked >= 1 ? 'look' : 'source');
 })();
