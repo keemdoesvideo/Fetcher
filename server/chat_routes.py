@@ -16,6 +16,7 @@ from . import (
     chat_capture,
     chat_edits,
     chat_emotes,
+    chat_events,
     chat_export,
     chat_export_edits,
     chat_filters,
@@ -91,6 +92,10 @@ def _prepare_payload(payload: dict, req: ChatCaptureRequest) -> dict:
         highlighted_ids=req.highlightedMessageIds,
         only_message_id=req.onlyMessageId,
     )
+    # Finished Twitch VODs expose system events mostly as replay-chat text. Turn
+    # those messages into structured events before preview/export so both paths
+    # share the same event classification and badge labels.
+    payload = chat_events.apply(payload)
     payload = chat_timing.apply(payload, req.timingMode)
     return payload
 
