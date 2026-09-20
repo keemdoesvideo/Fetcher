@@ -35,15 +35,11 @@ from . import jobs as jobstate
 from .jobs import JobCancelled, store
 from .models import ChatCaptureRequest, ChatExportRequest
 
-# The proven renderer calls chat_export.validate_request internally as well as at
-# route preflight. Install one shared policy so both checks use the same limit.
 chat_export_policy.install()
 
 log = logging.getLogger("fetcher.chat")
 _chat_window = limits.RequestWindow(max_requests=12, window_seconds=5 * 60)
 _export_window = limits.RequestWindow(max_requests=6, window_seconds=10 * 60)
-# Overlay rendering is CPU/IO heavy and can make multi-GB ProRes files. Keep one
-# render active at a time on the hosted Mac instead of letting visitors pile on.
 _render_gate = threading.BoundedSemaphore(1)
 
 
@@ -62,19 +58,14 @@ def _error(err: errors.FetcherError) -> JSONResponse:
 
 
 def _enrich_emotes(payload: dict) -> dict:
-    """Add third-party Twitch emotes without making chat depend on those APIs."""
     video_id = str(payload.get("vodId") or "")
     if not video_id:
         return payload
     try:
-        channel = chat_emotes.twitch_channel_for_vod(
-            video_id, chat_capture._TWITCH_CLIENT_ID
-        )
+        channel = chat_emotes.twitch_channel_for_vod(video_id, chat_capture._TWITCH_CLIENT_ID)
         channel_id = str(channel.get("id") or "")
         if not channel_id:
             return payload
-        # Keep owner metadata even if a third-party emote provider is down; the
-        # same channel identity is also used for native Twitch badge artwork.
         payload["channel"] = channel
         catalog, providers = chat_emotes.catalog_for_channel(channel_id)
         resolved = chat_emotes.enrich_messages(payload.get("messages") or [], catalog)
@@ -89,23 +80,18 @@ def _enrich_emotes(payload: dict) -> dict:
             ",".join(providers) or "none",
         )
     except Exception:
-        # Native Twitch replay chat is the core feature; third-party emote APIs
-        # are optional decoration and must never make the capture fail.
         log.exception("third-party emote enrichment failed for vod=%s", video_id)
     return payload
 
 
 def _enrich_badges(payload: dict) -> dict:
-    """Resolve the real Twitch artwork for each replay badge, best-effort."""
     video_id = str(payload.get("vodId") or "")
     if not video_id:
         return payload
     try:
         channel = payload.get("channel") if isinstance(payload.get("channel"), dict) else {}
         if not channel.get("id"):
-            channel = chat_emotes.twitch_channel_for_vod(
-                video_id, chat_capture._TWITCH_CLIENT_ID
-            )
+            channel = chat_emotes.twitch_channel_for_vod(video_id, chat_capture._TWITCH_CLIENT_ID)
             if channel:
                 payload["channel"] = channel
         channel_id = str(channel.get("id") or "")
@@ -127,14 +113,11 @@ def _enrich_badges(payload: dict) -> dict:
             resolved,
         )
     except Exception:
-        # Artwork is fidelity, not a dependency. The preview/exporter retain the
-        # existing text-badge fallback if Twitch changes or rejects this lookup.
         log.exception("Twitch badge enrichment failed for vod=%s", video_id)
     return payload
 
 
 def _enrich_paints(payload: dict) -> dict:
-    """Resolve active 7TV username paints for visible replay messages."""
     try:
         payload = chat_paints.apply(payload)
         log.info(
@@ -143,14 +126,11 @@ def _enrich_paints(payload: dict) -> dict:
             payload.get("sevenTvPaintUsers", 0),
         )
     except Exception:
-        # 7TV cosmetics are visual fidelity only. Twitch's native user colour is
-        # already present and remains the fallback for every failed lookup.
         log.exception("7TV paint enrichment failed")
     return payload
 
 
 def _enrich_7tv_badges(payload: dict) -> dict:
-    """Resolve equipped 7TV cosmetic badges for visible replay messages."""
     try:
         payload = chat_7tv_badges.apply(payload)
         log.info(
@@ -159,8 +139,6 @@ def _enrich_7tv_badges(payload: dict) -> dict:
             payload.get("sevenTvBadgeUsers", 0),
         )
     except Exception:
-        # Cosmetic badges are optional fidelity. Native Twitch badges and chat
-        # remain untouched if 7TV is unavailable or changes its cosmetics API.
         log.exception("7TV badge enrichment failed")
     return payload
 
@@ -175,13 +153,8 @@ def _prepare_payload(payload: dict, req: ChatCaptureRequest) -> dict:
         highlighted_ids=req.highlightedMessageIds,
         only_message_id=req.onlyMessageId,
     )
-    # Resolve cosmetics after filters/edits so hidden or soloed-away chatters do
-    # not generate needless third-party cosmetic lookups.
     payload = _enrich_paints(payload)
     payload = _enrich_7tv_badges(payload)
-    # Finished Twitch VODs expose system events mostly as replay-chat text. Turn
-    # those messages into structured events before preview/export so both paths
-    # share the same event classification and badge labels.
     payload = chat_events.apply(payload)
     payload = chat_timing.apply(payload, req.timingMode)
     return payload
@@ -220,6 +193,7 @@ def _render_worker(job, req: ChatExportRequest, section: tuple[float, float]) ->
             req.fps,
             chat_look=req.chatLook,
             entry_animation=req.entryAnimation,
+            chat_font=req.chatFont,
             bubble_width=req.bubbleWidth,
             bubble_gap=req.bubbleGap,
             message_ttl=req.messageLifetime,
@@ -253,7 +227,6 @@ def _render_worker(job, req: ChatExportRequest, section: tuple[float, float]) ->
 
 
 def register(app) -> None:
-    """Attach beta chat endpoints to the main FastAPI app once."""
     if getattr(app.state, "fetcher_chat_registered", False):
         return
     app.state.fetcher_chat_registered = True
@@ -265,12 +238,7 @@ def register(app) -> None:
             return JSONResponse(
                 status_code=429,
                 headers={"Retry-After": "30"},
-                content={
-                    "error": {
-                        "code": "busy",
-                        "message": "too many chat captures at once. give fetcher a moment.",
-                    }
-                },
+                content={"error": {"code": "busy", "message": "too many chat captures at once. give fetcher a moment."}},
             )
         try:
             section = _section(req)
@@ -286,12 +254,7 @@ def register(app) -> None:
             return JSONResponse(
                 status_code=429,
                 headers={"Retry-After": "60"},
-                content={
-                    "error": {
-                        "code": "busy",
-                        "message": "easy there — give chat export a minute before starting another render.",
-                    }
-                },
+                content={"error": {"code": "busy", "message": "easy there — give chat export a minute before starting another render."}},
             )
         try:
             section = _section(req)
@@ -309,21 +272,13 @@ def register(app) -> None:
             return JSONResponse(
                 status_code=503,
                 headers={"Retry-After": "20"},
-                content={
-                    "error": {
-                        "code": "busy",
-                        "message": "another chat overlay is rendering right now — try again in a moment.",
-                    }
-                },
+                content={"error": {"code": "busy", "message": "another chat overlay is rendering right now — try again in a moment."}},
             )
 
         try:
             job = store.create()
             job.mode = "video"
             job.section = section
-            # The download route removes the per-job directory after transfer.
-            # This shorter READY TTL handles the case where the browser never
-            # starts the download at all.
             job.retention_seconds = config.CHAT_EXPORT_TTL_SECONDS
             job.delivery_timeout_seconds = config.DELIVERY_TTL_SECONDS
             job.status = jobstate.PROCESSING
@@ -351,16 +306,11 @@ def register(app) -> None:
 
     @app.get("/api/chat/download/{job_id}")
     def twitch_chat_download(job_id: str):
-        """Stream one ready chat export, then delete the server-side copy."""
         job = store.get(job_id)
         if job is None or not job.ready:
             return _error(errors.FetcherError(errors.JOB_NOT_FOUND))
         if not store.begin_delivery(job):
             return _error(errors.FetcherError(errors.JOB_NOT_FOUND))
-
-        # BackgroundTask runs after FileResponse finishes sending the file. The
-        # DELIVERING lease prevents the stale sweeper from cutting a slow transfer
-        # off; if that callback never runs, the longer delivery TTL reclaims it.
         cleanup = BackgroundTask(store.remove, job.id)
         return FileResponse(
             path=str(job.filepath),
