@@ -12,7 +12,7 @@ import threading
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from . import chat_capture, chat_emotes, chat_export, errors, limits, timecode
+from . import chat_capture, chat_emotes, chat_export, chat_export_plus, errors, limits, timecode
 from . import jobs as jobstate
 from .jobs import JobCancelled, store
 from .models import ChatCaptureRequest, ChatExportRequest
@@ -96,12 +96,20 @@ def _render_worker(job, req: ChatExportRequest, section: tuple[float, float]) ->
         job.stage = "resolving emotes"
         job.progress = 3.0
         payload = _enrich_emotes(payload)
-        output, filename, media_type = chat_export.render(
+        output, filename, media_type = chat_export_plus.render(
             payload,
             job,
             req.format,
             req.resolution,
             req.fps,
+            bubble_width=req.bubbleWidth,
+            bubble_gap=req.bubbleGap,
+            message_ttl=req.messageLifetime,
+            max_visible=req.maxVisible,
+            sound_preset=req.soundPreset,
+            sound_volume=req.soundVolume,
+            sound_min_gap_ms=req.soundMinGapMs,
+            sound_data=req.soundData,
         )
         store.finalize(job, output, filename, media_type, title="Twitch chat overlay")
         log.info("chat export job %s ready: %s", job.id, filename)
@@ -111,7 +119,7 @@ def _render_worker(job, req: ChatExportRequest, section: tuple[float, float]) ->
     except errors.FetcherError as err:
         log.info("chat export job %s error %s: %s", job.id, err.code, err.detail or err.message)
         store.mark_failed(job, jobstate.ERROR, err.code, err.message)
-    except Exception as exc:
+    except Exception:
         log.exception("chat export job %s failed", job.id)
         store.mark_failed(job, jobstate.ERROR, errors.BACKEND_ERROR, errors.FRIENDLY[errors.BACKEND_ERROR])
     finally:
@@ -163,6 +171,11 @@ def register(app) -> None:
             section = _section(req)
             duration = section[1] - section[0]
             chat_export.validate_request(req.format, req.resolution, req.fps, duration)
+            if req.soundPreset == "custom" and not req.soundData:
+                raise errors.FetcherError(
+                    errors.INVALID_SECTION,
+                    message="choose a custom message sound first, or turn message sound off",
+                )
         except errors.FetcherError as err:
             return _error(err)
 
