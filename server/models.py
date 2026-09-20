@@ -75,10 +75,10 @@ class ChatExportRequest(ChatCaptureRequest):
     messageLifetime: float = Field(default=12.0, ge=4.0, le=30.0)
     maxVisible: int = Field(default=7, ge=3, le=12)
 
-    # Full keeps the existing 16:9 plate. Tight sizes the encoded frame around
-    # the largest chat stack needed by this clip, which makes the result easier
-    # to position in any editor while preserving alpha/green-screen behavior.
+    # Full can target common editing/social canvases. Tight ignores the aspect
+    # preset and sizes the encoded frame around the largest chat stack instead.
     canvasMode: Literal["full", "tight"] = "full"
+    canvasAspect: Literal["16:9", "9:16", "4:5", "1:1"] = "16:9"
     canvasPadding: int = Field(default=32, ge=0, le=160)
 
     # Optional message cue. Custom sounds are sent as a small data URL so the
