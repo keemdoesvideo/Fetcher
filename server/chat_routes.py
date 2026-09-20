@@ -14,9 +14,10 @@ from fastapi.responses import JSONResponse
 
 from . import (
     chat_capture,
+    chat_edits,
     chat_emotes,
     chat_export,
-    chat_export_plus,
+    chat_export_edits,
     chat_filters,
     chat_timing,
     errors,
@@ -84,6 +85,12 @@ def _enrich_emotes(payload: dict) -> dict:
 def _prepare_payload(payload: dict, req: ChatCaptureRequest) -> dict:
     payload = _enrich_emotes(payload)
     payload = chat_filters.apply(payload, hide_bots=req.hideBots)
+    payload = chat_edits.apply(
+        payload,
+        hidden_ids=req.hiddenMessageIds,
+        highlighted_ids=req.highlightedMessageIds,
+        only_message_id=req.onlyMessageId,
+    )
     payload = chat_timing.apply(payload, req.timingMode)
     return payload
 
@@ -113,7 +120,7 @@ def _render_worker(job, req: ChatExportRequest, section: tuple[float, float]) ->
         job.stage = "resolving emotes"
         job.progress = 3.0
         payload = _prepare_payload(payload, req)
-        output, filename, media_type = chat_export_plus.render(
+        output, filename, media_type = chat_export_edits.render(
             payload,
             job,
             req.format,
