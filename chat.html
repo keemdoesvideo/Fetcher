@@ -39,7 +39,7 @@
 
     <div class="rail-spacer rail-icons">
       <a class="rail-btn" href="settings.html" title="Settings">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"/></svg>
         <span>settings</span>
       </a>
       <a class="rail-btn" href="donate.html" title="Donate">
@@ -62,7 +62,7 @@
       <header class="chat-hero">
         <span class="chat-eyebrow">project fetcher · chat <span class="chat-beta">twitch beta</span></span>
         <h1>turn VOD chat into an overlay.</h1>
-        <p>paste a finished Twitch VOD, choose the moment you want, then preview the real replay chat at its original timing. export is the next step — this first build is about making capture and playback feel right.</p>
+        <p>paste a finished Twitch VOD, choose the moment you want, preview the real replay chat at its original timing, then export it as a transparent editing overlay.</p>
       </header>
 
       <section class="chat-card chat-source" aria-label="Twitch VOD source">
@@ -121,10 +121,56 @@
             </div>
           </div>
           <div class="chat-card chat-notice" id="chat-truncation-note" hidden><strong>busy chat.</strong> Fetcher hit the beta message cap, so this preview is a partial slice.</div>
-          <div class="chat-card chat-coming">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 18v4"/><path d="m16.24 16.24 2.83 2.83"/><path d="M18 12h4"/><path d="m16.24 7.76 2.83-2.83"/></svg>
-            <p><strong>next: export</strong> once capture feels solid, this same timeline becomes a transparent WebM / ProRes 4444 render for Resolve and Premiere.</p>
+
+          <div class="chat-card chat-export-card">
+            <div class="chat-export-heading">
+              <div>
+                <span class="chat-export-kicker">editing overlay</span>
+                <h2>export</h2>
+              </div>
+              <span class="chat-alpha-pill">alpha ready</span>
+            </div>
+
+            <label class="chat-export-field" for="chat-export-format">
+              <span>format</span>
+              <select id="chat-export-format">
+                <option value="prores">ProRes 4444 MOV · Resolve / Premiere</option>
+                <option value="webm">Transparent WebM · smaller</option>
+                <option value="greenscreen">Green-screen MP4 · fallback</option>
+              </select>
+            </label>
+
+            <div class="chat-export-row">
+              <label class="chat-export-field" for="chat-export-resolution">
+                <span>canvas</span>
+                <select id="chat-export-resolution">
+                  <option value="1080p">1920 × 1080</option>
+                  <option value="720p">1280 × 720</option>
+                </select>
+              </label>
+              <label class="chat-export-field" for="chat-export-fps">
+                <span>frame rate</span>
+                <select id="chat-export-fps">
+                  <option value="30">30 fps</option>
+                  <option value="60">60 fps</option>
+                </select>
+              </label>
+            </div>
+
+            <p class="chat-export-hint" id="chat-export-hint">ProRes keeps real transparency and is the best choice for Resolve. 60 seconds max at 30 fps while export is in beta.</p>
+            <button class="chat-export-btn" id="chat-export-btn" type="button">export overlay</button>
+
+            <div class="chat-export-progress" id="chat-export-progress" hidden>
+              <div class="chat-export-status-row">
+                <span id="chat-export-status">preparing export…</span>
+                <strong id="chat-export-pct">0%</strong>
+              </div>
+              <div class="chat-export-track"><div class="chat-export-fill" id="chat-export-fill"></div></div>
+              <button class="chat-export-cancel" id="chat-export-cancel" type="button">cancel</button>
+            </div>
           </div>
+
+          <div class="chat-card chat-notice chat-export-note"><strong>same timeline.</strong> Export re-reads the selected Twitch section, resolves Twitch + 7TV + BTTV + FFZ emotes, and renders the same seven-message / 12-second overlay behaviour as the preview.</div>
         </aside>
       </section>
     </div>
