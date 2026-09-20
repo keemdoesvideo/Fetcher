@@ -13,6 +13,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from . import (
+    chat_badges,
     chat_capture,
     chat_edits,
     chat_emotes,
@@ -63,9 +64,11 @@ def _enrich_emotes(payload: dict) -> dict:
         channel_id = str(channel.get("id") or "")
         if not channel_id:
             return payload
+        # Keep owner metadata even if a third-party emote provider is down; the
+        # same channel identity is also used for native Twitch badge artwork.
+        payload["channel"] = channel
         catalog, providers = chat_emotes.catalog_for_channel(channel_id)
         resolved = chat_emotes.enrich_messages(payload.get("messages") or [], catalog)
-        payload["channel"] = channel
         payload["emoteProviders"] = providers
         payload["thirdPartyEmotes"] = resolved
         log.info(
@@ -83,8 +86,47 @@ def _enrich_emotes(payload: dict) -> dict:
     return payload
 
 
+def _enrich_badges(payload: dict) -> dict:
+    """Resolve the real Twitch artwork for each replay badge, best-effort."""
+    video_id = str(payload.get("vodId") or "")
+    if not video_id:
+        return payload
+    try:
+        channel = payload.get("channel") if isinstance(payload.get("channel"), dict) else {}
+        if not channel.get("id"):
+            channel = chat_emotes.twitch_channel_for_vod(
+                video_id, chat_capture._TWITCH_CLIENT_ID
+            )
+            if channel:
+                payload["channel"] = channel
+        channel_id = str(channel.get("id") or "")
+        channel_login = str(channel.get("login") or "")
+        if not channel_id and not channel_login:
+            return payload
+        catalog = chat_badges.catalog_for_channel(
+            channel_id,
+            channel_login,
+            chat_capture._TWITCH_CLIENT_ID,
+        )
+        resolved = chat_badges.enrich_messages(payload.get("messages") or [], catalog)
+        payload["twitchBadgeArtwork"] = resolved
+        log.info(
+            "chat badges vod=%s channel=%s catalog=%s resolved=%s",
+            video_id,
+            channel_login or channel_id,
+            len(catalog),
+            resolved,
+        )
+    except Exception:
+        # Artwork is fidelity, not a dependency. The preview/exporter retain the
+        # existing text-badge fallback if Twitch changes or rejects this lookup.
+        log.exception("Twitch badge enrichment failed for vod=%s", video_id)
+    return payload
+
+
 def _prepare_payload(payload: dict, req: ChatCaptureRequest) -> dict:
     payload = _enrich_emotes(payload)
+    payload = _enrich_badges(payload)
     payload = chat_filters.apply(payload, hide_bots=req.hideBots)
     payload = chat_edits.apply(
         payload,
