@@ -21,6 +21,7 @@ from . import (
     chat_export,
     chat_export_edits,
     chat_filters,
+    chat_paints,
     chat_timing,
     errors,
     limits,
@@ -124,6 +125,22 @@ def _enrich_badges(payload: dict) -> dict:
     return payload
 
 
+def _enrich_paints(payload: dict) -> dict:
+    """Resolve active 7TV username paints for visible replay messages."""
+    try:
+        payload = chat_paints.apply(payload)
+        log.info(
+            "7TV paints messages=%s users=%s",
+            payload.get("sevenTvPaints", 0),
+            payload.get("sevenTvPaintUsers", 0),
+        )
+    except Exception:
+        # 7TV cosmetics are visual fidelity only. Twitch's native user colour is
+        # already present and remains the fallback for every failed lookup.
+        log.exception("7TV paint enrichment failed")
+    return payload
+
+
 def _prepare_payload(payload: dict, req: ChatCaptureRequest) -> dict:
     payload = _enrich_emotes(payload)
     payload = _enrich_badges(payload)
@@ -134,6 +151,9 @@ def _prepare_payload(payload: dict, req: ChatCaptureRequest) -> dict:
         highlighted_ids=req.highlightedMessageIds,
         only_message_id=req.onlyMessageId,
     )
+    # Resolve paints after filters/edits so hidden or soloed-away chatters do not
+    # generate needless third-party cosmetic lookups.
+    payload = _enrich_paints(payload)
     # Finished Twitch VODs expose system events mostly as replay-chat text. Turn
     # those messages into structured events before preview/export so both paths
     # share the same event classification and badge labels.
