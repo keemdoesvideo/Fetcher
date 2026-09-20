@@ -234,28 +234,30 @@
     var wrap = trimMount.querySelector('.trim-video-wrap');
     if (!searchLaunch || !wrap) return;
 
-    if (searchLaunch.parentNode !== wrap) wrap.appendChild(searchLaunch);
-    searchLaunch.classList.add('chat-player-search');
-    searchLaunch.classList.toggle('ready', previewReady());
+    // Mark/decorate once, then move it. The full-search helper alone owns the
+    // .ready state because it waits for real duration metadata. Having both
+    // helpers toggle .ready caused an observer feedback loop while the VOD was
+    // still loading and could freeze the entire page.
     if (searchLaunch.dataset.fetcherPlayerSearch !== '1') {
       searchLaunch.dataset.fetcherPlayerSearch = '1';
       searchLaunch.innerHTML = '<span class="chat-player-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.4-3.4"></path></svg></span><span>search whole VOD</span>';
     }
+    if (searchLaunch.parentNode !== wrap) wrap.appendChild(searchLaunch);
+    searchLaunch.classList.add('chat-player-search');
   }
 
   function syncSourceUi() {
     var ready = previewReady();
     source.classList.toggle('fetcher-source-ready', ready);
     if (ready) moveSearchIntoPlayer();
-    if (searchLaunch && searchLaunch.classList.contains('chat-player-search')) {
-      searchLaunch.classList.toggle('ready', ready);
-    }
     if (sourceNote) sourceNote.hidden = !sourceNote.classList.contains('error');
   }
 
+  // The trimmer already constructs its video/player DOM at mount time. We only
+  // need to react when the mount itself opens or changes provider/kind. Do not
+  // observe descendant class changes: the Search VOD button lives inside the
+  // player, and observing its .ready class would create a self-triggering loop.
   new MutationObserver(syncSourceUi).observe(trimMount, {
-    childList: true,
-    subtree: true,
     attributes: true,
     attributeFilter: ['class', 'data-provider', 'data-kind']
   });
