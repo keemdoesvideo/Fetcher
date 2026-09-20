@@ -21,9 +21,11 @@ from . import (
     chat_events,
     chat_export,
     chat_export_edits,
+    chat_export_policy,
     chat_filters,
     chat_paints,
     chat_timing,
+    config,
     errors,
     limits,
     timecode,
@@ -31,6 +33,10 @@ from . import (
 from . import jobs as jobstate
 from .jobs import JobCancelled, store
 from .models import ChatCaptureRequest, ChatExportRequest
+
+# The proven renderer calls chat_export.validate_request internally as well as at
+# route preflight. Install one shared policy so both checks use the same limit.
+chat_export_policy.install()
 
 log = logging.getLogger("fetcher.chat")
 _chat_window = limits.RequestWindow(max_requests=12, window_seconds=5 * 60)
@@ -224,7 +230,12 @@ def _render_worker(job, req: ChatExportRequest, section: tuple[float, float]) ->
             sound_data=req.soundData,
         )
         store.finalize(job, output, filename, media_type, title="Twitch chat overlay")
-        log.info("chat export job %s ready: %s", job.id, filename)
+        log.info(
+            "chat export job %s ready: %s (abandoned-file ttl=%ss)",
+            job.id,
+            filename,
+            job.retention_seconds or config.JOB_TTL_SECONDS,
+        )
     except JobCancelled:
         log.info("chat export job %s cancelled", job.id)
         store.mark_failed(job, jobstate.CANCELLED)
@@ -307,6 +318,10 @@ def register(app) -> None:
             job = store.create()
             job.mode = "video"
             job.section = section
+            # Download responses already remove a finished job directory as a
+            # background task. This shorter TTL is the safety net if the browser
+            # disappears before/during that transfer.
+            job.retention_seconds = config.CHAT_EXPORT_TTL_SECONDS
             job.status = jobstate.PROCESSING
             job.stage = "queued"
             thread = threading.Thread(
@@ -326,4 +341,6 @@ def register(app) -> None:
             "format": req.format,
             "resolution": req.resolution,
             "fps": req.fps,
+            "maxDurationSeconds": chat_export_policy.MAX_CHAT_EXPORT_SECONDS,
+            "abandonedTtlSeconds": config.CHAT_EXPORT_TTL_SECONDS,
         }
