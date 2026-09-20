@@ -23,9 +23,21 @@
   var previewMeta = document.getElementById('chat-preview-meta');
   var truncationNote = document.getElementById('chat-truncation-note');
 
+  var exportFormat = document.getElementById('chat-export-format');
+  var exportResolution = document.getElementById('chat-export-resolution');
+  var exportFps = document.getElementById('chat-export-fps');
+  var exportHint = document.getElementById('chat-export-hint');
+  var exportBtn = document.getElementById('chat-export-btn');
+  var exportProgress = document.getElementById('chat-export-progress');
+  var exportStatus = document.getElementById('chat-export-status');
+  var exportPct = document.getElementById('chat-export-pct');
+  var exportFill = document.getElementById('chat-export-fill');
+  var exportCancel = document.getElementById('chat-export-cancel');
+
   var detectSeq = 0;
   var supported = false;
   var data = null;
+  var loadedUrl = '';
   var playing = false;
   var speed = 1;
   var playhead = 0;
@@ -35,6 +47,10 @@
   var visible = [];
   var MAX_VISIBLE = 7;
   var MESSAGE_TTL = 12;
+
+  var exportBusy = false;
+  var exportJobId = null;
+  var exportPollTimer = 0;
 
   if (window.FetcherTrimmer && trimMount) {
     window.FetcherTrimmer.mount(trimMount);
@@ -164,7 +180,8 @@
           return;
         }
         data = result.body;
-        setNote('chat loaded — press play to preview it in real time');
+        loadedUrl = input.value.trim();
+        setNote('chat loaded — press play to preview it, or export the overlay');
         showWorkspace();
       })
       .catch(function () {
@@ -185,6 +202,8 @@
     if (!count) {
       emptyPreview.textContent = 'no replay-chat messages landed inside this section';
     }
+    exportBtn.disabled = !count || exportBusy;
+    updateExportHint();
     workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -328,6 +347,198 @@
     speedBtn.textContent = speed + '×';
   });
 
+  /* ---------------------------------------------------------------------
+     Export
+  --------------------------------------------------------------------- */
+  function exportLimit() {
+    var format = exportFormat.value;
+    var fps = Number(exportFps.value || 30);
+    var limit = format === 'prores' ? 60 : 120;
+    if (fps === 60) limit /= 2;
+    return limit;
+  }
+
+  function updateExportHint() {
+    var format = exportFormat.value;
+    var fps = Number(exportFps.value || 30);
+    var limit = exportLimit();
+    var lead;
+    if (format === 'prores') lead = 'ProRes 4444 keeps real transparency and is the best choice for Resolve.';
+    else if (format === 'webm') lead = 'Transparent WebM keeps alpha in a much smaller file.';
+    else lead = 'Green-screen MP4 is the compatibility fallback when alpha video is awkward.';
+    exportHint.textContent = lead + ' ' + (limit === 30 ? '30 seconds' : (limit === 60 ? '1 minute' : '2 minutes')) + ' max at ' + fps + ' fps while export is in beta.';
+  }
+
+  function setExportBusy(on) {
+    exportBusy = !!on;
+    exportFormat.disabled = on;
+    exportResolution.disabled = on;
+    exportFps.disabled = on;
+    exportBtn.disabled = on || !data || !Number(data.messageCount || (data.messages || []).length || 0);
+    exportBtn.textContent = on ? 'rendering…' : 'export overlay';
+  }
+
+  function resetExportProgress() {
+    clearTimeout(exportPollTimer);
+    exportPollTimer = 0;
+    exportJobId = null;
+    exportProgress.hidden = true;
+    exportProgress.classList.remove('success', 'error');
+    exportStatus.textContent = 'preparing export…';
+    exportPct.textContent = '0%';
+    exportFill.style.width = '0%';
+  }
+
+  function showExportProgress(status, pct) {
+    exportProgress.hidden = false;
+    exportProgress.classList.remove('success', 'error');
+    exportStatus.textContent = status || 'rendering overlay…';
+    pct = Math.max(0, Math.min(100, Number(pct) || 0));
+    exportPct.textContent = Math.round(pct) + '%';
+    exportFill.style.width = pct + '%';
+  }
+
+  function showExportError(message) {
+    exportProgress.hidden = false;
+    exportProgress.classList.remove('success');
+    exportProgress.classList.add('error');
+    exportStatus.textContent = message || 'export couldn’t finish — try again';
+    exportPct.textContent = '';
+    exportFill.style.width = '100%';
+    setExportBusy(false);
+  }
+
+  function exportStage(stage) {
+    var labels = {
+      queued: 'getting export ready…',
+      'reading chat': 'reading replay chat…',
+      'resolving emotes': 'resolving Twitch + 7TV + BTTV + FFZ…',
+      'loading emotes': 'loading emotes…',
+      'laying out chat': 'laying out the overlay…',
+      'rendering overlay': 'rendering overlay…',
+      finishing: 'finishing the file…',
+      done: 'ready!'
+    };
+    return labels[stage] || 'rendering overlay…';
+  }
+
+  function startDownload(jobId, filename) {
+    var link = document.createElement('a');
+    link.href = '/api/download/' + encodeURIComponent(jobId);
+    if (filename) link.download = filename;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function pollExport() {
+    if (!exportJobId) return;
+    fetch('/api/progress/' + encodeURIComponent(exportJobId))
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (body) {
+          return { ok: r.ok, body: body };
+        });
+      })
+      .then(function (result) {
+        if (!exportJobId) return;
+        var body = result.body || {};
+        if (!result.ok || !body.status) {
+          return showExportError(body.error && body.error.message || 'export status was lost — try again');
+        }
+        if (body.status === 'ready') {
+          var readyJob = exportJobId;
+          exportJobId = null;
+          clearTimeout(exportPollTimer);
+          exportProgress.classList.remove('error');
+          exportProgress.classList.add('success');
+          exportStatus.textContent = 'exported! download starting…';
+          exportPct.textContent = '100%';
+          exportFill.style.width = '100%';
+          setExportBusy(false);
+          window.setTimeout(function () { startDownload(readyJob, body.filename); }, 250);
+          return;
+        }
+        if (body.status === 'error') {
+          exportJobId = null;
+          return showExportError(body.error && body.error.message || 'export couldn’t finish — try again');
+        }
+        if (body.status === 'cancelled') {
+          exportJobId = null;
+          exportProgress.classList.remove('success', 'error');
+          exportStatus.textContent = 'cancelled';
+          exportPct.textContent = '';
+          exportFill.style.width = '0%';
+          setExportBusy(false);
+          return;
+        }
+        showExportProgress(exportStage(body.stage), body.progress);
+        exportPollTimer = window.setTimeout(pollExport, 600);
+      })
+      .catch(function () {
+        if (exportJobId) exportPollTimer = window.setTimeout(pollExport, 900);
+      });
+  }
+
+  function beginExport() {
+    if (exportBusy || !data || !loadedUrl) return;
+    var duration = Number(data.duration || 0);
+    var limit = exportLimit();
+    if (duration > limit + 0.01) {
+      showExportError('this selection is too long for those export settings — trim it to ' + (limit === 30 ? '30 seconds' : (limit === 60 ? '1 minute' : '2 minutes')) + ' or choose a lighter setting');
+      return;
+    }
+
+    resetExportProgress();
+    setExportBusy(true);
+    showExportProgress('getting export ready…', 0);
+    fetch('/api/chat/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: loadedUrl,
+        start: String(data.start),
+        end: String(data.end),
+        format: exportFormat.value,
+        resolution: exportResolution.value,
+        fps: Number(exportFps.value)
+      })
+    })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (body) {
+          return { ok: r.ok, body: body };
+        });
+      })
+      .then(function (result) {
+        if (!result.ok || !result.body || !result.body.jobId) {
+          return showExportError(result.body && result.body.error && result.body.error.message || 'couldn’t start that export — try again');
+        }
+        exportJobId = result.body.jobId;
+        pollExport();
+      })
+      .catch(function () {
+        showExportError('couldn’t reach the export service — try again');
+      });
+  }
+
+  exportFormat.addEventListener('change', updateExportHint);
+  exportFps.addEventListener('change', updateExportHint);
+  exportBtn.addEventListener('click', beginExport);
+  exportCancel.addEventListener('click', function () {
+    if (!exportJobId) return;
+    var id = exportJobId;
+    exportJobId = null;
+    clearTimeout(exportPollTimer);
+    fetch('/api/cancel/' + encodeURIComponent(id), { method: 'POST' }).catch(function () {});
+    exportProgress.classList.remove('success', 'error');
+    exportStatus.textContent = 'cancelling…';
+    exportPct.textContent = '';
+    exportFill.style.width = '0%';
+    setExportBusy(false);
+  });
+
+  updateExportHint();
+  exportBtn.disabled = true;
   setSourceState('waiting', false);
   setNote('paste a finished Twitch VOD link to start');
 })();
