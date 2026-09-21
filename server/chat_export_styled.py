@@ -1,9 +1,8 @@
-"""Render chat overlays with selectable layout, entry motion and font styles.
+"""Render chat overlays with selectable visual skin, layout, motion and fonts.
 
-This is intentionally a thin wrapper around ``chat_export_edits``. The existing
-export path still owns bubbles, badges, emotes, paints, edits, sound and canvas
-modes; this module swaps presentation details for the duration of one serialized
-chat render.
+The browser preview is CSS, while exported files are Pillow/FFmpeg. This wrapper
+keeps those two paths in sync by temporarily swapping the preparation + frame
+functions for the duration of one serialized chat render.
 """
 
 from __future__ import annotations
@@ -11,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 import threading
 
-from . import chat_export_edits, chat_export_plus, chat_style_render
+from . import chat_export_edits, chat_export_plus, chat_style_render, chat_visual_skins
 
 _lock = threading.Lock()
 
@@ -101,9 +100,6 @@ def _style_loader(original, bubble_scale: int):
         style = original(resolution, fps)
         if abs(factor - 1.0) < 0.001:
             return style
-
-        # Bubble Gap remains independent. Scale the message box itself: type,
-        # badges, emotes, padding, radius, shadow and available bubble width.
         style.font_size = max(10, round(style.font_size * factor))
         style.name_size = max(10, round(style.name_size * factor))
         style.badge_size = max(7, round(style.badge_size * factor))
@@ -120,18 +116,10 @@ def _style_loader(original, bubble_scale: int):
 
 def render(*args, **kwargs):
     legacy_layout = kwargs.pop("chat_look", "bubble")
-    chat_layout = chat_style_render.normalise_layout(
-        kwargs.pop("chat_layout", legacy_layout)
-    )
-    entry_animation = chat_style_render.normalise_animation(
-        kwargs.pop("entry_animation", "rise")
-    )
-    stack_motion = chat_style_render.normalise_stack_motion(
-        kwargs.pop("stack_motion", "smooth")
-    )
-    visual_look = str(kwargs.pop("visual_look", "classic") or "classic").strip().lower()
-    if visual_look not in _VISUAL_LOOKS:
-        visual_look = "classic"
+    chat_layout = chat_style_render.normalise_layout(kwargs.pop("chat_layout", legacy_layout))
+    entry_animation = chat_style_render.normalise_animation(kwargs.pop("entry_animation", "rise"))
+    stack_motion = chat_style_render.normalise_stack_motion(kwargs.pop("stack_motion", "smooth"))
+    visual_look = chat_visual_skins.normalise_look(kwargs.pop("visual_look", "classic"))
 
     chat_font = str(kwargs.pop("chat_font", "system") or "system").strip().lower()
     if chat_font not in _FONT_CHOICES:
@@ -150,8 +138,8 @@ def render(*args, **kwargs):
         original_style = chat_export_plus.base._style
 
         def prepare_messages(pil, payload, assets, style, job, bubble_width):
-            prepared = original_prepare_messages(
-                pil, payload, assets, style, job, bubble_width
+            prepared = chat_visual_skins.prepare_messages(
+                pil, payload, assets, style, job, bubble_width, visual_look
             )
             return chat_style_render.transform_prepared(
                 pil, payload, prepared, style, chat_layout
@@ -159,7 +147,7 @@ def render(*args, **kwargs):
 
         chat_export_plus._prepare_messages = prepare_messages
         chat_export_plus._frame = chat_style_render.frame_renderer(
-            chat_layout, entry_animation, stack_motion
+            chat_layout, entry_animation, stack_motion, visual_look=visual_look
         )
         chat_export_plus.base._font = _font_loader(original_font, chat_font)
         chat_export_plus.base._style = _style_loader(original_style, bubble_scale)
@@ -175,11 +163,7 @@ def render(*args, **kwargs):
                 if suffixes:
                     dot = filename.rfind(".")
                     suffix = "-" + "-".join(suffixes)
-                    filename = (
-                        filename[:dot] + suffix + filename[dot:]
-                        if dot > 0
-                        else filename + suffix
-                    )
+                    filename = filename[:dot] + suffix + filename[dot:] if dot > 0 else filename + suffix
                 return output, filename, media_type
             return result
         finally:
