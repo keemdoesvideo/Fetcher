@@ -1,0 +1,70 @@
+/* First-visit explainer for Fetcher Chat. Mirrors the homepage welcome glass
+   treatment without bringing the fetch-page stylesheet into Chat. */
+.chat-intro{
+  position:fixed;inset:0;z-index:780;display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.chat-intro[hidden]{display:none;}
+.chat-intro-scrim{
+  position:absolute;inset:0;background:color-mix(in srgb,var(--bg) 30%,transparent);
+  -webkit-backdrop-filter:blur(14px) saturate(1.08);backdrop-filter:blur(14px) saturate(1.08);
+  opacity:0;will-change:opacity;transition:opacity 220ms var(--ease);
+}
+.chat-intro.in .chat-intro-scrim{opacity:1;}
+.chat-intro-card{
+  position:relative;z-index:1;width:min(100%,470px);text-align:center;
+  background:color-mix(in srgb,var(--surface) 47%,transparent);
+  -webkit-backdrop-filter:blur(24px) saturate(1.7);backdrop-filter:blur(24px) saturate(1.7);
+  border:1px solid color-mix(in srgb,var(--ink) 8%,transparent);border-radius:26px;
+  box-shadow:0 30px 80px -30px rgba(0,0,0,.5),inset 0 1px 0 color-mix(in srgb,#fff 30%,transparent),inset 0 0 0 1px color-mix(in srgb,#fff 5%,transparent);
+  padding:34px 34px 28px;opacity:0;transform:translateY(10px) scale(.99);will-change:opacity,transform;
+  transition:opacity 240ms var(--ease),transform 300ms var(--ease);
+}
+.chat-intro.in .chat-intro-card{opacity:1;transform:none;}
+.chat-intro-mark{
+  width:52px;height:52px;margin:0 auto 15px;border-radius:17px;display:grid;place-items:center;
+  color:#9146ff;background:color-mix(in srgb,#9146ff 12%,var(--surface));
+  border:1px solid color-mix(in srgb,#9146ff 24%,var(--border));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 40%,transparent);
+}
+.chat-intro-mark svg{width:25px;height:25px;}
+.chat-intro-eyebrow{display:block;font-size:10.5px;letter-spacing:.085em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px;font-weight:800;}
+.chat-intro-title{font-size:22px;font-weight:700;letter-spacing:-.025em;line-height:1.15;margin:0 0 11px;color:var(--ink);}
+.chat-intro-copy{font-size:13.5px;line-height:1.58;color:var(--ink-soft);max-width:40ch;margin:0 auto 20px;}
+.chat-intro-steps{
+  list-style:none;margin:0 0 20px;padding:0;display:grid;gap:8px;text-align:left;
+}
+.chat-intro-step{
+  display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:center;
+  padding:9px 11px;border:1px solid color-mix(in srgb,var(--ink) 8%,transparent);
+  border-radius:13px;background:color-mix(in srgb,var(--surface) 46%,transparent);
+  color:var(--ink-soft);font-size:12.5px;line-height:1.35;
+}
+.chat-intro-step-num{
+  width:28px;height:28px;border-radius:9px;display:grid;place-items:center;
+  background:color-mix(in srgb,#9146ff 12%,var(--surface));color:#7f42e9;
+  font-size:11px;font-weight:900;border:1px solid color-mix(in srgb,#9146ff 18%,var(--border));
+}
+.chat-intro-note{font-size:10.5px;color:var(--ink-faint);margin:-5px 0 20px;line-height:1.4;}
+.chat-intro-btn{
+  display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:var(--bg);border:none;border-radius:999px;
+  padding:12px 24px;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;
+  transition:transform var(--dur-fast) var(--ease-bounce),background var(--dur-fast) var(--ease);
+}
+.chat-intro-btn:hover{transform:translateY(-2px);background:var(--ink-strong);}
+.chat-intro-btn:active{transform:translateY(0) scale(.97);}
+html.chat-intro-open{overflow:hidden;}
+
+html[data-motion="reserved"] .chat-intro-card,
+html[data-motion="reserved"] .chat-intro-scrim,
+html[data-motion="reserved"] .chat-intro-btn{transition-duration:150ms!important;transition-timing-function:var(--ease)!important;}
+html[data-motion="reduced"] .chat-intro-card,
+html[data-motion="reduced"] .chat-intro-scrim,
+html[data-motion="reduced"] .chat-intro-btn{transition:none!important;}
+@media (hover:none),(pointer:coarse){.chat-intro-btn:hover{transform:none!important;}}
+@media (max-width:560px){
+  .chat-intro{padding:16px;}
+  .chat-intro-card{padding:28px 20px 22px;border-radius:22px;}
+  .chat-intro-title{font-size:20px;}
+  .chat-intro-copy{font-size:13px;}
+  .chat-intro-step{font-size:12px;padding:8px 9px;}
+}
