@@ -1,6 +1,6 @@
-/* Repair overrides: restore the last stable URL bar and surface Advanced controls cleanly. */
+/* Repair overrides: stable URL bar, preview compositing fix, and Advanced controls. */
 
-/* URL bar: keep the known-good 2px layered border for the straight runs. */
+/* URL bar base: 2px straight rim, 18px radius. */
 .chat-flow-source .chat-url-wrap,
 .chat-flow-source .chat-url-wrap:focus-within{
   position:relative!important;
@@ -15,10 +15,10 @@
   isolation:auto!important;
 }
 
-/* Reinforce the rounded end arcs without drawing thick horizontal segments.
-   The native 2px rim stays visible everywhere. Each pseudo-element adds only a
-   6px left/right border, clipped by the same 18px radius, so the curved ends read
-   heavier while blending cleanly into the 2px top and bottom runs. */
+/* Heavier curved ends, without the C-shaped blob from a 6px border.
+   These are tapered corner masks: they are ~6px thick at the extreme left/right
+   of the curve and taper back into the 2px top/bottom rim before the straight run.
+   There is no thick vertical centre segment. */
 .chat-flow-source .chat-url-wrap::before,
 .chat-flow-source .chat-url-wrap::after{
   content:""!important;
@@ -27,26 +27,21 @@
   z-index:2!important;
   top:0!important;
   bottom:0!important;
-  width:18px!important;
+  width:22px!important;
   pointer-events:none!important;
-  background:transparent!important;
+  background:var(--ink)!important;
+  border:0!important;
+  border-radius:0!important;
   box-sizing:border-box!important;
-  border-top:0!important;
-  border-bottom:0!important;
-  transform:none!important;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 52' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M22 0C9.85 0 0 9.85 0 22H6C6 13.7 12.4 6 22 2V0ZM0 30C0 42.15 9.85 52 22 52V50C12.4 46 6 38.3 6 30H0Z'/%3E%3C/svg%3E")!important;
+  -webkit-mask-repeat:no-repeat!important;
+  -webkit-mask-size:100% 100%!important;
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 52' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M22 0C9.85 0 0 9.85 0 22H6C6 13.7 12.4 6 22 2V0ZM0 30C0 42.15 9.85 52 22 52V50C12.4 46 6 38.3 6 30H0Z'/%3E%3C/svg%3E")!important;
+  mask-repeat:no-repeat!important;
+  mask-size:100% 100%!important;
 }
-.chat-flow-source .chat-url-wrap::before{
-  left:0!important;
-  border-left:6px solid var(--ink)!important;
-  border-right:0!important;
-  border-radius:18px 0 0 18px!important;
-}
-.chat-flow-source .chat-url-wrap::after{
-  right:0!important;
-  border-right:6px solid var(--ink)!important;
-  border-left:0!important;
-  border-radius:0 18px 18px 0!important;
-}
+.chat-flow-source .chat-url-wrap::before{left:0!important;transform:none!important;}
+.chat-flow-source .chat-url-wrap::after{right:0!important;transform:scaleX(-1)!important;}
 .chat-flow-source .chat-url-wrap:focus-within{
   box-shadow:0 0 0 4px var(--accent-tint),var(--shadow-sm)!important;
 }
