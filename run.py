@@ -132,9 +132,22 @@ if "fetcher-chat-look-gifs.js" not in app_module._LAUNCH_HEAD:
 # frosts that finished UI behind a single dismissible welcome card.
 if "fetcher-chat-intro.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-intro.js"></script>'
+
 register_chat_routes(app_module.app)
 register_chat_activity_routes(app_module.app)
 register_chat_search_routes(app_module.app)
+
+# server.app declares the frontend /{asset:path} GET catch-all before these beta
+# Chat registrars run. FastAPI matches routes in declaration order, so without
+# this reorder every late-added Chat GET endpoint (notably
+# /api/chat/download/{job_id}) is swallowed by the frontend catch-all and returns
+# the generic API 404. POST endpoints still worked, which made an export appear
+# to render successfully right up until the browser requested the finished file.
+# Keep the frontend catch-all last after all runtime feature routes are attached.
+for _route in list(app_module.app.router.routes):
+    if getattr(_route, "path", None) == "/{asset:path}":
+        app_module.app.router.routes.remove(_route)
+        app_module.app.router.routes.append(_route)
 
 if __name__ == "__main__":
     uvicorn.run(
