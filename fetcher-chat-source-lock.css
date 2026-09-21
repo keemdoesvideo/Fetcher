@@ -1,16 +1,51 @@
-/* Keep Chat's source bar at the wide footprint the user approved before and after a VOD opens.
-   The staged mount grows when the trimmer appears; this pins the URL row to the same
-   640px width instead of letting it shrink before load or stretch with the player. */
+/* Match the Save page's 640px source footprint without nesting two rounded surfaces.
+   The source row itself now owns the border/background/focus ring, exactly like Save's
+   .input-row. The legacy .chat-url-wrap becomes a transparent inner flex wrapper so
+   it cannot paint square/white corner artefacts around the rounded outer bar. */
 .chat-flow-source .chat-source-row,
 .chat-flow-source.fetcher-source-ready .chat-source-row{
   width:min(640px,calc(100vw - 48px))!important;
   max-width:640px!important;
   margin-left:auto!important;
   margin-right:auto!important;
-}
-.chat-flow-source .chat-url-wrap{
-  width:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:11px!important;
   box-sizing:border-box!important;
+  border:1.5px solid var(--ink)!important;
+  border-radius:var(--r-lg)!important;
+  padding:10px 15px!important;
+  background:var(--surface)!important;
+  background-clip:padding-box!important;
+  box-shadow:var(--shadow-sm)!important;
+  transition:box-shadow var(--dur-base) var(--ease),border-color var(--dur-base) var(--ease),background var(--dur-base) var(--ease)!important;
+}
+.chat-flow-source .chat-source-row:focus-within{
+  box-shadow:0 0 0 4px var(--accent-tint)!important;
+  border-color:var(--ink)!important;
+}
+.chat-flow-source .chat-url-wrap,
+.chat-flow-source .chat-url-wrap:focus-within{
+  flex:1 1 auto!important;
+  width:auto!important;
+  min-width:0!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:11px!important;
+  box-sizing:border-box!important;
+  border:0!important;
+  border-radius:0!important;
+  padding:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+}
+.chat-flow-source .chat-url-icon{
+  flex:0 0 auto!important;
+}
+.chat-flow-source #chat-url{
+  flex:1 1 auto!important;
+  min-width:0!important;
 }
 .chat-flow-source .chat-source-note{
   width:min(640px,calc(100vw - 48px))!important;
