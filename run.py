@@ -27,6 +27,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-repair.css": "text/css; charset=utf-8",
     "fetcher-chat-url-fresh.css": "text/css; charset=utf-8",
     "fetcher-chat-style-lab.css": "text/css; charset=utf-8",
+    "fetcher-chat-style-lab-ui.css": "text/css; charset=utf-8",
     "fetcher-chat.js": "application/javascript; charset=utf-8",
     "fetcher-chat-enhance.js": "application/javascript; charset=utf-8",
     "fetcher-chat-parity.js": "application/javascript; charset=utf-8",
@@ -46,6 +47,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-fonts.js": "application/javascript; charset=utf-8",
     "fetcher-chat-stages.js": "application/javascript; charset=utf-8",
     "fetcher-chat-advanced.js": "application/javascript; charset=utf-8",
+    "fetcher-chat-style-lab-ui.js": "application/javascript; charset=utf-8",
 })
 # These helpers are harmless on non-chat pages (they exit immediately), which
 # lets us ship the extra controls without duplicating the shared HTML injector.
@@ -59,14 +61,16 @@ if "fetcher-chat-cleanup.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-cleanup.css">'
 if "fetcher-chat-repair.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-repair.css">'
-# This loads late on purpose: it completely rebuilds the source URL pill and
+# This loads last on purpose: it completely rebuilds the source URL pill and
 # neutralizes every earlier border/pseudo-element experiment.
 if "fetcher-chat-url-fresh.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-url-fresh.css">'
-# Branch-only visual research layer. It loads after the stable sheets so the
+# Branch-only visual research layers. They load after the stable sheets so the
 # experiment can be removed cleanly without touching production styles.
 if "fetcher-chat-style-lab.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-style-lab.css">'
+if "fetcher-chat-style-lab-ui.css" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-style-lab-ui.css">'
 if "fetcher-chat-enhance.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-enhance.js"></script>'
 if "fetcher-chat-parity.js" not in app_module._LAUNCH_HEAD:
@@ -106,6 +110,10 @@ if "fetcher-chat-stages.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-stages.js"></script>'
 if "fetcher-chat-advanced.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-advanced.js"></script>'
+# Style Lab UI runs last so it can compact the existing Stage 2 controls into
+# tabs without changing source/loading/search behaviour.
+if "fetcher-chat-style-lab-ui.js" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-style-lab-ui.js"></script>'
 register_chat_routes(app_module.app)
 register_chat_activity_routes(app_module.app)
 register_chat_search_routes(app_module.app)
