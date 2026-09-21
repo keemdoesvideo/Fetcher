@@ -22,6 +22,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat.css": "text/css; charset=utf-8",
     "fetcher-chat-stages.css": "text/css; charset=utf-8",
     "fetcher-chat-source-lock.css": "text/css; charset=utf-8",
+    "fetcher-chat-stage-polish.css": "text/css; charset=utf-8",
     "fetcher-chat.js": "application/javascript; charset=utf-8",
     "fetcher-chat-enhance.js": "application/javascript; charset=utf-8",
     "fetcher-chat-parity.js": "application/javascript; charset=utf-8",
@@ -47,6 +48,8 @@ if "fetcher-chat-stages.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-stages.css">'
 if "fetcher-chat-source-lock.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-source-lock.css">'
+if "fetcher-chat-stage-polish.css" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-stage-polish.css">'
 if "fetcher-chat-enhance.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-enhance.js"></script>'
 if "fetcher-chat-parity.js" not in app_module._LAUNCH_HEAD:
