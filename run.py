@@ -24,6 +24,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-source-lock.css": "text/css; charset=utf-8",
     "fetcher-chat-stage-polish.css": "text/css; charset=utf-8",
     "fetcher-chat-cleanup.css": "text/css; charset=utf-8",
+    "fetcher-chat-repair.css": "text/css; charset=utf-8",
     "fetcher-chat.js": "application/javascript; charset=utf-8",
     "fetcher-chat-enhance.js": "application/javascript; charset=utf-8",
     "fetcher-chat-parity.js": "application/javascript; charset=utf-8",
@@ -42,6 +43,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-looks.js": "application/javascript; charset=utf-8",
     "fetcher-chat-fonts.js": "application/javascript; charset=utf-8",
     "fetcher-chat-stages.js": "application/javascript; charset=utf-8",
+    "fetcher-chat-advanced.js": "application/javascript; charset=utf-8",
 })
 # These helpers are harmless on non-chat pages (they exit immediately), which
 # lets us ship the extra controls without duplicating the shared HTML injector.
@@ -53,6 +55,8 @@ if "fetcher-chat-stage-polish.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-stage-polish.css">'
 if "fetcher-chat-cleanup.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-cleanup.css">'
+if "fetcher-chat-repair.css" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-repair.css">'
 if "fetcher-chat-enhance.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-enhance.js"></script>'
 if "fetcher-chat-parity.js" not in app_module._LAUNCH_HEAD:
@@ -85,10 +89,13 @@ if "fetcher-chat-looks.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-looks.js"></script>'
 if "fetcher-chat-fonts.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-fonts.js"></script>'
-# Stages runs last because it gathers the cards created by the helpers above and
-# rearranges those same live controls into the centered page stages.
+# Stages runs after the feature helpers because it gathers those live controls
+# into the centered three-page flow. Advanced runs immediately after stages and
+# moves the already-wired timing/message controls into the Style page.
 if "fetcher-chat-stages.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-stages.js"></script>'
+if "fetcher-chat-advanced.js" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-advanced.js"></script>'
 register_chat_routes(app_module.app)
 register_chat_activity_routes(app_module.app)
 register_chat_search_routes(app_module.app)
