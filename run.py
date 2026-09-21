@@ -48,6 +48,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-stages.js": "application/javascript; charset=utf-8",
     "fetcher-chat-advanced.js": "application/javascript; charset=utf-8",
     "fetcher-chat-style-lab-ui.js": "application/javascript; charset=utf-8",
+    "fetcher-chat-style-extras.js": "application/javascript; charset=utf-8",
 })
 # These helpers are harmless on non-chat pages (they exit immediately), which
 # lets us ship the extra controls without duplicating the shared HTML injector.
@@ -110,10 +111,12 @@ if "fetcher-chat-stages.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-stages.js"></script>'
 if "fetcher-chat-advanced.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-advanced.js"></script>'
-# Style Lab UI runs last so it can compact the existing Stage 2 controls into
-# tabs without changing source/loading/search behaviour.
+# Style Lab UI runs after the stable Stage 2 arranger, then extras apply the
+# branch-only carousel gesture fix + bubble-size/Advanced behaviour.
 if "fetcher-chat-style-lab-ui.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-style-lab-ui.js"></script>'
+if "fetcher-chat-style-extras.js" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-style-extras.js"></script>'
 register_chat_routes(app_module.app)
 register_chat_activity_routes(app_module.app)
 register_chat_search_routes(app_module.app)
