@@ -2,8 +2,8 @@
 
 This is intentionally a thin wrapper around ``chat_export_edits``. The existing
 export path still owns bubbles, badges, emotes, paints, edits, sound and canvas
-modes; this module only swaps presentation details for the duration of one
-serialized chat render.
+modes; this module swaps presentation details for the duration of one serialized
+chat render.
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from . import chat_export_edits, chat_export_plus, chat_style_render
 _lock = threading.Lock()
 
 _FONT_CHOICES = {"system", "arial", "helvetica", "verdana", "georgia", "courier"}
+_VISUAL_LOOKS = {"classic", "y2k", "editorial", "glass", "messenger", "terminal", "cyber", "scrapbook", "win95", "manga"}
 _FONT_PATHS = {
     "arial": {
         False: [
@@ -94,10 +95,20 @@ def _font_loader(original, family: str):
 
 
 def render(*args, **kwargs):
-    chat_look = chat_style_render.normalise_look(kwargs.pop("chat_look", "bubble"))
-    entry_animation = chat_style_render.normalise_animation(
-        kwargs.pop("entry_animation", "slide")
+    legacy_layout = kwargs.pop("chat_look", "bubble")
+    chat_layout = chat_style_render.normalise_layout(
+        kwargs.pop("chat_layout", legacy_layout)
     )
+    entry_animation = chat_style_render.normalise_animation(
+        kwargs.pop("entry_animation", "rise")
+    )
+    stack_motion = chat_style_render.normalise_stack_motion(
+        kwargs.pop("stack_motion", "smooth")
+    )
+    visual_look = str(kwargs.pop("visual_look", "classic") or "classic").strip().lower()
+    if visual_look not in _VISUAL_LOOKS:
+        visual_look = "classic"
+
     chat_font = str(kwargs.pop("chat_font", "system") or "system").strip().lower()
     if chat_font not in _FONT_CHOICES:
         chat_font = "system"
@@ -112,25 +123,31 @@ def render(*args, **kwargs):
                 pil, payload, assets, style, job, bubble_width
             )
             return chat_style_render.transform_prepared(
-                pil, payload, prepared, style, chat_look
+                pil, payload, prepared, style, chat_layout
             )
 
         chat_export_plus._prepare_messages = prepare_messages
         chat_export_plus._frame = chat_style_render.frame_renderer(
-            chat_look, entry_animation
+            chat_layout, entry_animation, stack_motion
         )
         chat_export_plus.base._font = _font_loader(original_font, chat_font)
         try:
             result = chat_export_edits.render(*args, **kwargs)
-            if isinstance(result, tuple) and len(result) == 3 and chat_look != "bubble":
+            if isinstance(result, tuple) and len(result) == 3:
                 output, filename, media_type = result
-                dot = filename.rfind(".")
-                suffix = "-" + chat_look
-                filename = (
-                    filename[:dot] + suffix + filename[dot:]
-                    if dot > 0
-                    else filename + suffix
-                )
+                suffixes = []
+                if visual_look != "classic":
+                    suffixes.append(visual_look)
+                if chat_layout != "stack":
+                    suffixes.append(chat_layout)
+                if suffixes:
+                    dot = filename.rfind(".")
+                    suffix = "-" + "-".join(suffixes)
+                    filename = (
+                        filename[:dot] + suffix + filename[dot:]
+                        if dot > 0
+                        else filename + suffix
+                    )
                 return output, filename, media_type
             return result
         finally:
