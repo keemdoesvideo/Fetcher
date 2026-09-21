@@ -145,9 +145,15 @@ def render(*args, **kwargs):
                 pil, payload, prepared, style, chat_layout
             )
 
+        # Scrapbook's tilt is part of the visual skin itself, not the Layout
+        # control. The export renderer's sticker placement already rotates each
+        # deterministic message, so use that placement for the ordinary Stack
+        # layout while preserving explicit alternate layouts unchanged.
+        render_layout = "sticker" if visual_look == "scrapbook" and chat_layout == "stack" else chat_layout
+
         chat_export_plus._prepare_messages = prepare_messages
         chat_export_plus._frame = chat_style_render.frame_renderer(
-            chat_layout, entry_animation, stack_motion, visual_look=visual_look
+            render_layout, entry_animation, stack_motion
         )
         chat_export_plus.base._font = _font_loader(original_font, chat_font)
         chat_export_plus.base._style = _style_loader(original_style, bubble_scale)
