@@ -221,10 +221,13 @@
     if (stylePane) showStylePane(stylePane.dataset.stylePane);
   });
 
-  function previewReady() {
-    return trimMount.classList.contains('open') &&
-      trimMount.dataset.provider === 'twitch' &&
-      !!trimMount.querySelector('.trim-video');
+  // Stage 1 is ready as soon as the Twitch trimmer itself is open. Requiring
+  // the video child to already exist created a race: the mount's "open" class
+  // changed first, then the video was inserted later, but we deliberately no
+  // longer watched descendant class mutations after the freeze fix. The result
+  // was a perfectly loaded player with the start/end + Load chat row hidden.
+  function sourceReady() {
+    return trimMount.classList.contains('open') && trimMount.dataset.provider === 'twitch';
   }
 
   function moveSearchIntoPlayer() {
@@ -247,23 +250,40 @@
   }
 
   function syncSourceUi() {
-    var ready = previewReady();
+    var ready = sourceReady();
     source.classList.toggle('fetcher-source-ready', ready);
     if (ready) moveSearchIntoPlayer();
     if (sourceNote) sourceNote.hidden = !sourceNote.classList.contains('error');
   }
 
-  // The trimmer already constructs its video/player DOM at mount time. We only
-  // need to react when the mount itself opens or changes provider/kind. Do not
-  // observe descendant class changes: the Search VOD button lives inside the
-  // player, and observing its .ready class would create a self-triggering loop.
-  new MutationObserver(syncSourceUi).observe(trimMount, {
+  var sourceSyncFrame = 0;
+  function scheduleSourceSync() {
+    if (sourceSyncFrame) return;
+    sourceSyncFrame = requestAnimationFrame(function () {
+      sourceSyncFrame = 0;
+      syncSourceUi();
+    });
+  }
+
+  // Watch only the mount's own state attributes for readiness. This cannot see
+  // descendant class changes, so the Search VOD .ready class cannot feed back
+  // into this observer and freeze the page.
+  new MutationObserver(scheduleSourceSync).observe(trimMount, {
     attributes: true,
     attributeFilter: ['class', 'data-provider', 'data-kind']
   });
 
+  // Separately watch child insertion so the Search VOD button can be moved into
+  // .trim-video-wrap once that wrapper actually exists. We observe childList
+  // only — never descendant attributes. Moving the button causes at most one
+  // extra childList notification and then settles because its parent is correct.
+  new MutationObserver(scheduleSourceSync).observe(trimMount, {
+    childList: true,
+    subtree: true
+  });
+
   if (sourceNote) {
-    new MutationObserver(syncSourceUi).observe(sourceNote, {
+    new MutationObserver(scheduleSourceSync).observe(sourceNote, {
       childList: true,
       attributes: true,
       attributeFilter: ['class']
