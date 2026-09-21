@@ -1,0 +1,205 @@
+/* Final cleanup pass for the staged Chat UI. Loaded after stage-polish.css.
+   Presentation only: no capture/search/export logic changes. */
+
+/* -------------------------------------------------------------------------
+   Stage 1: replace the troublesome native/pseudo border with a layered border
+   background. This paints the full curve as part of the element background, so
+   the rounded ends cannot disappear against the white page.
+   ------------------------------------------------------------------------- */
+.chat-flow-source .chat-url-wrap,
+.chat-flow-source .chat-url-wrap:focus-within{
+  border:2px solid transparent!important;
+  border-radius:18px!important;
+  background:
+    linear-gradient(var(--surface),var(--surface)) padding-box,
+    linear-gradient(var(--ink),var(--ink)) border-box!important;
+  background-clip:padding-box,border-box!important;
+  box-shadow:var(--shadow-sm)!important;
+  overflow:hidden!important;
+}
+.chat-flow-source .chat-url-wrap::before,
+.chat-flow-source .chat-url-wrap::after{content:none!important;display:none!important;}
+.chat-flow-source .chat-url-wrap:focus-within{
+  box-shadow:0 0 0 4px var(--accent-tint),var(--shadow-sm)!important;
+}
+
+/* Once a VOD is ready, make the trimmer + typed range feel like one card. */
+.chat-flow-source .chat-source.fetcher-source-ready #chat-trim-mount{
+  margin-bottom:0!important;
+}
+.chat-flow-source .chat-source.fetcher-source-ready .trim-panel{
+  border-bottom-width:0!important;
+  border-radius:22px 22px 0 0!important;
+  box-shadow:0 0 0 1px color-mix(in srgb,#9146ff 72%,transparent),var(--shadow-sm),0 0 18px color-mix(in srgb,#9146ff 10%,transparent)!important;
+}
+.chat-flow-source .trim-controls{
+  padding:12px 16px 6px!important;
+}
+.chat-flow-source .trim-timeline{
+  padding:10px 16px 18px!important;
+}
+.chat-flow-source .trim-track{
+  margin-bottom:0!important;
+}
+.chat-flow-source .chat-source.fetcher-source-ready .chat-range{
+  width:100%!important;
+  max-width:none!important;
+  margin:0 auto!important;
+  padding:16px!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto!important;
+  gap:10px!important;
+  box-sizing:border-box!important;
+  background:var(--surface)!important;
+  border:2px solid #9146ff!important;
+  border-top:0!important;
+  border-radius:0 0 22px 22px!important;
+  box-shadow:inset 0 1px 0 var(--border),var(--shadow-sm)!important;
+}
+.chat-flow-source .chat-field label{
+  margin:0 0 7px 2px!important;
+}
+.chat-flow-source .chat-field input{
+  height:44px!important;
+  padding:0 13px!important;
+  border-radius:12px!important;
+  background:var(--bg)!important;
+}
+.chat-flow-source .chat-load{
+  height:44px!important;
+  min-width:116px!important;
+  border-radius:12px!important;
+}
+
+/* -------------------------------------------------------------------------
+   Stage 2: cleaner continuous right column.
+   ------------------------------------------------------------------------- */
+.chat-style-right{
+  height:100%!important;
+  padding:18px!important;
+}
+.chat-style-options .chat-custom-grid{
+  gap:12px!important;
+}
+.chat-style-options .chat-custom-divider,
+.chat-style-options .chat-custom-divider[hidden]{
+  margin:18px 0!important;
+}
+.chat-message-editor-mount{
+  margin-top:18px!important;
+  padding-top:18px!important;
+}
+.chat-flow-next{
+  margin-top:18px!important;
+}
+
+/* -------------------------------------------------------------------------
+   Look cards: softer surfaces, richer previews, distinct coloured messages.
+   The existing look-specific CSS animations remain active underneath these
+   visual overrides, so every tile demonstrates its behaviour continuously.
+   ------------------------------------------------------------------------- */
+.chat-flow .chat-look-grid{
+  gap:11px!important;
+}
+.chat-flow .chat-look-option{
+  border:1px solid color-mix(in srgb,var(--ink) 11%,var(--border))!important;
+  border-radius:18px!important;
+  padding:10px!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 96%,var(--accent) 4%),var(--surface))!important;
+  box-shadow:0 8px 24px -22px rgba(0,0,0,.28),inset 0 1px 0 color-mix(in srgb,#fff 70%,transparent)!important;
+  overflow:hidden!important;
+  transition:transform .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease),background .2s var(--ease)!important;
+}
+.chat-flow .chat-look-option:hover{
+  transform:translateY(-2px)!important;
+  border-color:color-mix(in srgb,var(--accent) 42%,var(--border))!important;
+  box-shadow:0 12px 28px -22px color-mix(in srgb,var(--accent) 28%,rgba(0,0,0,.24)),inset 0 1px 0 color-mix(in srgb,#fff 78%,transparent)!important;
+}
+.chat-flow .chat-look-option[aria-pressed="true"]{
+  border-color:color-mix(in srgb,var(--accent) 72%,var(--border))!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 7%,var(--surface)),var(--surface))!important;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 11%,transparent),0 12px 28px -22px color-mix(in srgb,var(--accent) 45%,transparent)!important;
+}
+.chat-flow .chat-look-mini{
+  min-height:64px!important;
+  margin-bottom:9px!important;
+  border:1px solid color-mix(in srgb,var(--ink) 8%,var(--border))!important;
+  border-radius:13px!important;
+  background:
+    radial-gradient(circle at 18% 14%,color-mix(in srgb,#8b5cf6 11%,transparent),transparent 32%),
+    radial-gradient(circle at 82% 86%,color-mix(in srgb,#34c7b5 9%,transparent),transparent 34%),
+    linear-gradient(145deg,color-mix(in srgb,var(--rail) 62%,var(--surface)),var(--surface))!important;
+  box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 70%,transparent)!important;
+}
+
+/* Distinct little message bubbles instead of the old brown placeholders. */
+.chat-flow .chat-look-option .chat-demo-msg{
+  border:1px solid rgba(255,255,255,.22)!important;
+  box-shadow:0 5px 12px rgba(25,25,35,.14)!important;
+}
+.chat-flow .chat-look-option .chat-demo-msg.m1{
+  background:linear-gradient(135deg,#8b5cf6,#6f45e8)!important;
+}
+.chat-flow .chat-look-option .chat-demo-msg.m2{
+  background:linear-gradient(135deg,#ef78b7,#dc5a9c)!important;
+}
+.chat-flow .chat-look-option .chat-demo-msg.m3{
+  background:linear-gradient(135deg,#3bc6b0,#23aa98)!important;
+}
+.chat-flow .chat-look-option .chat-demo-msg::before{
+  background:rgba(255,255,255,.82)!important;
+  box-shadow:none!important;
+}
+.chat-flow .chat-look-option .chat-demo-msg::after{
+  background:rgba(255,255,255,.42)!important;
+}
+
+/* Emote-cloud preview gets the same richer palette. */
+.chat-flow .chat-look-option .chat-demo-emote{
+  border:1px solid rgba(255,255,255,.62)!important;
+  box-shadow:0 5px 12px rgba(25,25,35,.12)!important;
+}
+.chat-flow .chat-look-option .chat-demo-emote.e1{background:#8b5cf6!important;color:#fff!important;}
+.chat-flow .chat-look-option .chat-demo-emote.e2{background:#ef78b7!important;color:#fff!important;}
+.chat-flow .chat-look-option .chat-demo-emote.e3{background:#34c7b5!important;color:#fff!important;}
+.chat-flow .chat-look-option .chat-demo-emote.e4{background:#f4b44a!important;color:#fff!important;}
+
+.chat-flow .chat-look-name{
+  font-size:10.2px!important;
+  line-height:1.2!important;
+  letter-spacing:-.01em!important;
+}
+.chat-flow .chat-look-desc{
+  font-size:8.8px!important;
+  line-height:1.25!important;
+  color:var(--ink-faint)!important;
+}
+
+/* Smooth out the entry-animation row so it reads as part of the look chooser. */
+.chat-flow .chat-entry-row{
+  margin-top:10px!important;
+  padding-top:10px!important;
+  border-top:1px solid var(--border)!important;
+}
+.chat-flow .chat-entry-option{
+  border-radius:999px!important;
+  background:var(--surface)!important;
+  transition:transform .16s var(--ease),border-color .16s var(--ease),background .16s var(--ease)!important;
+}
+.chat-flow .chat-entry-option:hover{transform:translateY(-1px)!important;}
+
+@media(max-width:900px){
+  .chat-flow-source .chat-source.fetcher-source-ready .trim-panel{
+    border-bottom-width:2px!important;
+    border-radius:22px!important;
+  }
+  .chat-flow-source .chat-source.fetcher-source-ready .chat-range{
+    margin-top:10px!important;
+    border-top:2px solid #9146ff!important;
+    border-radius:18px!important;
+  }
+  .chat-style-right{height:auto!important;}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .chat-flow .chat-look-option{transition:none!important;}
+}
