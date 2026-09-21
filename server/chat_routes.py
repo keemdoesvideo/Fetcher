@@ -11,7 +11,6 @@ import threading
 
 from fastapi import Request
 from fastapi.responses import FileResponse, JSONResponse
-from starlette.background import BackgroundTask
 
 from . import (
     chat_7tv_badges,
@@ -284,7 +283,9 @@ def register(app) -> None:
             job.mode = "video"
             job.section = section
             job.retention_seconds = config.CHAT_EXPORT_TTL_SECONDS
-            job.delivery_timeout_seconds = config.DELIVERY_TTL_SECONDS
+            # Once delivery begins, keep the file for the same short chat-export
+            # window so browsers can retry/resume a very large ProRes/WebM file.
+            job.delivery_timeout_seconds = config.CHAT_EXPORT_TTL_SECONDS
             job.status = jobstate.PROCESSING
             job.stage = "queued"
             thread = threading.Thread(
@@ -311,15 +312,18 @@ def register(app) -> None:
     @app.get("/api/chat/download/{job_id}")
     def twitch_chat_download(job_id: str):
         job = store.get(job_id)
-        if job is None or not job.ready:
+        if job is None or not job.deliverable:
             return _error(errors.FetcherError(errors.JOB_NOT_FOUND))
         if not store.begin_delivery(job):
             return _error(errors.FetcherError(errors.JOB_NOT_FOUND))
-        cleanup = BackgroundTask(store.remove, job.id)
+        # Do not delete the file in FileResponse's background callback. Browsers
+        # such as Chrome/Edge can retry or resume large downloads after the first
+        # response completes; deleting immediately made that follow-up request a
+        # 404 ('File wasn't available on site'). The sweeper removes this file
+        # after the short delivery lease instead.
         return FileResponse(
             path=str(job.filepath),
             media_type=job.media_type or "application/octet-stream",
             filename=job.filename,
             headers={"Cache-Control": "no-store"},
-            background=cleanup,
         )
