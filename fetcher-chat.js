@@ -362,7 +362,7 @@
     if (format === 'prores') lead = 'ProRes 4444 keeps real transparency and is the best choice for Resolve.';
     else if (format === 'webm') lead = 'Transparent WebM keeps alpha in a much smaller file.';
     else lead = 'Green-screen MP4 is the compatibility fallback when alpha video is awkward.';
-    exportHint.textContent = lead + ' Up to 20 minutes per export at ' + fps + ' fps. Long renders can take a while, and ProRes files can be very large. Fetcher deletes the server copy after download and sweeps abandoned exports automatically.';
+    exportHint.textContent = lead + ' Up to 20 minutes per export at ' + fps + ' fps. Long renders can take a while, and ProRes files can be very large. Fetcher keeps a short retry window after download starts, then cleans the server copy automatically.';
   }
 
   function setExportBusy(on) {
@@ -448,7 +448,7 @@
           clearTimeout(exportPollTimer);
           exportProgress.classList.remove('error');
           exportProgress.classList.add('success');
-          exportStatus.textContent = 'exported! download starting — server copy cleans up after transfer…';
+          exportStatus.textContent = 'exported! download starting — server copy stays briefly available for retry…';
           exportPct.textContent = '100%';
           exportFill.style.width = '100%';
           setExportBusy(false);
@@ -534,7 +534,4 @@
   });
 
   updateExportHint();
-  exportBtn.disabled = true;
-  setSourceState('waiting', false);
-  setNote('paste a finished Twitch VOD link to start');
 })();
