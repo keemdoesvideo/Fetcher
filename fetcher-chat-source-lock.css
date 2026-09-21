@@ -1,7 +1,13 @@
-/* Keep Chat's source bar at the approved 640px footprint before and after a VOD opens.
-   Only the inner URL wrapper paints the rounded surface, matching Save's input-row.
-   The outer row is layout-only so two overlapping rounded borders cannot create
-   white/square corner artefacts. */
+/* Chat staged-layout final overrides.
+   This file loads after fetcher-chat-stages.css, so it is the narrow place for
+   visual corrections without touching the proven capture/export controllers. */
+
+/* -------------------------------------------------------------------------
+   Stage 1 source bar
+   Keep the approved 640px footprint, but draw the rounded rim with a dedicated
+   overlay instead of a native border. That avoids the white/clipped anti-aliased
+   corners that were visible on light backgrounds.
+   ------------------------------------------------------------------------- */
 .chat-flow-source .chat-source-row,
 .chat-flow-source .chat-source.fetcher-source-ready .chat-source-row{
   width:min(640px,calc(100vw - 48px))!important;
@@ -19,44 +25,320 @@
 }
 .chat-flow-source .chat-url-wrap,
 .chat-flow-source .chat-url-wrap:focus-within{
+  position:relative!important;
   width:100%!important;
   box-sizing:border-box!important;
   display:flex!important;
   align-items:center!important;
   gap:11px!important;
-  border:1.5px solid var(--ink)!important;
+  border:0!important;
   border-radius:var(--r-lg)!important;
   padding:10px 15px!important;
   background:var(--surface)!important;
   background-clip:padding-box!important;
   box-shadow:var(--shadow-sm)!important;
-  overflow:hidden!important;
+  overflow:visible!important;
+  isolation:isolate;
+}
+.chat-flow-source .chat-url-wrap::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:3;
+  pointer-events:none;
+  border:1.5px solid var(--ink);
+  border-radius:inherit;
+  box-sizing:border-box;
 }
 .chat-flow-source .chat-url-wrap:focus-within{
-  box-shadow:0 0 0 4px var(--accent-tint)!important;
-  border-color:var(--ink)!important;
+  box-shadow:0 0 0 4px var(--accent-tint),var(--shadow-sm)!important;
 }
-.chat-flow-source .chat-url-icon{
-  flex:0 0 auto!important;
+.chat-flow-source .chat-url-icon,
+.chat-flow-source #chat-url,
+.chat-flow-source .chat-paste{
+  position:relative;
+  z-index:4;
 }
-.chat-flow-source #chat-url{
-  flex:1 1 auto!important;
-  min-width:0!important;
-}
+.chat-flow-source .chat-url-icon{flex:0 0 auto!important;}
+.chat-flow-source #chat-url{flex:1 1 auto!important;min-width:0!important;}
 .chat-flow-source .chat-source-note{
   width:min(640px,calc(100vw - 48px))!important;
   max-width:640px!important;
 }
 
-/* Stage JS puts fetcher-source-ready on .chat-source, not on the stage section.
-   The older selector targeted .chat-flow-source.fetcher-source-ready, which can
-   never match and left the start/end + Load chat row hidden even after the VOD
-   player was fully ready. Keep the progression controls tied to the actual state
-   owner and centre them beneath the player. */
+/* Stage JS puts fetcher-source-ready on .chat-source. Keep the real progression
+   controls centred beneath the player. */
 .chat-flow-source .chat-source.fetcher-source-ready .chat-range{
   display:grid!important;
   width:min(640px,calc(100vw - 48px));
   max-width:640px;
   margin:12px auto 0!important;
   animation:chat-stage-in .18s var(--ease) both;
+}
+
+/* -------------------------------------------------------------------------
+   Shared staged frame + navigation
+   ------------------------------------------------------------------------- */
+.chat-flow{width:min(1220px,calc(100% - 72px))!important;padding:18px 0 20px!important;}
+.chat-page-arrow{
+  top:50%!important;
+  width:44px!important;
+  height:44px!important;
+  margin-top:-22px!important;
+}
+.chat-page-arrow-left{left:8px!important;}
+.chat-page-arrow-right{right:8px!important;}
+
+/* -------------------------------------------------------------------------
+   Stage 2: style + message editor
+   Keep the entire stage inside one desktop viewport. The look tiles stay visual
+   and generous, but use a near-square 4:3 card so both rows, labels and entry
+   animation controls remain visible.
+   ------------------------------------------------------------------------- */
+.chat-style-grid{
+  width:calc(100% - 112px)!important;
+  max-width:1060px!important;
+  height:auto!important;
+  max-height:calc(100dvh - 48px)!important;
+  grid-template-columns:minmax(0,620px) minmax(340px,400px)!important;
+  gap:20px!important;
+  align-items:start!important;
+  justify-content:center!important;
+}
+.chat-style-left{
+  min-width:0!important;
+  min-height:0!important;
+  height:auto!important;
+  display:grid!important;
+  grid-template-rows:auto auto!important;
+  gap:12px!important;
+}
+.chat-flow-stage[data-stage="style"] .chat-flow-preview-slot{
+  align-items:flex-start!important;
+}
+.chat-flow-stage[data-stage="style"] .chat-preview-card{
+  width:100%!important;
+}
+.chat-flow-stage[data-stage="style"] .chat-stage{
+  min-height:0!important;
+  max-height:none!important;
+  aspect-ratio:16/9!important;
+}
+.chat-look-mount{min-height:0!important;overflow:visible!important;}
+.chat-flow .chat-look-card{
+  height:auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+}
+.chat-flow .chat-look-grid{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:none!important;
+  gap:9px!important;
+  height:auto!important;
+}
+.chat-flow .chat-look-option{
+  aspect-ratio:4/3!important;
+  min-width:0!important;
+  min-height:0!important;
+  padding:9px!important;
+  border-radius:15px!important;
+  overflow:hidden!important;
+}
+.chat-flow .chat-look-mini{
+  flex:1 1 auto!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:52px!important;
+  margin-bottom:7px!important;
+}
+.chat-flow .chat-look-name{
+  display:block!important;
+  font-size:10px!important;
+  line-height:1.15!important;
+}
+.chat-flow .chat-look-desc{
+  display:block!important;
+  font-size:8.6px!important;
+  line-height:1.15!important;
+  margin-top:2px!important;
+}
+.chat-flow .chat-entry-row{
+  display:grid!important;
+  grid-template-columns:auto repeat(5,minmax(0,1fr))!important;
+  align-items:center!important;
+  gap:6px!important;
+  height:auto!important;
+  margin-top:8px!important;
+  padding-top:8px!important;
+}
+.chat-flow .chat-entry-option{
+  min-width:0!important;
+  padding:7px 4px!important;
+  font-size:9.2px!important;
+  white-space:nowrap!important;
+}
+
+/* Right-side style controls are content-sized rather than stretched into a tall,
+   mostly empty card. */
+.chat-style-right{
+  min-width:0!important;
+  min-height:0!important;
+  height:auto!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:11px!important;
+  align-self:start!important;
+}
+.chat-style-options,
+.chat-message-editor-mount{
+  min-height:0!important;
+  display:block!important;
+}
+.chat-style-options>.chat-card{
+  width:100%!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+.chat-message-editor-mount>.chat-card{
+  width:100%!important;
+  height:auto!important;
+  max-height:290px!important;
+  overflow:auto!important;
+  scrollbar-width:none;
+}
+.chat-message-editor-mount>.chat-card::-webkit-scrollbar{display:none;}
+
+/* Author display:grid rules were overriding the HTML hidden attribute, which is
+   why Sound controls appeared inside Spacing. Respect the stage switch explicitly. */
+.chat-style-options .chat-custom-grid[hidden]{display:none!important;}
+.chat-style-options .chat-custom-grid:not([hidden]){display:grid!important;}
+.chat-style-options .chat-custom-divider[hidden],
+.chat-style-options .chat-custom-head[hidden],
+.chat-style-options .chat-custom-note[hidden]{display:none!important;}
+.chat-flow .chat-custom-card{padding:16px!important;}
+.chat-flow .chat-custom-grid{gap:10px!important;}
+.chat-flow .chat-custom-field{gap:6px!important;}
+.chat-flow .chat-editor-card{padding:15px!important;}
+.chat-flow .chat-editor-empty{padding:10px!important;}
+.chat-flow-next{
+  flex:0 0 auto!important;
+  margin-top:1px!important;
+}
+
+/* -------------------------------------------------------------------------
+   Stage 3: export
+   Align preview + settings at the same top edge, keep preview scale close to the
+   Style stage, and make Export / Presets / Canvas read as one coherent surface.
+   ------------------------------------------------------------------------- */
+.chat-export-grid{
+  width:calc(100% - 112px)!important;
+  max-width:1060px!important;
+  height:auto!important;
+  max-height:calc(100dvh - 48px)!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,620px) minmax(340px,400px)!important;
+  gap:20px!important;
+  align-items:start!important;
+  justify-content:center!important;
+  margin:auto!important;
+}
+.chat-flow-stage[data-stage="export"] .chat-flow-preview-slot{
+  align-items:flex-start!important;
+}
+.chat-flow-stage[data-stage="export"] .chat-preview-card{
+  width:100%!important;
+}
+.chat-flow-stage[data-stage="export"] .chat-stage{
+  min-height:0!important;
+  max-height:none!important;
+  aspect-ratio:16/9!important;
+}
+.chat-export-long{
+  min-height:0!important;
+  max-height:calc(100dvh - 48px)!important;
+  overflow:auto!important;
+  scrollbar-width:none!important;
+  display:block!important;
+  padding:0!important;
+  border:1px solid var(--border)!important;
+  border-radius:20px!important;
+  background:var(--surface)!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+.chat-export-long::-webkit-scrollbar{display:none!important;}
+.chat-export-long .chat-card,
+.chat-export-long .chat-export-canvas-section{
+  width:100%!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.chat-export-main-mount,
+.chat-export-presets-mount{
+  border-bottom:1px solid var(--border)!important;
+}
+.chat-export-main-mount>.chat-export-card,
+.chat-export-presets-mount>.chat-presets-card{
+  padding:18px!important;
+}
+.chat-export-canvas-section{
+  padding:18px!important;
+}
+
+/* -------------------------------------------------------------------------
+   Shorter desktop viewports: keep everything visible without page scrolling.
+   ------------------------------------------------------------------------- */
+@media (min-width:961px) and (max-height:850px){
+  .chat-flow{padding:10px 0 12px!important;}
+  .chat-style-grid,
+  .chat-export-grid{
+    max-width:970px!important;
+    grid-template-columns:minmax(0,560px) minmax(330px,380px)!important;
+    gap:16px!important;
+    max-height:calc(100dvh - 24px)!important;
+  }
+  .chat-flow .chat-look-option{aspect-ratio:1.38/1!important;padding:8px!important;}
+  .chat-flow .chat-look-mini{min-height:42px!important;margin-bottom:5px!important;}
+  .chat-flow .chat-look-desc{font-size:8px!important;}
+  .chat-flow .chat-entry-row{margin-top:6px!important;padding-top:6px!important;}
+  .chat-message-editor-mount>.chat-card{max-height:250px!important;}
+  .chat-export-long{max-height:calc(100dvh - 24px)!important;}
+}
+
+/* Narrow screens fall back to a scrollable stacked layout; desktop stays locked. */
+@media (max-width:960px){
+  .main.chat-main{overflow:auto!important;}
+  .chat-flow{width:min(100% - 28px,760px)!important;height:auto!important;min-height:100%!important;padding:14px 0 28px!important;}
+  .chat-flow-stage,.chat-flow-stage-inner{height:auto!important;min-height:calc(100dvh - 28px)!important;}
+  .chat-style-grid,
+  .chat-export-grid{
+    width:calc(100% - 24px)!important;
+    max-width:720px!important;
+    max-height:none!important;
+    grid-template-columns:1fr!important;
+    gap:14px!important;
+  }
+  .chat-style-right{width:100%!important;}
+  .chat-flow .chat-look-option{aspect-ratio:4/3!important;}
+  .chat-export-long{max-height:none!important;overflow:visible!important;}
+  .chat-page-arrow-left{left:-2px!important;}
+  .chat-page-arrow-right{right:-2px!important;}
+}
+
+@media (max-width:620px){
+  .chat-flow .chat-look-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .chat-flow .chat-entry-row{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+  .chat-flow .chat-entry-label{grid-column:1/-1!important;}
+  .chat-flow-source .chat-source-row,
+  .chat-flow-source .chat-source.fetcher-source-ready .chat-chat-source-row,
+  .chat-flow-source .chat-source-note,
+  .chat-flow-source .chat-source.fetcher-source-ready .chat-range{
+    width:calc(100vw - 36px)!important;
+    max-width:none!important;
+  }
 }
