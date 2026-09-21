@@ -68,6 +68,7 @@ _FONT_PATHS = {
         ],
         True: [
             "/System/Library/Fonts/Supplemental/Courier New Bold.ttf",
+            "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
         ],
     },
@@ -138,9 +139,18 @@ def render(*args, **kwargs):
         original_style = chat_export_plus.base._style
 
         def prepare_messages(pil, payload, assets, style, job, bubble_width):
-            prepared = chat_visual_skins.prepare_messages(
-                pil, payload, assets, style, job, bubble_width, visual_look
-            )
+            # Never call the live, monkey-patched ``plus._prepare_messages`` for
+            # Classic here. chat_export_edits wraps this function again for
+            # canvas/edit support, so resolving Classic through the live global
+            # points straight back at this wrapper and recurses forever.
+            if visual_look == "classic":
+                prepared = original_prepare_messages(
+                    pil, payload, assets, style, job, bubble_width
+                )
+            else:
+                prepared = chat_visual_skins.prepare_messages(
+                    pil, payload, assets, style, job, bubble_width, visual_look
+                )
             return chat_style_render.transform_prepared(
                 pil, payload, prepared, style, chat_layout
             )
