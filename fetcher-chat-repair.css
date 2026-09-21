@@ -15,9 +15,10 @@
   isolation:auto!important;
 }
 
-/* Reinforce only the rounded ends at 6px. The middle top/bottom/left/right runs
-   remain 2px; these overlays make the curved caps visually heavier without
-   changing the input's layout or padding. */
+/* Reinforce the rounded end arcs without drawing thick horizontal segments.
+   The native 2px rim stays visible everywhere. Each pseudo-element adds only a
+   6px left/right border, clipped by the same 18px radius, so the curved ends read
+   heavier while blending cleanly into the 2px top and bottom runs. */
 .chat-flow-source .chat-url-wrap::before,
 .chat-flow-source .chat-url-wrap::after{
   content:""!important;
@@ -26,28 +27,25 @@
   z-index:2!important;
   top:0!important;
   bottom:0!important;
-  width:28px!important;
+  width:18px!important;
   pointer-events:none!important;
   background:transparent!important;
   box-sizing:border-box!important;
+  border-top:0!important;
+  border-bottom:0!important;
+  transform:none!important;
 }
 .chat-flow-source .chat-url-wrap::before{
   left:0!important;
   border-left:6px solid var(--ink)!important;
-  border-top:6px solid var(--ink)!important;
-  border-bottom:6px solid var(--ink)!important;
   border-right:0!important;
   border-radius:18px 0 0 18px!important;
-  transform:none!important;
 }
 .chat-flow-source .chat-url-wrap::after{
   right:0!important;
   border-right:6px solid var(--ink)!important;
-  border-top:6px solid var(--ink)!important;
-  border-bottom:6px solid var(--ink)!important;
   border-left:0!important;
   border-radius:0 18px 18px 0!important;
-  transform:none!important;
 }
 .chat-flow-source .chat-url-wrap:focus-within{
   box-shadow:0 0 0 4px var(--accent-tint),var(--shadow-sm)!important;
