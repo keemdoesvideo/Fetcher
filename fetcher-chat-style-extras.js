@@ -150,15 +150,27 @@
     applyBubbleSize();
   }
 
-  /* Export parity for the new control. Loaded last so all earlier fetch wrappers
-     continue to add their own fields before the request reaches the network. */
+  /* Export parity. Read the live Style Lab state at the exact moment the export
+     request leaves the browser instead of relying on an earlier wrapper to have
+     already copied it. This keeps the downloaded look/layout/motion locked to
+     what the user is actually previewing. */
   var nextFetch = window.fetch;
   window.fetch = function (resource, init) {
     var url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
-    if (sizeEl && url.indexOf('/api/chat/export') !== -1 && init && typeof init.body === 'string') {
+    if (url.indexOf('/api/chat/export') !== -1 && init && typeof init.body === 'string') {
       try {
         var body = JSON.parse(init.body);
-        body.bubbleScale = Math.max(60, Math.min(140, Number(sizeEl.value || 100)));
+        var looks = window.FetcherChatLooks;
+        if (looks) {
+          if (typeof looks.getVisualLook === 'function') body.visualLook = looks.getVisualLook();
+          else if (typeof looks.getLook === 'function') body.visualLook = looks.getLook();
+          if (typeof looks.getLayout === 'function') body.chatLayout = looks.getLayout();
+          if (typeof looks.getEntry === 'function') body.entryAnimation = looks.getEntry();
+          if (typeof looks.getStackMotion === 'function') body.stackMotion = looks.getStackMotion();
+        }
+        if (sizeEl) {
+          body.bubbleScale = Math.max(60, Math.min(140, Number(sizeEl.value || 100)));
+        }
         init = Object.assign({}, init, { body: JSON.stringify(body) });
       } catch (e) {}
     }
