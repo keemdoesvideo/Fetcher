@@ -16,6 +16,7 @@
     { id: 'chat-hide-bots', type: 'checked' },
     { id: 'chat-bubble-width', type: 'value' },
     { id: 'chat-bubble-gap', type: 'value' },
+    { id: 'chat-bubble-size', type: 'value' },
     { id: 'chat-font', type: 'value' },
     { id: 'chat-sound-preset', type: 'sound' },
     { id: 'chat-sound-volume', type: 'value' },
