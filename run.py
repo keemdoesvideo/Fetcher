@@ -28,6 +28,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-url-fresh.css": "text/css; charset=utf-8",
     "fetcher-chat-style-lab.css": "text/css; charset=utf-8",
     "fetcher-chat-style-lab-ui.css": "text/css; charset=utf-8",
+    "fetcher-chat-intro.css": "text/css; charset=utf-8",
     "fetcher-chat.js": "application/javascript; charset=utf-8",
     "fetcher-chat-enhance.js": "application/javascript; charset=utf-8",
     "fetcher-chat-parity.js": "application/javascript; charset=utf-8",
@@ -50,6 +51,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-style-lab-ui.js": "application/javascript; charset=utf-8",
     "fetcher-chat-style-extras.js": "application/javascript; charset=utf-8",
     "fetcher-chat-look-gifs.js": "application/javascript; charset=utf-8",
+    "fetcher-chat-intro.js": "application/javascript; charset=utf-8",
 })
 # These helpers are harmless on non-chat pages (they exit immediately), which
 # lets us ship the extra controls without duplicating the shared HTML injector.
@@ -73,6 +75,10 @@ if "fetcher-chat-style-lab.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-style-lab.css">'
 if "fetcher-chat-style-lab-ui.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-style-lab-ui.css">'
+# Chat intro deliberately mirrors the homepage first-visit glass without loading
+# fetcher-main.css into the Chat page.
+if "fetcher-chat-intro.css" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-intro.css">'
 if "fetcher-chat-enhance.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-enhance.js"></script>'
 if "fetcher-chat-parity.js" not in app_module._LAUNCH_HEAD:
@@ -122,6 +128,10 @@ if "fetcher-chat-style-extras.js" not in app_module._LAUNCH_HEAD:
 # previews while leaving those previews available as a failure fallback.
 if "fetcher-chat-look-gifs.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-look-gifs.js"></script>'
+# The first-visit explainer waits until the rest of Chat has assembled, then
+# frosts that finished UI behind a single dismissible welcome card.
+if "fetcher-chat-intro.js" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-intro.js"></script>'
 register_chat_routes(app_module.app)
 register_chat_activity_routes(app_module.app)
 register_chat_search_routes(app_module.app)
