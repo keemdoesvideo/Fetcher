@@ -199,6 +199,7 @@ def _render_worker(job, req: ChatExportRequest, section: tuple[float, float]) ->
             chat_font=req.chatFont,
             bubble_width=req.bubbleWidth,
             bubble_gap=req.bubbleGap,
+            bubble_scale=req.bubbleScale,
             message_ttl=req.messageLifetime,
             max_visible=req.maxVisible,
             canvas_mode=req.canvasMode,
