@@ -11,8 +11,7 @@
   style.textContent = [
     '.chat-look-mini{isolation:isolate!important;}',
     '.chat-look-gif{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:cover!important;display:block!important;z-index:4!important;pointer-events:none!important;user-select:none!important;-webkit-user-select:none!important;-webkit-user-drag:none!important;border-radius:inherit!important;}',
-    '.chat-look-option[aria-pressed="true"] .chat-look-gif{filter:saturate(1.03) contrast(1.01);}',
-    '@media(prefers-reduced-motion:reduce){.chat-look-gif{display:none!important;}}'
+    '.chat-look-option[aria-pressed="true"] .chat-look-gif{filter:saturate(1.03) contrast(1.01);}'
   ].join('\n');
   document.head.appendChild(style);
 
@@ -23,14 +22,20 @@
 
     var image = document.createElement('img');
     image.className = 'chat-look-gif';
-    image.src = '/api/chat/style-preview/' + encodeURIComponent(look) + '.gif?v=1';
+    /* v=2 intentionally busts any cached 404/static fallback from the first
+       branch build, whose API route was registered after the catch-all route. */
+    image.src = '/api/chat/style-preview/' + encodeURIComponent(look) + '.gif?v=2';
     image.alt = '';
     image.setAttribute('aria-hidden', 'true');
     image.setAttribute('draggable', 'false');
     image.decoding = 'async';
 
-    /* Keep the existing CSS mini-preview underneath as a zero-cost fallback if
-       Pillow is unavailable or the GIF route ever fails. */
+    image.addEventListener('load', function () {
+      mini.classList.add('chat-look-gif-ready');
+    }, { once: true });
+
+    /* Keep the existing CSS mini-preview underneath as a fallback if the GIF
+       route ever fails; successful GIFs sit above it and remain animated. */
     image.addEventListener('error', function () {
       image.remove();
     }, { once: true });
