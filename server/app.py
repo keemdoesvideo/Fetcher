@@ -423,6 +423,27 @@ async def download(job_id: str):
     )
 
 
+# Branch Style Lab GIF route must be registered here, before the catch-all
+# frontend asset route below. FastAPI matches routes in declaration order; the
+# previous late registration in run.py was being swallowed by /{asset:path}, so
+# the <img> fell back to the old static CSS thumbnail.
+@app.get("/api/chat/style-preview/{look}.gif")
+def chat_style_preview_gif(look: str):
+    from . import chat_style_preview
+
+    value = str(look or "").strip().lower()
+    if value not in chat_style_preview.LOOKS:
+        value = "classic"
+    return Response(
+        content=chat_style_preview.render_gif(value),
+        media_type="image/gif",
+        headers={
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
 # --- Frontend ---------------------------------------------------------------
 _NO_CACHE = {"Cache-Control": "no-cache"}
 _FAVICON_LINK = '<link rel="icon" type="image/svg+xml" href="/fetcher-favicon.svg">'
@@ -518,10 +539,7 @@ async def asset(asset: str):
         )
 
     # Keep unknown API paths machine-readable while human-facing bad links get
-    # Fetcher's branded 404 page.
-    if asset == "api" or asset.startswith("api/"):
-        return JSONResponse(
-            status_code=404,
-            content={"error": {"code": "not_found", "message": "not found"}},
-        )
-    return _render_html("404.html", status_code=404)
+    # Fetcher's themed not-found page.
+    if asset.startswith("api/"):
+        return JSONResponse(status_code=404, content={"error": {"code": "not_found", "message": "not found"}})
+    return _render_html("project-fetcher.html", status_code=404)
