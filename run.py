@@ -15,6 +15,7 @@ import server.app as app_module
 from server.chat_activity_routes import register as register_chat_activity_routes
 from server.chat_routes import register as register_chat_routes
 from server.chat_search_routes import register as register_chat_search_routes
+from server.chat_style_preview_routes import register as register_chat_style_preview_routes
 
 # Chat is still a beta surface, so its routes/assets live outside the core app
 # module for now. The production launcher attaches them before Uvicorn starts.
@@ -49,6 +50,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-advanced.js": "application/javascript; charset=utf-8",
     "fetcher-chat-style-lab-ui.js": "application/javascript; charset=utf-8",
     "fetcher-chat-style-extras.js": "application/javascript; charset=utf-8",
+    "fetcher-chat-look-gifs.js": "application/javascript; charset=utf-8",
 })
 # These helpers are harmless on non-chat pages (they exit immediately), which
 # lets us ship the extra controls without duplicating the shared HTML injector.
@@ -117,9 +119,14 @@ if "fetcher-chat-style-lab-ui.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-style-lab-ui.js"></script>'
 if "fetcher-chat-style-extras.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-style-extras.js"></script>'
+# Literal animated GIF thumbnails go last so they sit above the old CSS mini
+# previews while leaving those previews available as a no-motion/failure fallback.
+if "fetcher-chat-look-gifs.js" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-look-gifs.js"></script>'
 register_chat_routes(app_module.app)
 register_chat_activity_routes(app_module.app)
 register_chat_search_routes(app_module.app)
+register_chat_style_preview_routes(app_module.app)
 
 if __name__ == "__main__":
     uvicorn.run(
