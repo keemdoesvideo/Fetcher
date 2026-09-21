@@ -2,9 +2,8 @@
 
 Every fetch gets its own uuid working directory under TEMP_ROOT so concurrent
 downloads can never clobber one another. A job holds the prepared file until the
-browser streams it, after which it's deleted. A background sweeper reclaims
-abandoned jobs (tab closed before the download started) once they age past the
-TTL. Nothing here is persisted — media is never kept permanently.
+browser has had a short retry window to receive it, after which the sweeper
+reclaims it. Nothing here is persisted — media is never kept permanently.
 """
 
 from __future__ import annotations
@@ -27,8 +26,8 @@ class JobCancelled(Exception):
 
 # Job status values the frontend polls on. 'preparing' is the brief window
 # before the first byte; 'downloading'/'processing' carry a progress %; the rest
-# are terminal except DELIVERING, which means FileResponse is actively streaming
-# the finished file to the browser.
+# are terminal except DELIVERING, which means the finished file has been handed
+# to a browser download and remains temporarily available for retries/resume.
 PREPARING = "preparing"
 DOWNLOADING = "downloading"
 PROCESSING = "processing"   # FFmpeg merge (video) / convert (audio)
@@ -64,10 +63,9 @@ class Job:
     # Optional terminal-retention override. Large ephemeral outputs such as chat
     # overlays can use a shorter abandoned-file window than normal media jobs.
     retention_seconds: Optional[int] = None
-    # Delivery starts only after a ready file is requested by the browser. The
-    # background response cleanup normally removes the directory immediately
-    # after transfer; these fields keep the stale sweeper from interrupting a
-    # slow large-file transfer and still provide a crash/disconnect backstop.
+    # Delivery starts only after a ready file is requested by the browser. Keep
+    # the finished file around briefly so Chromium/Edge can retry or resume a
+    # large download instead of getting a 404 after the first request finishes.
     delivery_started_at: Optional[float] = None
     delivery_timeout_seconds: Optional[int] = None
 
@@ -85,6 +83,14 @@ class Job:
     def ready(self) -> bool:
         return (
             self.status == READY
+            and self.filepath is not None
+            and self.filepath.is_file()
+        )
+
+    @property
+    def deliverable(self) -> bool:
+        return (
+            self.status in {READY, DELIVERING}
             and self.filepath is not None
             and self.filepath.is_file()
         )
@@ -129,16 +135,17 @@ class JobStore:
         job.finished_at = time.time()
 
     def begin_delivery(self, job: Job) -> bool:
-        """Atomically lease a ready file to one browser download.
+        """Lease a finished file to a browser download.
 
-        READY jobs are eligible for abandoned-file cleanup. DELIVERING jobs are
-        protected from that short TTL while bytes are in flight, then removed by
-        the response background task. A much longer delivery timeout remains as
-        a safety net if the server/client disappears mid-transfer.
+        The first request moves READY -> DELIVERING. Further requests while the
+        file still exists are accepted too; browsers may issue a retry/resume
+        request for a large file after the initial transfer or safety scan. Each
+        request refreshes the delivery lease so the stale sweeper cannot remove
+        the file while that retry is in flight.
         """
         with self._lock:
             current = self._jobs.get(job.id)
-            if current is not job or not job.ready:
+            if current is not job or not job.deliverable:
                 return False
             job.status = DELIVERING
             job.stage = "sending file"
@@ -168,11 +175,11 @@ class JobStore:
 
     # --- maintenance -------------------------------------------------------
     def sweep_stale(self, ttl_seconds: int) -> int:
-        """Remove abandoned terminal jobs and stuck delivery leases.
+        """Remove abandoned terminal jobs and expired delivery leases.
 
         Active prepare/render jobs are deliberately never swept. A READY job may
-        use a shorter retention override; a DELIVERING job is protected from that
-        short TTL and only reclaimed after its much longer delivery backstop.
+        use a shorter retention override. DELIVERING jobs are kept for their
+        delivery lease, allowing browser retry/resume requests, then reclaimed.
         """
         now = time.time()
         with self._lock:
