@@ -1,7 +1,6 @@
 /* Repair overrides: restore the last stable URL bar and surface Advanced controls cleanly. */
 
-/* URL bar: return to the known-good layered border. The previous corner-only
-   pseudo rings are explicitly disabled because they distorted the pill. */
+/* URL bar: keep the known-good 2px layered border for the straight runs. */
 .chat-flow-source .chat-url-wrap,
 .chat-flow-source .chat-url-wrap:focus-within{
   position:relative!important;
@@ -15,15 +14,59 @@
   overflow:hidden!important;
   isolation:auto!important;
 }
+
+/* Reinforce only the rounded ends at 6px. The middle top/bottom/left/right runs
+   remain 2px; these overlays make the curved caps visually heavier without
+   changing the input's layout or padding. */
 .chat-flow-source .chat-url-wrap::before,
 .chat-flow-source .chat-url-wrap::after{
-  content:none!important;
-  display:none!important;
-  background:none!important;
+  content:""!important;
+  display:block!important;
+  position:absolute!important;
+  z-index:2!important;
+  top:0!important;
+  bottom:0!important;
+  width:28px!important;
+  pointer-events:none!important;
+  background:transparent!important;
+  box-sizing:border-box!important;
+}
+.chat-flow-source .chat-url-wrap::before{
+  left:0!important;
+  border-left:6px solid var(--ink)!important;
+  border-top:6px solid var(--ink)!important;
+  border-bottom:6px solid var(--ink)!important;
+  border-right:0!important;
+  border-radius:18px 0 0 18px!important;
+  transform:none!important;
+}
+.chat-flow-source .chat-url-wrap::after{
+  right:0!important;
+  border-right:6px solid var(--ink)!important;
+  border-top:6px solid var(--ink)!important;
+  border-bottom:6px solid var(--ink)!important;
+  border-left:0!important;
+  border-radius:0 18px 18px 0!important;
   transform:none!important;
 }
 .chat-flow-source .chat-url-wrap:focus-within{
   box-shadow:0 0 0 4px var(--accent-tint),var(--shadow-sm)!important;
+}
+.chat-flow-source .chat-url-icon,
+.chat-flow-source #chat-url,
+.chat-flow-source .chat-paste{position:relative!important;z-index:4!important;}
+
+/* Preview bubble compositing fix. The old translucent backdrop blur was being
+   re-rasterised while messages entered/left, which can show up as a dark
+   horizontal seam on Chromium/WebKit compositing layers. Keep the soft translucent
+   card look, but remove backdrop blur and use one stable diffuse shadow. */
+.chat-stage .chat-message{
+  background:rgba(28,28,33,.94)!important;
+  border:1px solid rgba(255,255,255,.07)!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  box-shadow:0 7px 20px rgba(0,0,0,.14)!important;
+  isolation:isolate!important;
 }
 
 /* Advanced Stage-2 controls. These are the original controls moved out of the
