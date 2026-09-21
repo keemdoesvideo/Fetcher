@@ -1,6 +1,7 @@
-/* Branch-only Style Lab UI arranger.
-   Reintroduces a compact tabbed sidebar and moves motion/editor controls out of
-   the look-card column so the preview + look carousel can breathe on laptops. */
+/* Branch-only Style Lab Stage 2 arranger.
+   Keeps the approved look carousel on the left and turns the right panel into
+   one continuous, internally-scrollable settings surface. No source/search
+   observers are touched here. */
 (function () {
   'use strict';
 
@@ -12,121 +13,91 @@
   var customCard = document.querySelector('.chat-custom-card');
   var motionCard = document.querySelector('.chat-motion-card');
   var editorCard = document.querySelector('.chat-editor-card');
-  if (!styleStage || !styleRight || !switcher || !host || !customCard || !motionCard || !editorCard) return;
+  var advanced = styleRight && styleRight.querySelector('.chat-advanced');
+  var next = styleRight && styleRight.querySelector('.chat-flow-next');
+  if (!styleStage || !styleRight || !host || !customCard || !motionCard || !editorCard) return;
 
-  var parking = document.createDocumentFragment();
-  var activePane = 'style';
+  var grids = Array.prototype.slice.call(customCard.querySelectorAll('.chat-custom-grid'));
+  if (grids.length < 2) return;
+  var styleGrid = grids[0];
+  var soundGrid = grids[1];
 
-  var oldButtons = Array.prototype.slice.call(switcher.querySelectorAll('.chat-style-switch-item'));
-  var styleButton = oldButtons.find(function (button) { return button.dataset.stylePane === 'spacing'; }) || oldButtons[0];
-  var soundButton = oldButtons.find(function (button) { return button.dataset.stylePane === 'sound'; }) || oldButtons[1];
-
-  if (styleButton) {
-    styleButton.dataset.stylePane = 'style';
-    styleButton.textContent = 'style';
+  function makeSection(className, title, note) {
+    var section = document.createElement('section');
+    section.className = 'chat-sidebar-section ' + className;
+    var head = document.createElement('div');
+    head.className = 'chat-sidebar-section-head';
+    head.innerHTML = '<div><span class="chat-sidebar-kicker">settings</span><h3>' + title + '</h3></div>' +
+      (note ? '<p>' + note + '</p>' : '');
+    section.appendChild(head);
+    return section;
   }
 
-  function makeDivider() {
-    var divider = document.createElement('span');
-    divider.className = 'chat-style-switch-divider';
-    divider.setAttribute('aria-hidden', 'true');
-    return divider;
+  var styleSection = makeSection('chat-sidebar-style-section', 'style', 'bubble shape + type');
+  var soundSection = makeSection('chat-sidebar-sound-section', 'sound', 'message cues');
+
+  styleSection.appendChild(styleGrid);
+  soundSection.appendChild(soundGrid);
+
+  motionCard.classList.add('chat-sidebar-section', 'chat-sidebar-motion-section');
+  editorCard.classList.add('chat-sidebar-section', 'chat-sidebar-message-section');
+  if (advanced) advanced.classList.add('chat-sidebar-advanced');
+
+  if (switcher) {
+    switcher.hidden = true;
+    switcher.setAttribute('aria-hidden', 'true');
+  }
+  if (oldEditorMount) {
+    oldEditorMount.hidden = true;
+    oldEditorMount.setAttribute('aria-hidden', 'true');
   }
 
-  function makeTab(value, label) {
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'chat-style-switch-item';
-    button.dataset.stylePane = value;
-    button.textContent = label;
-    return button;
-  }
+  styleRight.classList.add('chat-style-scroll-layout');
+  host.classList.add('chat-style-scrollbody');
 
-  var motionButton = makeTab('motion', 'motion');
-  var messagesButton = makeTab('messages', 'messages');
-
-  /* Rebuild the compact tab row in a stable order. Existing buttons keep their
-     styling but the old stages.js click handler is intercepted below. */
-  switcher.innerHTML = '';
-  if (styleButton) switcher.appendChild(styleButton);
-  switcher.appendChild(makeDivider());
-  switcher.appendChild(motionButton);
-  switcher.appendChild(makeDivider());
-  if (soundButton) switcher.appendChild(soundButton);
-  switcher.appendChild(makeDivider());
-  switcher.appendChild(messagesButton);
-
-  function moveOut(node) {
-    if (node && node.parentNode === host) parking.appendChild(node);
-  }
-
-  function customGrids() {
-    return Array.prototype.slice.call(customCard.querySelectorAll('.chat-custom-grid'));
-  }
-
-  function setCustomPane(which) {
-    var grids = customGrids();
-    grids.forEach(function (grid, index) {
-      grid.hidden = which === 'style' ? index !== 0 : index !== 1;
-    });
-    var divider = customCard.querySelector('.chat-custom-divider');
-    if (divider) divider.hidden = true;
+  function hideLegacyChrome() {
     var head = customCard.querySelector('.chat-custom-head');
+    var divider = customCard.querySelector('.chat-custom-divider');
     if (head) head.hidden = true;
+    if (divider) divider.hidden = true;
     Array.prototype.forEach.call(customCard.querySelectorAll('.chat-custom-note'), function (note) {
       note.hidden = true;
     });
+    styleGrid.hidden = false;
+    soundGrid.hidden = false;
   }
 
-  function setTabs() {
-    Array.prototype.forEach.call(switcher.querySelectorAll('.chat-style-switch-item'), function (button) {
-      var on = button.dataset.stylePane === activePane;
-      button.classList.toggle('active', on);
-      button.setAttribute('aria-selected', on ? 'true' : 'false');
-      button.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
+  function restoreLayout() {
+    hideLegacyChrome();
+
+    /* stages.js can re-home the wired cards whenever Stage 2 is shown again.
+       Move the original nodes back rather than cloning them so every existing
+       listener and setting value is preserved. */
+    customCard.appendChild(styleSection);
+    customCard.appendChild(motionCard);
+    customCard.appendChild(soundSection);
+    customCard.appendChild(editorCard);
+    if (advanced) customCard.appendChild(advanced);
+
+    if (customCard.parentNode !== host) host.appendChild(customCard);
+    if (next && next.parentNode !== styleRight) styleRight.appendChild(next);
   }
 
-  function showPane(pane) {
-    if (['style', 'motion', 'sound', 'messages'].indexOf(pane) === -1) pane = 'style';
-    activePane = pane;
+  restoreLayout();
 
-    moveOut(customCard);
-    moveOut(motionCard);
-    moveOut(editorCard);
-
-    if (pane === 'style' || pane === 'sound') {
-      setCustomPane(pane);
-      host.appendChild(customCard);
-    } else if (pane === 'motion') {
-      host.appendChild(motionCard);
-    } else {
-      host.appendChild(editorCard);
-    }
-
-    setTabs();
-    host.classList.remove('chat-tool-swap');
-    requestAnimationFrame(function () { host.classList.add('chat-tool-swap'); });
-  }
-
-  /* The original staged flow still owns source/style/export navigation. We only
-     own this inner tab row, so stop its old spacing/sound handler before it sees
-     these clicks. */
-  switcher.addEventListener('click', function (event) {
-    var button = event.target.closest('[data-style-pane]');
-    if (!button) return;
-    event.preventDefault();
-    event.stopPropagation();
-    showPane(button.dataset.stylePane);
-  }, true);
-
-  /* stages.js may move the custom/editor cards back into its old mounts whenever
-     Stage 2 is re-entered. Re-apply our pane after that synchronous work settles. */
+  /* Class-only stage observation is intentionally narrow. It cannot see the
+     descendant class changes that caused the old source/search feedback loop. */
   new MutationObserver(function () {
     if (!styleStage.classList.contains('active')) return;
-    requestAnimationFrame(function () { showPane(activePane); });
+    requestAnimationFrame(restoreLayout);
   }).observe(styleStage, { attributes: true, attributeFilter: ['class'] });
 
-  if (oldEditorMount) oldEditorMount.setAttribute('aria-hidden', 'true');
-  showPane('style');
+  /* If the original stage helper pulls the editor back into its legacy mount
+     during an in-place chat reload, quietly reclaim it. Child insertion only. */
+  if (oldEditorMount) {
+    new MutationObserver(function () {
+      if (!styleStage.classList.contains('active')) return;
+      if (editorCard.parentNode === oldEditorMount) requestAnimationFrame(restoreLayout);
+    }).observe(oldEditorMount, { childList: true });
+  }
 })();
