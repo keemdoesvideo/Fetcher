@@ -68,10 +68,24 @@ class ChatExportRequest(ChatCaptureRequest):
     resolution: Literal["1080p", "720p"] = "1080p"
     fps: Literal[30, 60] = 30
 
-    # Overall chat presentation. These change placement/entry motion while
-    # keeping the same message content, Twitch badges and third-party cosmetics.
+    # Style Lab presentation axes. Keeping these independent lets one visual skin
+    # be combined with different layout and motion behaviours.
+    visualLook: Literal[
+        "classic", "y2k", "editorial", "glass", "messenger", "terminal",
+        "cyber", "scrapbook", "win95", "manga"
+    ] = "classic"
+    chatLayout: Literal[
+        "stack", "top-down", "ticker", "float", "sticker", "spotlight", "emote-cloud"
+    ] = "stack"
+    entryAnimation: Literal[
+        "rise", "fade", "pop", "spring", "glide", "type", "wipe", "glitch", "instant",
+        # Backward-compatible values used by existing saved presets.
+        "slide", "float"
+    ] = "rise"
+    stackMotion: Literal["smooth", "spring", "instant"] = "smooth"
+
+    # Legacy layout field retained on the branch so older clients can still export.
     chatLook: Literal["bubble", "fade-stack", "ticker", "staggered", "spotlight", "emote-cloud"] = "bubble"
-    entryAnimation: Literal["slide", "fade", "pop", "float", "instant"] = "slide"
     chatFont: Literal["system", "arial", "helvetica", "verdana", "georgia", "courier"] = "system"
 
     # Visual parity controls. 20 reference pixels at 1080p maps to the spacing
