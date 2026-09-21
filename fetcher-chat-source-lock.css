@@ -47,3 +47,16 @@
   width:min(640px,calc(100vw - 48px))!important;
   max-width:640px!important;
 }
+
+/* Stage JS puts fetcher-source-ready on .chat-source, not on the stage section.
+   The older selector targeted .chat-flow-source.fetcher-source-ready, which can
+   never match and left the start/end + Load chat row hidden even after the VOD
+   player was fully ready. Keep the progression controls tied to the actual state
+   owner and centre them beneath the player. */
+.chat-flow-source .chat-source.fetcher-source-ready .chat-range{
+  display:grid!important;
+  width:min(640px,calc(100vw - 48px));
+  max-width:640px;
+  margin:12px auto 0!important;
+  animation:chat-stage-in .18s var(--ease) both;
+}
