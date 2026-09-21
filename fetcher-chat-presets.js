@@ -52,7 +52,7 @@
     '<div class="chat-presets-head"><div><span class="chat-presets-kicker">workflow</span><h2>saved presets</h2></div></div>',
     '<div class="chat-presets-save"><input id="chat-preset-name" type="text" maxlength="40" placeholder="TikTok chat, clean overlay…"><button class="chat-presets-btn primary" id="chat-preset-save" type="button">save current</button></div>',
     '<div class="chat-presets-row"><select class="chat-presets-select" id="chat-preset-select" aria-label="Saved chat preset"><option value="">no saved presets</option></select><button class="chat-presets-btn" id="chat-preset-apply" type="button">apply</button><button class="chat-presets-btn" id="chat-preset-delete" type="button">delete</button></div>',
-    '<p class="chat-presets-note" id="chat-preset-note">Presets stay in this browser and restore look, timing, font, canvas, sound and export settings in one click.</p>'
+    '<p class="chat-presets-note" id="chat-preset-note">Presets stay in this browser and restore look, layout, motion, timing, font, canvas, sound and export settings in one click.</p>'
   ].join('');
 
   var styleCard = side.querySelector('.chat-custom-card');
@@ -103,8 +103,11 @@
       else settings[field.id] = el.value;
     });
     if (window.FetcherChatLooks) {
-      settings.__chatLook = window.FetcherChatLooks.getLook();
+      settings.__visualLook = window.FetcherChatLooks.getVisualLook ? window.FetcherChatLooks.getVisualLook() : window.FetcherChatLooks.getLook();
+      settings.__chatLook = settings.__visualLook; // keep v1 presets readable by older builds
+      settings.__chatLayout = window.FetcherChatLooks.getLayout ? window.FetcherChatLooks.getLayout() : 'stack';
       settings.__entryAnimation = window.FetcherChatLooks.getEntry();
+      settings.__stackMotion = window.FetcherChatLooks.getStackMotion ? window.FetcherChatLooks.getStackMotion() : 'smooth';
     }
     return settings;
   }
@@ -123,8 +126,14 @@
       setControl(document.getElementById(field.id), settings[field.id], field.type);
     });
     if (window.FetcherChatLooks) {
-      if (settings.__chatLook) window.FetcherChatLooks.setLook(String(settings.__chatLook));
+      var visual = settings.__visualLook || settings.__chatLook;
+      if (visual) {
+        if (window.FetcherChatLooks.setVisualLook) window.FetcherChatLooks.setVisualLook(String(visual));
+        else window.FetcherChatLooks.setLook(String(visual));
+      }
+      if (settings.__chatLayout && window.FetcherChatLooks.setLayout) window.FetcherChatLooks.setLayout(String(settings.__chatLayout));
       if (settings.__entryAnimation) window.FetcherChatLooks.setEntry(String(settings.__entryAnimation));
+      if (settings.__stackMotion && window.FetcherChatLooks.setStackMotion) window.FetcherChatLooks.setStackMotion(String(settings.__stackMotion));
     }
   }
 
