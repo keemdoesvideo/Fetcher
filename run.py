@@ -25,6 +25,7 @@ app_module.ALLOWED_ASSETS.update({
     "fetcher-chat-stage-polish.css": "text/css; charset=utf-8",
     "fetcher-chat-cleanup.css": "text/css; charset=utf-8",
     "fetcher-chat-repair.css": "text/css; charset=utf-8",
+    "fetcher-chat-url-fresh.css": "text/css; charset=utf-8",
     "fetcher-chat.js": "application/javascript; charset=utf-8",
     "fetcher-chat-enhance.js": "application/javascript; charset=utf-8",
     "fetcher-chat-parity.js": "application/javascript; charset=utf-8",
@@ -57,6 +58,10 @@ if "fetcher-chat-cleanup.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-cleanup.css">'
 if "fetcher-chat-repair.css" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-repair.css">'
+# This loads last on purpose: it completely rebuilds the source URL pill and
+# neutralizes every earlier border/pseudo-element experiment.
+if "fetcher-chat-url-fresh.css" not in app_module._LAUNCH_HEAD:
+    app_module._LAUNCH_HEAD += '\n<link rel="stylesheet" href="/fetcher-chat-url-fresh.css">'
 if "fetcher-chat-enhance.js" not in app_module._LAUNCH_HEAD:
     app_module._LAUNCH_HEAD += '\n<script defer src="/fetcher-chat-enhance.js"></script>'
 if "fetcher-chat-parity.js" not in app_module._LAUNCH_HEAD:
