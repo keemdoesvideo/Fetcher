@@ -14,6 +14,13 @@
        never visually clipped by the thumbnail's rounded shell. */
     '.chat-look-gif{position:absolute!important;inset:8px!important;width:calc(100% - 16px)!important;height:calc(100% - 16px)!important;object-fit:contain!important;display:block!important;z-index:4!important;pointer-events:none!important;user-select:none!important;-webkit-user-select:none!important;-webkit-user-drag:none!important;border-radius:10px!important;transform:translateZ(0)!important;backface-visibility:hidden!important;-webkit-backface-visibility:hidden!important;}',
     '.chat-look-option[aria-pressed="true"] .chat-look-gif{filter:saturate(1.03) contrast(1.01);}',
+    /* Scrapbook's tilt used the transform property, which is also owned by the
+       entry keyframes. Because those animations use fill:both, their final
+       transform:none kept winning even after the message had settled. Move the
+       permanent paper tilt onto the independent rotate property instead. It then
+       composes with Rise/Pop/Spring/Glide/Wipe/Glitch transforms and with the
+       separate stack translate animation without fighting either one. */
+    '#chat-stack[data-chat-look="scrapbook"] .chat-message{transform:none;rotate:var(--sticker-rot,0deg)!important;transform-origin:center!important;}',
     /* Once the GIF has loaded, the old CSS thumbnail is no longer a fallback.
        Hiding/removing it prevents Chromium/WebKit from briefly compositing the
        static preview above the GIF while the carousel track is being dragged. */
