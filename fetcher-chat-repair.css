@@ -1,0 +1,109 @@
+/* Repair overrides: restore the last stable URL bar and surface Advanced controls cleanly. */
+
+/* URL bar: return to the known-good layered border. The previous corner-only
+   pseudo rings are explicitly disabled because they distorted the pill. */
+.chat-flow-source .chat-url-wrap,
+.chat-flow-source .chat-url-wrap:focus-within{
+  position:relative!important;
+  border:2px solid transparent!important;
+  border-radius:18px!important;
+  background:
+    linear-gradient(var(--surface),var(--surface)) padding-box,
+    linear-gradient(var(--ink),var(--ink)) border-box!important;
+  background-clip:padding-box,border-box!important;
+  box-shadow:var(--shadow-sm)!important;
+  overflow:hidden!important;
+  isolation:auto!important;
+}
+.chat-flow-source .chat-url-wrap::before,
+.chat-flow-source .chat-url-wrap::after{
+  content:none!important;
+  display:none!important;
+  background:none!important;
+  transform:none!important;
+}
+.chat-flow-source .chat-url-wrap:focus-within{
+  box-shadow:0 0 0 4px var(--accent-tint),var(--shadow-sm)!important;
+}
+
+/* Advanced Stage-2 controls. These are the original controls moved out of the
+   hidden clip-finder card, so their existing event/fetch wiring remains intact. */
+.chat-advanced{
+  margin-top:18px;
+  border-top:1px solid var(--border);
+  padding-top:14px;
+}
+.chat-advanced>summary{
+  list-style:none;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:9px;
+  cursor:pointer;
+  user-select:none;
+  padding:4px 1px 7px;
+  color:var(--ink);
+}
+.chat-advanced>summary::-webkit-details-marker{display:none;}
+.chat-advanced-title{
+  font-size:10.5px;
+  font-weight:850;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+}
+.chat-advanced-hint{
+  min-width:0;
+  font-size:9.5px;
+  color:var(--ink-faint);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.chat-advanced-chevron{
+  color:var(--ink-faint);
+  font-size:15px;
+  line-height:1;
+  transition:transform .18s var(--ease);
+}
+.chat-advanced[open] .chat-advanced-chevron{transform:rotate(180deg);}
+.chat-advanced-body{
+  padding:7px 0 2px;
+  animation:chat-advanced-in .16s var(--ease) both;
+}
+@keyframes chat-advanced-in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.chat-advanced .chat-insights-grid{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:9px!important;
+}
+.chat-advanced .chat-insights-field:last-child{grid-column:1/-1;}
+.chat-advanced .chat-insights-field{gap:5px!important;}
+.chat-advanced .chat-insights-field>span{
+  font-size:9px!important;
+  letter-spacing:.06em!important;
+}
+.chat-advanced .chat-insights-field select{
+  min-height:37px;
+  padding:8px 9px!important;
+  border-radius:10px!important;
+  font-size:10.5px!important;
+}
+.chat-advanced .chat-insights-check{
+  margin:10px 1px 0!important;
+  padding:9px 10px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:var(--bg);
+  line-height:1.35;
+}
+.chat-advanced+.chat-flow-next{margin-top:14px!important;}
+
+@media(max-width:900px){
+  .chat-advanced .chat-insights-grid{grid-template-columns:1fr!important;}
+  .chat-advanced .chat-insights-field:last-child{grid-column:auto;}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .chat-advanced-body{animation:none!important;}
+  .chat-advanced-chevron{transition:none!important;}
+}
