@@ -1,0 +1,193 @@
+/* Final staged Chat polish. Loaded after the existing staged/source-lock sheets.
+   This is intentionally CSS-only so capture, search, export and observer logic stay untouched. */
+
+/* -------------------------------------------------------------------------
+   Stage 1 — fresh source bar + source -> viewer morph
+   ------------------------------------------------------------------------- */
+.chat-flow-source .chat-url-wrap,
+.chat-flow-source .chat-url-wrap:focus-within{
+  position:relative!important;
+  border:0!important;
+  border-radius:18px!important;
+  background:var(--surface)!important;
+  background-clip:padding-box!important;
+  overflow:hidden!important;
+  box-shadow:inset 0 0 0 1.5px var(--ink),var(--shadow-sm)!important;
+}
+.chat-flow-source .chat-url-wrap::after{display:none!important;content:none!important;}
+.chat-flow-source .chat-url-wrap:focus-within{
+  box-shadow:inset 0 0 0 1.5px var(--ink),0 0 0 4px var(--accent-tint),var(--shadow-sm)!important;
+}
+.chat-flow-source .chat-source-row{
+  max-height:58px;
+  opacity:1;
+  transform:translateY(0) scale(1);
+  transform-origin:center bottom;
+  transition:max-height .28s var(--ease),opacity .18s var(--ease),transform .28s var(--ease),margin .28s var(--ease)!important;
+}
+.chat-flow-source .chat-source.fetcher-source-ready .chat-source-row{
+  max-height:0!important;
+  margin-top:0!important;
+  margin-bottom:0!important;
+  opacity:0!important;
+  transform:translateY(10px) scale(1.035)!important;
+  pointer-events:none!important;
+  overflow:hidden!important;
+}
+.chat-flow-source #chat-trim-mount{
+  transition:margin-top .28s var(--ease),transform .28s var(--ease),opacity .18s var(--ease)!important;
+}
+.chat-flow-source .chat-source.fetcher-source-ready #chat-trim-mount{margin-top:0!important;}
+
+/* -------------------------------------------------------------------------
+   Stage 2 — one continuous styling sidebar, no tabs, animated look previews
+   ------------------------------------------------------------------------- */
+.chat-style-grid{
+  align-items:stretch!important;
+}
+.chat-style-switch{display:none!important;}
+.chat-style-right{
+  align-self:stretch!important;
+  min-height:100%!important;
+  padding:15px!important;
+  border:1px solid var(--border)!important;
+  border-radius:20px!important;
+  background:var(--surface)!important;
+  box-shadow:var(--shadow-sm)!important;
+  box-sizing:border-box!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:0!important;
+}
+.chat-style-options,
+.chat-message-editor-mount{display:block!important;}
+.chat-style-options>.chat-card,
+.chat-message-editor-mount>.chat-card{
+  width:100%!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+/* Show both style grids together. The stage JS may leave hidden attributes on one
+   of them from the old tab switch; this intentionally overrides that presentation. */
+.chat-style-options .chat-custom-grid,
+.chat-style-options .chat-custom-grid[hidden]{display:grid!important;}
+.chat-style-options .chat-custom-divider,
+.chat-style-options .chat-custom-divider[hidden]{
+  display:block!important;
+  height:1px!important;
+  margin:15px 0!important;
+  background:var(--border)!important;
+}
+.chat-style-options .chat-custom-head,
+.chat-style-options .chat-custom-head[hidden],
+.chat-style-options .chat-custom-note,
+.chat-style-options .chat-custom-note[hidden]{display:none!important;}
+.chat-message-editor-mount{
+  margin-top:16px!important;
+  padding-top:16px!important;
+  border-top:1px solid var(--border)!important;
+}
+.chat-message-editor-mount>.chat-card{
+  max-height:none!important;
+}
+.chat-flow-next{
+  margin-top:auto!important;
+  flex:0 0 auto!important;
+}
+
+/* Make each look preview feel alive without shipping GIF assets. These loops are
+   small CSS animations, so they stay sharp in every theme and cost no downloads. */
+.chat-flow .chat-look-option .chat-demo-msg,
+.chat-flow .chat-look-option .chat-demo-emote{
+  will-change:transform,opacity;
+}
+.chat-flow .chat-look-option[data-look="bubble"] .chat-demo-msg.m1{animation:fetcher-look-bubble 2.8s ease-in-out infinite;}
+@keyframes fetcher-look-bubble{
+  0%,18%{opacity:0;transform:translateY(10px) scale(.96)}
+  32%,78%{opacity:1;transform:none}
+  100%{opacity:.82;transform:translateY(-2px)}
+}
+.chat-flow .chat-look-option[data-look="fade-stack"] .chat-demo-msg.m1{animation:fetcher-look-fade-new 2.8s ease-in-out infinite;}
+.chat-flow .chat-look-option[data-look="fade-stack"] .chat-demo-msg.m2{animation:fetcher-look-fade-mid 2.8s ease-in-out infinite;}
+.chat-flow .chat-look-option[data-look="fade-stack"] .chat-demo-msg.m3{animation:fetcher-look-fade-old 2.8s ease-in-out infinite;}
+@keyframes fetcher-look-fade-new{0%,18%{opacity:.15;transform:translateY(7px)}35%,82%{opacity:1;transform:none}100%{opacity:.72}}
+@keyframes fetcher-look-fade-mid{0%,18%{opacity:.7}55%,100%{opacity:.42}}
+@keyframes fetcher-look-fade-old{0%,18%{opacity:.42}55%,100%{opacity:.14}}
+.chat-flow .chat-look-option[data-look="ticker"] .chat-demo-msg.m1{animation:fetcher-look-ticker 2.6s cubic-bezier(.2,.8,.2,1) infinite;}
+@keyframes fetcher-look-ticker{0%,14%{opacity:0;transform:translateX(-28%)}30%,78%{opacity:1;transform:none}100%{opacity:0;transform:translateX(18%)}}
+.chat-flow .chat-look-option[data-look="staggered"] .chat-demo-msg.m1{animation:fetcher-look-stagger-a 3s ease-in-out infinite;}
+.chat-flow .chat-look-option[data-look="staggered"] .chat-demo-msg.m2{animation:fetcher-look-stagger-b 3s ease-in-out infinite;}
+.chat-flow .chat-look-option[data-look="staggered"] .chat-demo-msg.m3{animation:fetcher-look-stagger-c 3s ease-in-out infinite;}
+@keyframes fetcher-look-stagger-a{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}
+@keyframes fetcher-look-stagger-b{0%,100%{transform:translateX(0)}50%{transform:translateX(-6px)}}
+@keyframes fetcher-look-stagger-c{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+.chat-flow .chat-look-option[data-look="spotlight"] .chat-demo-msg.m1{animation:fetcher-look-spotlight 2.7s ease-in-out infinite;}
+@keyframes fetcher-look-spotlight{0%,18%{opacity:.3;transform:scale(.88)}36%,72%{opacity:1;transform:scale(1.04)}100%{opacity:.3;transform:scale(.9)}}
+.chat-flow .chat-look-option[data-look="emote-cloud"] .chat-demo-emote.e1{animation:fetcher-look-cloud-a 3.4s ease-in-out infinite;}
+.chat-flow .chat-look-option[data-look="emote-cloud"] .chat-demo-emote.e2{animation:fetcher-look-cloud-b 3s ease-in-out infinite;}
+.chat-flow .chat-look-option[data-look="emote-cloud"] .chat-demo-emote.e3{animation:fetcher-look-cloud-c 3.7s ease-in-out infinite;}
+.chat-flow .chat-look-option[data-look="emote-cloud"] .chat-demo-emote.e4{animation:fetcher-look-cloud-d 3.2s ease-in-out infinite;}
+@keyframes fetcher-look-cloud-a{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(8px,-8px) scale(1.14)}}
+@keyframes fetcher-look-cloud-b{0%,100%{transform:translate(0,0) scale(1.2)}50%{transform:translate(-7px,9px) scale(1.05)}}
+@keyframes fetcher-look-cloud-c{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-9px,-6px) scale(1.18)}}
+@keyframes fetcher-look-cloud-d{0%,100%{transform:translate(0,0) scale(.82)}50%{transform:translate(6px,7px) scale(1)}}
+
+/* -------------------------------------------------------------------------
+   Stage 3 — preview grows to the full sidebar height
+   ------------------------------------------------------------------------- */
+.chat-export-grid{
+  height:min(720px,calc(100dvh - 64px))!important;
+  max-height:calc(100dvh - 64px)!important;
+  align-items:stretch!important;
+}
+.chat-flow-stage[data-stage="export"] .chat-flow-preview-slot{
+  height:100%!important;
+  min-height:0!important;
+  align-items:stretch!important;
+}
+.chat-flow-stage[data-stage="export"] .chat-preview-card{
+  height:100%!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.chat-flow-stage[data-stage="export"] .chat-preview-head,
+.chat-flow-stage[data-stage="export"] .chat-controls{flex:0 0 auto!important;}
+.chat-flow-stage[data-stage="export"] .chat-stage{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  aspect-ratio:auto!important;
+}
+.chat-export-long{
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+
+@media(max-height:760px) and (min-width:901px){
+  .chat-export-grid{height:calc(100dvh - 44px)!important;max-height:calc(100dvh - 44px)!important;}
+  .chat-style-right{padding:12px!important;}
+  .chat-message-editor-mount{margin-top:12px!important;padding-top:12px!important;}
+}
+
+@media(max-width:900px){
+  .chat-flow-source .chat-source.fetcher-source-ready .chat-source-row{display:none!important;}
+  .chat-style-right{min-height:auto!important;}
+  .chat-export-grid{height:auto!important;max-height:none!important;}
+  .chat-flow-stage[data-stage="export"] .chat-preview-card{height:auto!important;}
+  .chat-flow-stage[data-stage="export"] .chat-stage{aspect-ratio:16/9!important;}
+  .chat-export-long{height:auto!important;max-height:none!important;overflow:visible!important;}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .chat-flow .chat-look-option .chat-demo-msg,
+  .chat-flow .chat-look-option .chat-demo-emote{animation:none!important;}
+}
